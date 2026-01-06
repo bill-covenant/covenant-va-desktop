@@ -1,0 +1,339 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:async';
+import 'core/constants/app_theme.dart';
+import 'core/di/service_locator.dart';
+import 'presentation/auth/bloc/auth_bloc.dart';
+import 'presentation/auth/bloc/auth_event.dart';
+import 'presentation/auth/bloc/auth_state.dart';
+import 'presentation/auth/screens/login_screen.dart';
+import 'presentation/dashboard/bloc/dashboard_bloc.dart';
+import 'presentation/dashboard/bloc/dashboard_event.dart';
+import 'presentation/dashboard/screens/dashboard_screen.dart';
+import 'presentation/tasks/screens/my_tasks_screen.dart';
+import 'presentation/messages/screens/messages_screen.dart';
+import 'presentation/messages/bloc/messages_bloc.dart';
+import 'presentation/messages/bloc/messages_event.dart';
+import 'presentation/profile/screens/profile_screen.dart';
+import 'presentation/shared/layouts/main_layout.dart';
+import 'presentation/notifications/bloc/notification_bloc.dart';
+import 'presentation/notifications/bloc/notification_event.dart';
+import 'presentation/splash/splash_screen.dart'; // ✅ Add this
+import 'data/repositories/notification_repository.dart';
+import 'data/providers/api_provider.dart';
+import 'services/socket_service.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  await SocketService().initNotifications();
+  await setupServiceLocator();
+  
+  runApp(const CovenantVAApp());
+}
+
+class CovenantVAApp extends StatelessWidget {
+  const CovenantVAApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (context) => getIt<AuthBloc>()..add(const AuthCheckRequested()),
+        ),
+        BlocProvider(
+          create: (context) {
+            final apiProvider = ApiProvider();
+            final notificationRepo = NotificationRepository(apiProvider);
+            return NotificationBloc(notificationRepo);
+          },
+        ),
+      ],
+      child: const _AppContent(),
+    );
+  }
+}
+
+class _AppContent extends StatefulWidget {
+  const _AppContent();
+
+  @override
+  State<_AppContent> createState() => _AppContentState();
+}
+
+class _AppContentState extends State<_AppContent> {
+  Timer? _notificationTimer;
+  bool _hasLoadedNotifications = false;
+  final SocketService _socketService = SocketService();
+  OverlayEntry? _overlayEntry;
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
+  @override
+  void initState() {
+    super.initState();
+    
+    print('🔧 _AppContentState initState called');
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      print('🔧 PostFrameCallback executing...');
+      _setupAuthListener();
+    });
+  }
+
+  void _showNotificationBanner(String title, String body) {
+    print('🎉🎉🎉 _showNotificationBanner called in main.dart!');
+    print('🎉 Title: $title');
+    print('🎉 Body: $body');
+    
+    _overlayEntry?.remove();
+    
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 70,
+        right: 16,
+        width: 380,
+        child: Material(
+          color: Colors.transparent,
+          child: TweenAnimationBuilder<double>(
+            duration: const Duration(milliseconds: 300),
+            tween: Tween(begin: 0.0, end: 1.0),
+            builder: (context, value, child) {
+              return Transform.translate(
+                offset: Offset((1 - value) * 400, 0),
+                child: Opacity(
+                  opacity: value,
+                  child: child,
+                ),
+              );
+            },
+            child: Container(
+              margin: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF7C3AED), Color(0xFF9333EA)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.purple.withOpacity(0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.notifications_active,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          body,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.white,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () {
+                      _overlayEntry?.remove();
+                      _overlayEntry = null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    
+    if (mounted) {
+      Overlay.of(context).insert(_overlayEntry!);
+      print('✅✅✅ Notification banner inserted into overlay');
+      
+      Future.delayed(const Duration(seconds: 5), () {
+        _overlayEntry?.remove();
+        _overlayEntry = null;
+      });
+    } else {
+      print('❌ Context not mounted, cannot show notification');
+    }
+  }
+
+  void _setupAuthListener() {
+    print('🔧 Setting up auth listener...');
+    final authBloc = context.read<AuthBloc>();
+    
+    print('🔧 Current auth state: ${authBloc.state}');
+    print('🔧 Auth state type: ${authBloc.state.runtimeType}');
+    
+    authBloc.stream.listen((authState) {
+      print('🔧🔧🔧 Auth state changed!');
+      print('🔧 New state: $authState');
+      print('🔧 State type: ${authState.runtimeType}');
+      print('🔧 Is AuthAuthenticated? ${authState is AuthAuthenticated}');
+      print('🔧 Has loaded notifications? $_hasLoadedNotifications');
+      
+      if (authState is AuthAuthenticated && !_hasLoadedNotifications) {
+        _hasLoadedNotifications = true;
+        
+        print('🔐 User authenticated, starting socket connection...');
+        print('🔐 User data: ${authState.user}');
+        
+        print('🔔 Setting up notification callback NOW');
+        _socketService.onNotification = _showNotificationBanner;
+        print('🔔 Callback set! Callback is null? ${_socketService.onNotification == null}');
+        
+        context.read<NotificationBloc>()
+          ..add(LoadNotifications())
+          ..add(LoadUnreadCount());
+        
+        final userId = authState.user.id;
+        print('👤 Connecting with user ID: $userId');
+        _socketService.connect(userId);
+        
+        _notificationTimer = Timer.periodic(
+          const Duration(seconds: 30),
+          (timer) {
+            if (mounted) {
+              context.read<NotificationBloc>().add(LoadUnreadCount());
+            }
+          },
+        );
+      } else if (authState is! AuthAuthenticated) {
+        print('🔧 User NOT authenticated or already loaded notifications');
+        _hasLoadedNotifications = false;
+        _notificationTimer?.cancel();
+        _notificationTimer = null;
+        _socketService.disconnect();
+        
+        // ✅ Navigate to login screen after logout using navigatorKey
+        _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+          '/home',
+          (route) => false,
+        );
+      }
+    });
+    
+    print('🔧 Auth listener setup complete');
+  }
+
+  @override
+  void dispose() {
+    print('🔧 _AppContentState disposing...');
+    _notificationTimer?.cancel();
+    _socketService.disconnect();
+    _overlayEntry?.remove();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      navigatorKey: _navigatorKey,
+      title: 'Covenant VA',
+      theme: AppTheme.lightTheme,
+      debugShowCheckedModeBanner: false,
+      // ✅ Set splash as initial route
+      initialRoute: '/splash',
+      routes: {
+        '/splash': (context) => const SplashScreen(), // ✅ Add splash route
+        '/home': (context) => _buildHome(context), // ✅ Add home route
+        '/dashboard': (context) => BlocProvider(
+              create: (context) => getIt<DashboardBloc>()
+                ..add(const DashboardLoadRequested()),
+              child: const MainLayout(
+                currentRoute: 'dashboard',
+                child: DashboardScreen(),
+              ),
+            ),
+        '/tasks': (context) => BlocProvider(
+              create: (context) => getIt<DashboardBloc>()
+                ..add(const DashboardLoadRequested()),
+              child: const MainLayout(
+                currentRoute: 'tasks',
+                child: MyTasksScreen(),
+              ),
+            ),
+        '/messages': (context) => BlocProvider(
+              create: (context) => getIt<MessagesBloc>()
+                ..add(const MessagesLoadRequested()),
+              child: const MainLayout(
+                currentRoute: 'messages',
+                child: MessagesScreen(),
+              ),
+            ),
+        '/profile': (context) => const MainLayout(
+              currentRoute: 'profile',
+              child: ProfileScreen(),
+            ),
+      },
+    );
+  }
+
+  // ✅ Extract home building logic
+  Widget _buildHome(BuildContext context) {
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) {
+        print('🔧 Building home with state: ${state.runtimeType}');
+        
+        if (state is AuthLoading || state is AuthInitial) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        
+        if (state is AuthAuthenticated) {
+          print('🔧 Building MainLayout for authenticated user');
+          return BlocProvider(
+            create: (context) => getIt<DashboardBloc>()
+              ..add(const DashboardLoadRequested()),
+            child: const MainLayout(
+              currentRoute: 'dashboard',
+              child: DashboardScreen(),
+            ),
+          );
+        }
+        
+        print('🔧 Building LoginScreen');
+        return const LoginScreen();
+      },
+    );
+  }
+}
