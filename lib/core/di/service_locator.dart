@@ -6,9 +6,11 @@ import '../../data/repositories/task_repository.dart';
 import '../../data/repositories/message_repository.dart';
 import '../../data/repositories/user_repository.dart';
 import '../../data/repositories/client_repository.dart';
+import '../../data/repositories/timecard_repository.dart'; // ← NEW
 import '../../presentation/auth/bloc/auth_bloc.dart';
 import '../../presentation/dashboard/bloc/dashboard_bloc.dart';
 import '../../presentation/messages/bloc/messages_bloc.dart';
+import '../../presentation/timecard/bloc/timecard_bloc.dart'; // ← NEW
 
 final getIt = GetIt.instance;
 
@@ -49,6 +51,13 @@ Future<void> setupServiceLocator() async {
     ),
   );
 
+  // ← NEW: Timecard Repository
+  getIt.registerLazySingleton<TimecardRepository>(
+    () => TimecardRepository(
+      apiProvider: getIt<ApiProvider>(),
+    ),
+  );
+
   // BLoCs
   getIt.registerFactory<AuthBloc>(
     () => AuthBloc(authRepository: getIt<AuthRepository>()),
@@ -60,5 +69,12 @@ Future<void> setupServiceLocator() async {
 
   getIt.registerFactory<MessagesBloc>(
     () => MessagesBloc(messageRepository: getIt<MessageRepository>()),
+  );
+
+  // ← NEW: Timecard BLoC
+  getIt.registerFactory<TimecardBloc>(
+    () => TimecardBloc(
+      timecardRepository: getIt<TimecardRepository>(),
+    ),
   );
 }

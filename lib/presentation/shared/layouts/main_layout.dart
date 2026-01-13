@@ -126,6 +126,15 @@ class _MainLayoutState extends State<MainLayout> {
                     onTap: () => _navigateTo('messages'),
                   ),
                   const SizedBox(height: 8),
+                  // ← NEW: TIMECARD MENU ITEM
+                  LayoutSidebarNavItem(
+                    icon: Icons.access_time_rounded,
+                    label: 'Timecard',
+                    route: 'timecard',
+                    isSelected: _selectedRoute == 'timecard',
+                    onTap: () => _navigateTo('timecard'),
+                  ),
+                  const SizedBox(height: 8),
                   LayoutSidebarNavItem(
                     icon: Icons.person,
                     label: 'Profile',

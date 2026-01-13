@@ -100,6 +100,16 @@ class _AppSidebarState extends State<AppSidebar> {
             },
           ),
           const SizedBox(height: 8),
+          // ← NEW: TIMECARD MENU ITEM
+          SidebarNavItem(
+            icon: Icons.access_time_rounded, // Clock icon
+            label: 'Timecard',
+            isSelected: _selectedRoute == 'timecard',
+            onTap: () {
+              Navigator.pushReplacementNamed(context, '/timecard');
+            },
+          ),
+          const SizedBox(height: 8),
           SidebarNotificationItem(
             isSelected: _selectedRoute == 'notifications',
           ),

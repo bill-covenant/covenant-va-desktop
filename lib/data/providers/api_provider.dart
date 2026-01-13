@@ -9,11 +9,13 @@ class ApiProvider {
   // Set token for authenticated requests
   void setToken(String token) {
     _token = token;
+    print('🔑 ApiProvider: Token set, length: ${token.length}'); // ← DEBUG
   }
 
   // Clear token on logout
   void clearToken() {
     _token = null;
+    print('🔑 ApiProvider: Token cleared'); // ← DEBUG
   }
 
   // Get headers with auth token
@@ -24,19 +26,34 @@ class ApiProvider {
 
     if (includeAuth && _token != null) {
       headers['Authorization'] = 'Bearer $_token';
+      print('🔑 ApiProvider: Adding auth header'); // ← DEBUG
+    } else if (includeAuth && _token == null) {
+      print('⚠️ ApiProvider: Auth required but no token available!'); // ← DEBUG
     }
 
     return headers;
   }
 
-  // Build full URL from endpoint
-  String _buildUrl(String endpoint) {
+  // Build full URL from endpoint with query parameters
+  String _buildUrl(String endpoint, {Map<String, String>? queryParams}) {
+    String url;
+    
     // If endpoint already has full URL, use it
     if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
-      return endpoint;
+      url = endpoint;
+    } else {
+      // Otherwise, prepend base URL
+      url = '${ApiConstants.baseUrl}$endpoint';
     }
-    // Otherwise, prepend base URL
-    return '${ApiConstants.baseUrl}$endpoint';
+
+    // Add query parameters if provided
+    if (queryParams != null && queryParams.isNotEmpty) {
+      final uri = Uri.parse(url);
+      final newUri = uri.replace(queryParameters: queryParams);
+      return newUri.toString();
+    }
+
+    return url;
   }
 
   // POST request
@@ -46,31 +63,46 @@ class ApiProvider {
     bool requiresAuth = false,
   }) async {
     try {
+      print('🌐 API POST: $endpoint'); // ← DEBUG
+      print('🔑 Auth required: $requiresAuth'); // ← DEBUG
+      print('🔑 Token exists: ${_token != null}'); // ← DEBUG
+      
       final response = await _client.post(
         Uri.parse(_buildUrl(endpoint)),
         headers: _getHeaders(includeAuth: requiresAuth),
         body: jsonEncode(body),
       );
 
+      print('📥 Response status: ${response.statusCode}'); // ← DEBUG
+      
       return _handleResponse(response);
     } catch (e) {
+      print('❌ API Error: $e'); // ← DEBUG
       throw Exception('Network error: $e');
     }
   }
 
-  // GET request
+  // GET request with query parameters support
   Future<Map<String, dynamic>> get(
     String endpoint, {
+    Map<String, String>? queryParams,
     bool requiresAuth = false,
   }) async {
     try {
+      print('🌐 API GET: $endpoint'); // ← DEBUG
+      print('🔑 Auth required: $requiresAuth'); // ← DEBUG
+      print('🔑 Token exists: ${_token != null}'); // ← DEBUG
+      
       final response = await _client.get(
-        Uri.parse(_buildUrl(endpoint)),
+        Uri.parse(_buildUrl(endpoint, queryParams: queryParams)),
         headers: _getHeaders(includeAuth: requiresAuth),
       );
 
+      print('📥 Response status: ${response.statusCode}'); // ← DEBUG
+      
       return _handleResponse(response);
     } catch (e) {
+      print('❌ API Error: $e'); // ← DEBUG
       throw Exception('Network error: $e');
     }
   }
@@ -82,14 +114,21 @@ class ApiProvider {
     bool requiresAuth = false,
   }) async {
     try {
+      print('🌐 API PUT: $endpoint'); // ← DEBUG
+      print('🔑 Auth required: $requiresAuth'); // ← DEBUG
+      print('🔑 Token exists: ${_token != null}'); // ← DEBUG
+      
       final response = await _client.put(
         Uri.parse(_buildUrl(endpoint)),
         headers: _getHeaders(includeAuth: requiresAuth),
         body: jsonEncode(body),
       );
 
+      print('📥 Response status: ${response.statusCode}'); // ← DEBUG
+      
       return _handleResponse(response);
     } catch (e) {
+      print('❌ API Error: $e'); // ← DEBUG
       throw Exception('Network error: $e');
     }
   }
@@ -100,13 +139,20 @@ class ApiProvider {
     bool requiresAuth = false,
   }) async {
     try {
+      print('🌐 API DELETE: $endpoint'); // ← DEBUG
+      print('🔑 Auth required: $requiresAuth'); // ← DEBUG
+      print('🔑 Token exists: ${_token != null}'); // ← DEBUG
+      
       final response = await _client.delete(
         Uri.parse(_buildUrl(endpoint)),
         headers: _getHeaders(includeAuth: requiresAuth),
       );
 
+      print('📥 Response status: ${response.statusCode}'); // ← DEBUG
+      
       return _handleResponse(response);
     } catch (e) {
+      print('❌ API Error: $e'); // ← DEBUG
       throw Exception('Network error: $e');
     }
   }

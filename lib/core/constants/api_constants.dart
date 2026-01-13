@@ -1,6 +1,6 @@
 class ApiConstants {
-  // Base URL - Production
-  static const String baseUrl = 'https://covenant-va-backend.onrender.com/api';
+  // Base URL - LOCAL DEVELOPMENT
+  static const String baseUrl = 'http://localhost:5000/api';
   
   // Auth endpoints
   static const String login = '$baseUrl/auth/login';

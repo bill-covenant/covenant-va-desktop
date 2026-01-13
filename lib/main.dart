@@ -18,7 +18,9 @@ import 'presentation/profile/screens/profile_screen.dart';
 import 'presentation/shared/layouts/main_layout.dart';
 import 'presentation/notifications/bloc/notification_bloc.dart';
 import 'presentation/notifications/bloc/notification_event.dart';
-import 'presentation/splash/splash_screen.dart'; // ✅ Add this
+import 'presentation/splash/splash_screen.dart';
+import 'presentation/timecard/bloc/timecard_bloc.dart';
+import 'presentation/timecard/screens/timecard_screen.dart';
 import 'data/repositories/notification_repository.dart';
 import 'data/providers/api_provider.dart';
 import 'services/socket_service.dart';
@@ -44,7 +46,7 @@ class CovenantVAApp extends StatelessWidget {
         ),
         BlocProvider(
           create: (context) {
-            final apiProvider = ApiProvider();
+            final apiProvider = getIt<ApiProvider>(); // ← Use service locator
             final notificationRepo = NotificationRepository(apiProvider);
             return NotificationBloc(notificationRepo);
           },
@@ -241,7 +243,6 @@ class _AppContentState extends State<_AppContent> {
         _notificationTimer = null;
         _socketService.disconnect();
         
-        // ✅ Navigate to login screen after logout using navigatorKey
         _navigatorKey.currentState?.pushNamedAndRemoveUntil(
           '/home',
           (route) => false,
@@ -268,11 +269,10 @@ class _AppContentState extends State<_AppContent> {
       title: 'Covenant VA',
       theme: AppTheme.lightTheme,
       debugShowCheckedModeBanner: false,
-      // ✅ Set splash as initial route
       initialRoute: '/splash',
       routes: {
-        '/splash': (context) => const SplashScreen(), // ✅ Add splash route
-        '/home': (context) => _buildHome(context), // ✅ Add home route
+        '/splash': (context) => const SplashScreen(),
+        '/home': (context) => _buildHome(context),
         '/dashboard': (context) => BlocProvider(
               create: (context) => getIt<DashboardBloc>()
                 ..add(const DashboardLoadRequested()),
@@ -297,6 +297,18 @@ class _AppContentState extends State<_AppContent> {
                 child: MessagesScreen(),
               ),
             ),
+        // ← UPDATED: TIMECARD ROUTE (Using service locator)
+        '/timecard': (context) {
+          return BlocProvider(
+            create: (context) => getIt<TimecardBloc>(),
+            child: const MainLayout(
+              currentRoute: 'timecard',
+              child: TimecardScreen(
+                clientId: '',
+              ),
+            ),
+          );
+        },
         '/profile': (context) => const MainLayout(
               currentRoute: 'profile',
               child: ProfileScreen(),
@@ -305,7 +317,6 @@ class _AppContentState extends State<_AppContent> {
     );
   }
 
-  // ✅ Extract home building logic
   Widget _buildHome(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
