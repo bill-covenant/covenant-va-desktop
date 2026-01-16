@@ -63,11 +63,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     try {
+      print('📋 ProfileScreen: Starting to load user data...');
+      
       final results = await Future.wait([
         _userRepository.getCurrentUser(),
         _userRepository.getUserStats(),
       ]);
 
+      print('📋 ProfileScreen: Data loaded successfully');
+      
       if (!mounted) return;
 
       _cachedUser = results[0] as UserModel;
@@ -80,11 +84,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _isLoading = false;
         _isInitialLoad = false;
       });
+      
+      print('✅ ProfileScreen: UI updated successfully');
     } catch (e) {
+      print('❌ ProfileScreen: Error caught - $e');
+      print('❌ ProfileScreen: Error type - ${e.runtimeType}');
+      
       if (!mounted) return;
       
+      // ✅ Check if it's an authentication error
+      final errorString = e.toString();
+      final isUnauthorizedException = e.runtimeType.toString() == 'UnauthorizedException';
+      final isAuthError = isUnauthorizedException ||
+                          errorString.contains('Invalid token') || 
+                          errorString.contains('Not authenticated') ||
+                          errorString.contains('Unauthorized');
+      
+      print('🔍 Is auth error? $isAuthError');
+      
+      if (isAuthError) {
+        print('🔐 Auth error detected, logging out...');
+        // Clear storage and logout
+        await _storageProvider.clearAll();
+        if (mounted) {
+          context.read<AuthBloc>().add(const LogoutRequested());
+        }
+        return; // Don't show error state, just logout
+      }
+      
+      // For non-auth errors, show error state
+      print('❌ Non-auth error, showing error state: $errorString');
       setState(() {
-        _error = e.toString();
+        _error = errorString;
         _isLoading = false;
       });
     }
@@ -104,18 +135,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _handleChangePassword() async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => const ChangePasswordDialog3D(),
-    );
-
-    if (result == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password changed successfully'),
-          backgroundColor: Color(0xFF10B981),
-        ),
+    try {
+      final result = await showDialog<bool>(
+        context: context,
+        builder: (context) => const ChangePasswordDialog3D(),
       );
+
+      if (result == true && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Password changed successfully'),
+            backgroundColor: Color(0xFF10B981),
+          ),
+        );
+      }
+    } catch (e) {
+      // ✅ NEW: Handle auth errors in password change
+      final isAuthError = e.toString().contains('Invalid token') || 
+                          e.toString().contains('Not authenticated') ||
+                          e.toString().contains('Unauthorized');
+      
+      if (isAuthError && mounted) {
+        await _storageProvider.clearAll();
+        if (mounted) {
+          context.read<AuthBloc>().add(const LogoutRequested());
+        }
+      }
     }
   }
 

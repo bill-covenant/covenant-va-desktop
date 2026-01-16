@@ -1,20 +1,25 @@
 class ApiConstants {
-  // Base URL - LOCAL DEVELOPMENT
-  static const String baseUrl = 'http://localhost:5000/api';
+  // Toggle this for dev/production
+  static const bool isProduction = false; // ✅ CHANGED TO FALSE
+  
+  // Base URL - switches based on environment
+  static String get baseUrl => isProduction 
+      ? 'https://covenant-va-backend.onrender.com/api'
+      : 'http://localhost:5000/api';
   
   // Auth endpoints
-  static const String login = '$baseUrl/auth/login';
-  static const String me = '$baseUrl/auth/me';
+  static String get login => '$baseUrl/auth/login';
+  static String get me => '$baseUrl/auth/me';
   
   // Task endpoints
-  static const String tasks = '$baseUrl/tasks';
+  static String get tasks => '$baseUrl/tasks';
   static String taskById(String id) => '$tasks/$id';
-  static const String taskStats = '$tasks/stats';
+  static String get taskStats => '$tasks/stats';
   
   // Message endpoints
-  static const String messages = '$baseUrl/messages';
-  static const String conversations = '$baseUrl/conversations';
+  static String get messages => '$baseUrl/messages';
+  static String get conversations => '$baseUrl/conversations';
   static String conversationMessages(String conversationId) => 
       '$conversations/$conversationId/messages';
-  static const String unreadCount = '$messages/unread-count';
+  static String get unreadCount => '$messages/unread-count';
 }

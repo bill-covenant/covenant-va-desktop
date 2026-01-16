@@ -1,14 +1,26 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import '../models/user_model.dart';
-import '../providers/api_config.dart';
+import '../providers/api_provider.dart';
 import '../providers/storage_provider.dart';
+
+// ✅ Custom exception for auth errors
+class UnauthorizedException implements Exception {
+  final String message;
+  UnauthorizedException(this.message);
+  
+  @override
+  String toString() => message;
+}
 
 class UserRepository {
   final StorageProvider _storageProvider;
+  final ApiProvider _apiProvider;
 
-  UserRepository({StorageProvider? storageProvider})
-      : _storageProvider = storageProvider ?? StorageProvider();
+  UserRepository({
+    StorageProvider? storageProvider,
+    ApiProvider? apiProvider,
+  })  : _storageProvider = storageProvider ?? StorageProvider(),
+        _apiProvider = apiProvider ?? ApiProvider();
 
   // ============================================
   // PROFILE MANAGEMENT
@@ -16,31 +28,33 @@ class UserRepository {
 
   /// Get current user profile
   Future<UserModel> getCurrentUser() async {
-    final token = await _storageProvider.getToken();
+    print('📋 UserRepository: getCurrentUser called');
     
-    if (token == null) {
-      throw Exception('Not authenticated');
-    }
+    try {
+      final response = await _apiProvider.get(
+        '/auth/me',
+        requiresAuth: true,
+      );
 
-    final response = await http.get(
-      Uri.parse('${ApiConfig.baseUrl}/auth/me'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final user = UserModel.fromJson(data['user']);
+      print('📋 UserRepository: Response received');
+      
+      final user = UserModel.fromJson(response['user']);
       
       // Update stored user data
       await _storageProvider.saveUser(user);
       
+      print('✅ UserRepository: User data saved');
       return user;
-    } else {
-      final error = jsonDecode(response.body);
-      throw Exception(error['message'] ?? 'Failed to fetch user profile');
+    } catch (e) {
+      print('❌ UserRepository: Error - $e');
+      
+      // Check if it's an auth error
+      if (e.toString().contains('Unauthorized') || 
+          e.toString().contains('401')) {
+        throw UnauthorizedException('Invalid token');
+      }
+      
+      rethrow;
     }
   }
 
@@ -52,12 +66,8 @@ class UserRepository {
     String? company,
     String? timezone,
   }) async {
-    final token = await _storageProvider.getToken();
+    print('📋 UserRepository: updateProfile called');
     
-    if (token == null) {
-      throw Exception('Not authenticated');
-    }
-
     final Map<String, dynamic> body = {};
     if (firstName != null) body['firstName'] = firstName;
     if (lastName != null) body['lastName'] = lastName;
@@ -65,26 +75,29 @@ class UserRepository {
     if (company != null) body['company'] = company;
     if (timezone != null) body['timezone'] = timezone;
 
-    final response = await http.put(
-      Uri.parse('${ApiConfig.baseUrl}/auth/profile'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode(body),
-    );
+    try {
+      final response = await _apiProvider.put(
+        '/auth/profile',
+        body,
+        requiresAuth: true,
+      );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final user = UserModel.fromJson(data['user']);
+      final user = UserModel.fromJson(response['user']);
       
       // Update stored user data
       await _storageProvider.saveUser(user);
       
+      print('✅ UserRepository: Profile updated');
       return user;
-    } else {
-      final error = jsonDecode(response.body);
-      throw Exception(error['message'] ?? 'Failed to update profile');
+    } catch (e) {
+      print('❌ UserRepository: Error - $e');
+      
+      if (e.toString().contains('Unauthorized') || 
+          e.toString().contains('401')) {
+        throw UnauthorizedException('Invalid token');
+      }
+      
+      rethrow;
     }
   }
 
@@ -93,115 +106,83 @@ class UserRepository {
     required String currentPassword,
     required String newPassword,
   }) async {
-    final token = await _storageProvider.getToken();
+    print('📋 UserRepository: changePassword called');
     
-    if (token == null) {
-      throw Exception('Not authenticated');
-    }
+    try {
+      await _apiProvider.put(
+        '/auth/change-password',
+        {
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+        },
+        requiresAuth: true,
+      );
 
-    final response = await http.put(
-      Uri.parse('${ApiConfig.baseUrl}/auth/change-password'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'currentPassword': currentPassword,
-        'newPassword': newPassword,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      return;
-    } else {
-      final error = jsonDecode(response.body);
-      throw Exception(error['message'] ?? 'Failed to change password');
+      print('✅ UserRepository: Password changed');
+    } catch (e) {
+      print('❌ UserRepository: Error - $e');
+      
+      if (e.toString().contains('Unauthorized') || 
+          e.toString().contains('401')) {
+        throw UnauthorizedException('Invalid token');
+      }
+      
+      rethrow;
     }
   }
 
-  /// Upload avatar (base64) - WITH DETAILED LOGGING
+  /// Upload avatar (base64)
   Future<UserModel> uploadAvatar(String base64Image) async {
-    print('🔵 [UserRepository] uploadAvatar called');
-    
-    final token = await _storageProvider.getToken();
-    print('🔵 [UserRepository] Token retrieved: ${token != null ? "YES" : "NO"}');
-    
-    if (token == null) {
-      print('❌ [UserRepository] No token found!');
-      throw Exception('Not authenticated');
-    }
-
-    final url = '${ApiConfig.baseUrl}/auth/upload-avatar';
-    print('🔵 [UserRepository] URL: $url');
-    print('🔵 [UserRepository] Image size: ${base64Image.length} chars');
+    print('📋 UserRepository: uploadAvatar called');
+    print('📋 Image size: ${base64Image.length} chars');
     
     try {
-      print('🔵 [UserRepository] Making HTTP POST request...');
-      
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({
-          'avatar': base64Image,
-        }),
-      ).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () {
-          print('❌ [UserRepository] Request timed out!');
-          throw Exception('Request timed out');
-        },
+      final response = await _apiProvider.post(
+        '/auth/upload-avatar',
+        {'avatar': base64Image},
+        requiresAuth: true,
       );
 
-      print('🔵 [UserRepository] Response received');
-      print('🔵 [UserRepository] Status code: ${response.statusCode}');
-      print('🔵 [UserRepository] Response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final user = UserModel.fromJson(data['user']);
-        
-        // Update stored user data
-        await _storageProvider.saveUser(user);
-        
-        print('✅ [UserRepository] Avatar uploaded successfully!');
-        return user;
-      } else {
-        print('❌ [UserRepository] Upload failed with status: ${response.statusCode}');
-        final error = jsonDecode(response.body);
-        throw Exception(error['message'] ?? 'Failed to upload avatar');
-      }
+      final user = UserModel.fromJson(response['user']);
+      
+      // Update stored user data
+      await _storageProvider.saveUser(user);
+      
+      print('✅ UserRepository: Avatar uploaded');
+      return user;
     } catch (e) {
-      print('❌ [UserRepository] Exception caught: $e');
-      print('❌ [UserRepository] Exception type: ${e.runtimeType}');
+      print('❌ UserRepository: Error - $e');
+      
+      if (e.toString().contains('Unauthorized') || 
+          e.toString().contains('401')) {
+        throw UnauthorizedException('Invalid token');
+      }
+      
       rethrow;
     }
   }
 
   /// Get user statistics
   Future<Map<String, dynamic>> getUserStats() async {
-    final token = await _storageProvider.getToken();
+    print('📋 UserRepository: getUserStats called');
     
-    if (token == null) {
-      throw Exception('Not authenticated');
-    }
+    try {
+      final response = await _apiProvider.get(
+        '/auth/stats',
+        requiresAuth: true,
+      );
 
-    final response = await http.get(
-      Uri.parse('${ApiConfig.baseUrl}/auth/stats'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['stats'] as Map<String, dynamic>;
-    } else {
-      final error = jsonDecode(response.body);
-      throw Exception(error['message'] ?? 'Failed to fetch statistics');
+      print('✅ UserRepository: Stats received');
+      return response['stats'] as Map<String, dynamic>;
+    } catch (e) {
+      print('❌ UserRepository: Error - $e');
+      
+      if (e.toString().contains('Unauthorized') || 
+          e.toString().contains('401')) {
+        throw UnauthorizedException('Invalid token');
+      }
+      
+      rethrow;
     }
   }
 }

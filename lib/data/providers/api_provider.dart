@@ -9,13 +9,13 @@ class ApiProvider {
   // Set token for authenticated requests
   void setToken(String token) {
     _token = token;
-    print('🔑 ApiProvider: Token set, length: ${token.length}'); // ← DEBUG
+    print('🔑 ApiProvider: Token set, length: ${token.length}');
   }
 
   // Clear token on logout
   void clearToken() {
     _token = null;
-    print('🔑 ApiProvider: Token cleared'); // ← DEBUG
+    print('🔑 ApiProvider: Token cleared');
   }
 
   // Get headers with auth token
@@ -26,9 +26,9 @@ class ApiProvider {
 
     if (includeAuth && _token != null) {
       headers['Authorization'] = 'Bearer $_token';
-      print('🔑 ApiProvider: Adding auth header'); // ← DEBUG
+      print('🔑 ApiProvider: Adding auth header');
     } else if (includeAuth && _token == null) {
-      print('⚠️ ApiProvider: Auth required but no token available!'); // ← DEBUG
+      print('⚠️ ApiProvider: Auth required but no token available!');
     }
 
     return headers;
@@ -63,21 +63,28 @@ class ApiProvider {
     bool requiresAuth = false,
   }) async {
     try {
-      print('🌐 API POST: $endpoint'); // ← DEBUG
-      print('🔑 Auth required: $requiresAuth'); // ← DEBUG
-      print('🔑 Token exists: ${_token != null}'); // ← DEBUG
+      final fullUrl = _buildUrl(endpoint);
+      
+      print('🌐 API POST endpoint: $endpoint');
+      print('🌐 API POST full URL: $fullUrl');
+      print('🔑 Auth required: $requiresAuth');
+      print('🔑 Token exists: ${_token != null}');
       
       final response = await _client.post(
-        Uri.parse(_buildUrl(endpoint)),
+        Uri.parse(fullUrl),
         headers: _getHeaders(includeAuth: requiresAuth),
         body: jsonEncode(body),
       );
 
-      print('📥 Response status: ${response.statusCode}'); // ← DEBUG
+      print('📥 Response status: ${response.statusCode}');
+      
+      if (response.statusCode == 500) {
+        print('❌ 500 Error Response: ${response.body}');
+      }
       
       return _handleResponse(response);
     } catch (e) {
-      print('❌ API Error: $e'); // ← DEBUG
+      print('❌ API Error: $e');
       throw Exception('Network error: $e');
     }
   }
@@ -89,20 +96,28 @@ class ApiProvider {
     bool requiresAuth = false,
   }) async {
     try {
-      print('🌐 API GET: $endpoint'); // ← DEBUG
-      print('🔑 Auth required: $requiresAuth'); // ← DEBUG
-      print('🔑 Token exists: ${_token != null}'); // ← DEBUG
+      final fullUrl = _buildUrl(endpoint, queryParams: queryParams);
+      
+      print('🌐 API GET endpoint: $endpoint');
+      print('🌐 API GET full URL: $fullUrl'); // ✅ NOW SHOWS FULL URL
+      print('🔑 Auth required: $requiresAuth');
+      print('🔑 Token exists: ${_token != null}');
       
       final response = await _client.get(
-        Uri.parse(_buildUrl(endpoint, queryParams: queryParams)),
+        Uri.parse(fullUrl),
         headers: _getHeaders(includeAuth: requiresAuth),
       );
 
-      print('📥 Response status: ${response.statusCode}'); // ← DEBUG
+      print('📥 Response status: ${response.statusCode}');
+      
+      // ✅ Log 500 errors for debugging
+      if (response.statusCode == 500) {
+        print('❌ 500 Error Response: ${response.body}');
+      }
       
       return _handleResponse(response);
     } catch (e) {
-      print('❌ API Error: $e'); // ← DEBUG
+      print('❌ API Error: $e');
       throw Exception('Network error: $e');
     }
   }
@@ -114,21 +129,28 @@ class ApiProvider {
     bool requiresAuth = false,
   }) async {
     try {
-      print('🌐 API PUT: $endpoint'); // ← DEBUG
-      print('🔑 Auth required: $requiresAuth'); // ← DEBUG
-      print('🔑 Token exists: ${_token != null}'); // ← DEBUG
+      final fullUrl = _buildUrl(endpoint);
+      
+      print('🌐 API PUT endpoint: $endpoint');
+      print('🌐 API PUT full URL: $fullUrl');
+      print('🔑 Auth required: $requiresAuth');
+      print('🔑 Token exists: ${_token != null}');
       
       final response = await _client.put(
-        Uri.parse(_buildUrl(endpoint)),
+        Uri.parse(fullUrl),
         headers: _getHeaders(includeAuth: requiresAuth),
         body: jsonEncode(body),
       );
 
-      print('📥 Response status: ${response.statusCode}'); // ← DEBUG
+      print('📥 Response status: ${response.statusCode}');
+      
+      if (response.statusCode == 500) {
+        print('❌ 500 Error Response: ${response.body}');
+      }
       
       return _handleResponse(response);
     } catch (e) {
-      print('❌ API Error: $e'); // ← DEBUG
+      print('❌ API Error: $e');
       throw Exception('Network error: $e');
     }
   }
@@ -139,20 +161,27 @@ class ApiProvider {
     bool requiresAuth = false,
   }) async {
     try {
-      print('🌐 API DELETE: $endpoint'); // ← DEBUG
-      print('🔑 Auth required: $requiresAuth'); // ← DEBUG
-      print('🔑 Token exists: ${_token != null}'); // ← DEBUG
+      final fullUrl = _buildUrl(endpoint);
+      
+      print('🌐 API DELETE endpoint: $endpoint');
+      print('🌐 API DELETE full URL: $fullUrl');
+      print('🔑 Auth required: $requiresAuth');
+      print('🔑 Token exists: ${_token != null}');
       
       final response = await _client.delete(
-        Uri.parse(_buildUrl(endpoint)),
+        Uri.parse(fullUrl),
         headers: _getHeaders(includeAuth: requiresAuth),
       );
 
-      print('📥 Response status: ${response.statusCode}'); // ← DEBUG
+      print('📥 Response status: ${response.statusCode}');
+      
+      if (response.statusCode == 500) {
+        print('❌ 500 Error Response: ${response.body}');
+      }
       
       return _handleResponse(response);
     } catch (e) {
-      print('❌ API Error: $e'); // ← DEBUG
+      print('❌ API Error: $e');
       throw Exception('Network error: $e');
     }
   }
@@ -166,8 +195,12 @@ class ApiProvider {
     } else if (response.statusCode == 404) {
       throw Exception('Resource not found');
     } else {
-      final error = jsonDecode(response.body);
-      throw Exception(error['message'] ?? 'Request failed');
+      try {
+        final error = jsonDecode(response.body);
+        throw Exception(error['message'] ?? 'Request failed');
+      } catch (e) {
+        throw Exception('Request failed with status ${response.statusCode}');
+      }
     }
   }
 
