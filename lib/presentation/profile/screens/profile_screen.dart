@@ -329,13 +329,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (_stats != null) StatsGrid(stats: _stats!),
           const SizedBox(height: 24),
 
-          // ✅ NEW: Payment Settings Card
-          const PaymentSettingsCard(),
-          const SizedBox(height: 24),
-
-          ActionButtons3D(
-            onChangePassword: _handleChangePassword,
-            onLogout: _handleLogout,
+          // ✅ Payment Settings + Change Password side by side
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Expanded(child: PaymentSettingsCard()),
+              const SizedBox(width: 24),
+              Expanded(
+                child: ActionButtons3D(
+                  onChangePassword: _handleChangePassword,
+                  onLogout: _handleLogout,
+                ),
+              ),
+            ],
           ),
         ],
       ),
