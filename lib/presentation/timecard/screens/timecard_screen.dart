@@ -25,6 +25,10 @@ class TimecardScreen extends StatefulWidget {
 class _TimecardScreenState extends State<TimecardScreen> {
   String _selectedMonth = _getCurrentMonth();
 
+  // Persistent clock state — survives dialog dismiss
+  TimeOfDay? _activeClockIn;
+  TimeOfDay? _activeClockOut;
+
   static String _getCurrentMonth() {
     final now = DateTime.now();
     return '${now.year}-${now.month.toString().padLeft(2, '0')}';
@@ -68,10 +72,26 @@ class _TimecardScreenState extends State<TimecardScreen> {
   Future<void> _handleLogHours() async {
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => const LogHoursDialog(),
+      builder: (context) => LogHoursDialog(
+        initialClockIn: _activeClockIn,
+        initialClockOut: _activeClockOut,
+        onClockStateChanged: (clockIn, clockOut) {
+          // Persist clock state even if dialog is dismissed
+          setState(() {
+            _activeClockIn = clockIn;
+            _activeClockOut = clockOut;
+          });
+        },
+      ),
     );
 
     if (result != null && mounted) {
+      // Clear persisted clock state after successful save
+      setState(() {
+        _activeClockIn = null;
+        _activeClockOut = null;
+      });
+
       context.read<TimecardBloc>().add(
             LogHours(
               clientId: widget.clientId,
@@ -202,7 +222,7 @@ class _TimecardScreenState extends State<TimecardScreen> {
           const SizedBox(height: 32),
           TimeEntriesList(
             entries: state.timeEntries,
-            onDelete: (entryId) {  // ← CHANGED: Removed type annotation
+            onDelete: (entryId) {
               _handleDelete(entryId);
             },
           ),

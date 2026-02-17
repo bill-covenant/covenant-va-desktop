@@ -6,12 +6,14 @@ class TimeField extends StatelessWidget {
   final String label;
   final TimeOfDay? time;
   final VoidCallback? onTap;
+  final bool isActive;
 
   const TimeField({
     Key? key,
     required this.label,
     required this.time,
     required this.onTap,
+    this.isActive = false,
   }) : super(key: key);
 
   String _formatTime(TimeOfDay time) {
@@ -23,66 +25,121 @@ class TimeField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool hasTime = time != null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: Colors.white.withOpacity(0.7),
-            letterSpacing: 0.5,
-          ),
+        Row(
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: isActive
+                    ? const Color(0xFF10B981).withOpacity(0.9)
+                    : Colors.white.withOpacity(0.7),
+                letterSpacing: 0.3,
+              ),
+            ),
+            if (isActive) ...[
+              const SizedBox(width: 6),
+              Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF10B981).withOpacity(0.5),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          borderRadius: BorderRadius.circular(12),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: onTap == null
+                colors: isActive
                     ? [
-                        Colors.white.withOpacity(0.05),
-                        Colors.white.withOpacity(0.02),
+                        const Color(0xFF10B981).withOpacity(0.2),
+                        const Color(0xFF059669).withOpacity(0.1),
                       ]
-                    : [
-                        Colors.white.withOpacity(0.15),
-                        Colors.white.withOpacity(0.08),
-                      ],
+                    : hasTime
+                        ? [
+                            Colors.white.withOpacity(0.15),
+                            Colors.white.withOpacity(0.08),
+                          ]
+                        : [
+                            Colors.white.withOpacity(0.05),
+                            Colors.white.withOpacity(0.02),
+                          ],
               ),
               border: Border.all(
-                color: onTap == null
-                    ? Colors.white.withOpacity(0.1)
-                    : Colors.white.withOpacity(0.25),
-                width: 1.5,
+                color: isActive
+                    ? const Color(0xFF10B981).withOpacity(0.4)
+                    : hasTime
+                        ? Colors.white.withOpacity(0.25)
+                        : Colors.white.withOpacity(0.1),
+                width: isActive ? 2 : 1.5,
               ),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: isActive
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF10B981).withOpacity(0.15),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                  : [],
             ),
             child: Row(
               children: [
                 Icon(
-                  Icons.access_time_rounded,
-                  size: 20,
-                  color: onTap == null 
-                      ? Colors.white.withOpacity(0.3) 
-                      : Colors.white.withOpacity(0.7),
+                  isActive ? Icons.check_circle_rounded : Icons.access_time_rounded,
+                  size: 16,
+                  color: isActive
+                      ? const Color(0xFF10B981)
+                      : hasTime
+                          ? Colors.white.withOpacity(0.7)
+                          : Colors.white.withOpacity(0.3),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Text(
                   time == null ? '--:-- --' : _formatTime(time!),
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: onTap == null 
-                        ? Colors.white.withOpacity(0.4) 
-                        : Colors.white.withOpacity(0.9),
+                    fontSize: 14,
+                    fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+                    color: isActive
+                        ? const Color(0xFF10B981)
+                        : hasTime
+                            ? Colors.white.withOpacity(0.9)
+                            : Colors.white.withOpacity(0.4),
                   ),
                 ),
+                if (onTap != null) ...[
+                  const Spacer(),
+                  Icon(
+                    Icons.edit_rounded,
+                    size: 12,
+                    color: Colors.white.withOpacity(0.4),
+                  ),
+                ],
               ],
             ),
           ),

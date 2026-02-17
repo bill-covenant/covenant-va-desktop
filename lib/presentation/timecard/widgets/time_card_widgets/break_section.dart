@@ -35,7 +35,7 @@ class BreakSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -45,7 +45,7 @@ class BreakSection extends StatelessWidget {
             color.withOpacity(0.1),
           ],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: color.withOpacity(0.4),
           width: 2,
@@ -53,8 +53,8 @@ class BreakSection extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: color.withOpacity(0.2),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -63,10 +63,10 @@ class BreakSection extends StatelessWidget {
         children: [
           _buildHeader(),
           if (breaks.isNotEmpty) ...[
-            const SizedBox(height: 20),
+            const SizedBox(height: 14),
             ...breaks.asMap().entries.map((entry) => _buildBreakItem(entry.key, entry.value)).toList(),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           _buildAddButton(),
         ],
       ),
@@ -77,10 +77,10 @@ class BreakSection extends StatelessWidget {
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
             boxShadow: [
               BoxShadow(
                 color: color.withOpacity(0.4),
@@ -89,16 +89,16 @@ class BreakSection extends StatelessWidget {
               ),
             ],
           ),
-          child: Icon(icon, color: Colors.white, size: 20),
+          child: Icon(icon, color: Colors.white, size: 18),
         ),
-        const SizedBox(width: 14),
+        const SizedBox(width: 12),
         Text(
           title,
           style: const TextStyle(
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: FontWeight.w900,
             color: Colors.white,
-            letterSpacing: 0.5,
+            letterSpacing: 0.3,
           ),
         ),
       ],
@@ -107,9 +107,9 @@ class BreakSection extends StatelessWidget {
 
   Widget _buildBreakItem(int index, BreakEntry breakEntry) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Container(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -119,7 +119,7 @@ class BreakSection extends StatelessWidget {
               Colors.white.withOpacity(0.08),
             ],
           ),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: Colors.white.withOpacity(0.2),
             width: 1.5,
@@ -134,7 +134,7 @@ class BreakSection extends StatelessWidget {
                 () => onEditStart(index),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: _buildTimeColumn(
                 'End',
@@ -146,13 +146,13 @@ class BreakSection extends StatelessWidget {
               onPressed: () => onRemove(index),
               icon: const Icon(Icons.close_rounded),
               color: Colors.red[300],
-              iconSize: 22,
-              padding: const EdgeInsets.all(8),
+              iconSize: 20,
+              padding: const EdgeInsets.all(6),
               constraints: const BoxConstraints(),
               style: IconButton.styleFrom(
                 backgroundColor: Colors.red.withOpacity(0.2),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
             ),
@@ -172,7 +172,7 @@ class BreakSection extends StatelessWidget {
             fontSize: 11,
             fontWeight: FontWeight.w700,
             color: Colors.white.withOpacity(0.6),
-            letterSpacing: 0.5,
+            letterSpacing: 0.3,
           ),
         ),
         const SizedBox(height: 6),
@@ -227,9 +227,9 @@ class BreakSection extends StatelessWidget {
   Widget _buildAddButton() {
     return InkWell(
       onTap: onAdd,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -239,7 +239,7 @@ class BreakSection extends StatelessWidget {
               Colors.white.withOpacity(0.08),
             ],
           ),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: color.withOpacity(0.4),
             style: BorderStyle.solid,
@@ -249,12 +249,12 @@ class BreakSection extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.add_circle_outline, color: Colors.white, size: 20),
-            const SizedBox(width: 10),
+            Icon(Icons.add_circle_outline, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
             Text(
               'Add ${title.substring(0, title.length - 1)}',
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
                 letterSpacing: 0.3,

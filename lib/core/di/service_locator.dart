@@ -7,6 +7,7 @@ import '../../data/repositories/message_repository.dart';
 import '../../data/repositories/user_repository.dart';
 import '../../data/repositories/client_repository.dart';
 import '../../data/repositories/timecard_repository.dart';
+import '../../data/repositories/stripe_repository.dart'; // ← NEW
 import '../../presentation/auth/bloc/auth_bloc.dart';
 import '../../presentation/dashboard/bloc/dashboard_bloc.dart';
 import '../../presentation/messages/bloc/messages_bloc.dart';
@@ -55,6 +56,13 @@ Future<void> setupServiceLocator() async {
 
   getIt.registerLazySingleton<TimecardRepository>(
     () => TimecardRepository(
+      apiProvider: getIt<ApiProvider>(),
+    ),
+  );
+
+  // ✅ NEW: Stripe Repository
+  getIt.registerLazySingleton<StripeRepository>(
+    () => StripeRepository(
       apiProvider: getIt<ApiProvider>(),
     ),
   );

@@ -5,6 +5,7 @@ import '../bloc/dashboard_event.dart';
 import '../bloc/dashboard_state.dart';
 import 'stat_card.dart';
 import 'my_clients_section.dart';
+import 'stripe_connect_banner.dart'; // ← NEW
 
 class DashboardContent extends StatelessWidget {
   final DashboardLoaded? cachedState;
@@ -93,6 +94,9 @@ class DashboardContent extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // ✅ NEW: Stripe Connect Banner
+                        const StripeConnectBanner(),
+
                         _buildStatsCards(displayState),
                         const SizedBox(height: 40),
                         const MyClientsSection(),

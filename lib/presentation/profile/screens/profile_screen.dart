@@ -4,6 +4,7 @@ import 'package:covenant_va_desktop/presentation/profile/widgets/edit_profile_di
 import 'package:covenant_va_desktop/presentation/profile/widgets/logout_dialog_3d.dart';
 import 'package:covenant_va_desktop/presentation/profile/widgets/profile_card.dart';
 import 'package:covenant_va_desktop/presentation/profile/widgets/stats_grid.dart';
+import 'package:covenant_va_desktop/presentation/profile/widgets/payment_settings_card.dart'; // ← NEW
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../data/models/user_model.dart';
@@ -92,7 +93,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       
       if (!mounted) return;
       
-      // ✅ Check if it's an authentication error
       final errorString = e.toString();
       final isUnauthorizedException = e.runtimeType.toString() == 'UnauthorizedException';
       final isAuthError = isUnauthorizedException ||
@@ -104,15 +104,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       
       if (isAuthError) {
         print('🔐 Auth error detected, logging out...');
-        // Clear storage and logout
         await _storageProvider.clearAll();
         if (mounted) {
           context.read<AuthBloc>().add(const LogoutRequested());
         }
-        return; // Don't show error state, just logout
+        return;
       }
       
-      // For non-auth errors, show error state
       print('❌ Non-auth error, showing error state: $errorString');
       setState(() {
         _error = errorString;
@@ -150,7 +148,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       }
     } catch (e) {
-      // ✅ NEW: Handle auth errors in password change
       final isAuthError = e.toString().contains('Invalid token') || 
                           e.toString().contains('Not authenticated') ||
                           e.toString().contains('Unauthorized');
@@ -331,6 +328,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 24),
           if (_stats != null) StatsGrid(stats: _stats!),
           const SizedBox(height: 24),
+
+          // ✅ NEW: Payment Settings Card
+          const PaymentSettingsCard(),
+          const SizedBox(height: 24),
+
           ActionButtons3D(
             onChangePassword: _handleChangePassword,
             onLogout: _handleLogout,
