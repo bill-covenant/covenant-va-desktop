@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../auth/bloc/auth_bloc.dart';
@@ -11,22 +12,15 @@ class LayoutSidebarFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
-        print('🔧 Footer - Auth State: ${state.runtimeType}');
-        
         String userName = 'User';
         String userEmail = 'user@example.com';
         String userInitial = 'U';
+        String? avatarBase64;
 
         if (state is AuthAuthenticated) {
-          print('🔧 Footer - User: ${state.user}');
-          print('🔧 Footer - First Name: ${state.user.firstName}');
-          print('🔧 Footer - Last Name: ${state.user.lastName}');
-          print('🔧 Footer - Email: ${state.user.email}');
-          
-          // Try different ways to get the name
           final firstName = state.user.firstName ?? '';
           final lastName = state.user.lastName ?? '';
-          
+
           if (firstName.isNotEmpty && lastName.isNotEmpty) {
             userName = '$firstName $lastName';
             userInitial = firstName.substring(0, 1).toUpperCase();
@@ -37,12 +31,10 @@ class LayoutSidebarFooter extends StatelessWidget {
             userName = state.user.email.split('@')[0];
             userInitial = userName.substring(0, 1).toUpperCase();
           }
-          
-          userEmail = state.user.email;
-        }
 
-        print('🔧 Footer - Display Name: $userName');
-        print('🔧 Footer - Display Email: $userEmail');
+          userEmail = state.user.email;
+          avatarBase64 = state.user.profile?.avatar;
+        }
 
         return Container(
           padding: const EdgeInsets.all(16),
@@ -62,27 +54,50 @@ class LayoutSidebarFooter extends StatelessWidget {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
-                      ),
+                      gradient: avatarBase64 == null
+                          ? const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
+                            )
+                          : null,
                       shape: BoxShape.circle,
                       border: Border.all(
                         color: Colors.white.withOpacity(0.3),
                         width: 2,
                       ),
                     ),
-                    child: Center(
-                      child: Text(
-                        userInitial,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
+                    child: avatarBase64 != null
+                        ? ClipOval(
+                            child: Image.memory(
+                              base64Decode(avatarBase64.split(',')[1]),
+                              fit: BoxFit.cover,
+                              width: 48,
+                              height: 48,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Center(
+                                  child: Text(
+                                    userInitial,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          )
+                        : Center(
+                            child: Text(
+                              userInitial,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -135,7 +150,6 @@ class LayoutSidebarFooter extends StatelessWidget {
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: () {
-                      print('🔴 Logout button pressed');
                       context.read<AuthBloc>().add(const LogoutRequested());
                     },
                     borderRadius: BorderRadius.circular(10),
