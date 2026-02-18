@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/di/service_locator.dart';
-import '../../../data/repositories/stripe_repository.dart';
+import '../../../data/repositories/user_repository.dart';
 
 class PaymentSettingsCard extends StatefulWidget {
   const PaymentSettingsCard({super.key});
@@ -11,46 +10,72 @@ class PaymentSettingsCard extends StatefulWidget {
 }
 
 class _PaymentSettingsCardState extends State<PaymentSettingsCard> {
-  final StripeRepository _stripeRepo = getIt<StripeRepository>();
+  final UserRepository _userRepo = getIt<UserRepository>();
 
-  StripeStatus? _status;
+  String? _wiseEmail;
   bool _isLoading = true;
-  bool _isConnecting = false;
+  bool _isSaving = false;
+  bool _isEditing = false;
+  final _emailController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _checkStatus();
+    _loadPayoutInfo();
   }
 
-  Future<void> _checkStatus() async {
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadPayoutInfo() async {
     try {
-      final status = await _stripeRepo.getStripeStatus();
-      if (mounted) setState(() { _status = status; _isLoading = false; });
+      final user = await _userRepo.getCurrentUser();
+      if (mounted) {
+        setState(() {
+          _wiseEmail = user.wiseEmail;
+          _emailController.text = user.wiseEmail ?? '';
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       print('❌ PaymentSettingsCard: Error - $e');
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _handleConnect() async {
-    setState(() => _isConnecting = true);
+  Future<void> _saveWiseEmail() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) return;
+
+    setState(() => _isSaving = true);
     try {
-      final url = await _stripeRepo.getConnectLink();
-      if (await canLaunchUrl(Uri.parse(url))) {
-        await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+      await _userRepo.updateProfile(wiseEmail: email);
+      if (mounted) {
+        setState(() {
+          _wiseEmail = email;
+          _isEditing = false;
+          _isSaving = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Wise email saved successfully'),
+            backgroundColor: Color(0xFF10B981),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to connect: ${e.toString()}'),
+            content: Text('Failed to save: ${e.toString()}'),
             backgroundColor: const Color(0xFFEF4444),
           ),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isConnecting = false);
     }
   }
 
@@ -87,12 +112,12 @@ class _PaymentSettingsCardState extends State<PaymentSettingsCard> {
                   height: 40,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
+                      colors: [Color(0xFF10B981), Color(0xFF059669)],
                     ),
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF8B5CF6).withOpacity(0.4),
+                        color: const Color(0xFF10B981).withOpacity(0.4),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -105,7 +130,7 @@ class _PaymentSettingsCardState extends State<PaymentSettingsCard> {
                 ),
                 const SizedBox(width: 12),
                 const Text(
-                  'Payment Settings',
+                  'Payout Settings',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -114,18 +139,14 @@ class _PaymentSettingsCardState extends State<PaymentSettingsCard> {
                   ),
                 ),
                 const Spacer(),
-                if (_status != null) _buildStatusBadge(),
+                _buildStatusBadge(),
               ],
             ),
           ),
 
           const SizedBox(height: 16),
 
-          // Divider
-          Container(
-            height: 1,
-            color: Colors.white.withOpacity(0.06),
-          ),
+          Container(height: 1, color: Colors.white.withOpacity(0.06)),
 
           // Content
           Padding(
@@ -138,51 +159,40 @@ class _PaymentSettingsCardState extends State<PaymentSettingsCard> {
   }
 
   Widget _buildStatusBadge() {
-    if (_status == null) return const SizedBox.shrink();
+    if (_isLoading) return const SizedBox.shrink();
 
-    Color bgColor;
-    Color textColor;
-    String label;
-    IconData icon;
-
-    if (_status!.isActive) {
-      bgColor = const Color(0xFF10B981).withOpacity(0.15);
-      textColor = const Color(0xFF10B981);
-      label = 'Connected';
-      icon = Icons.check_circle;
-    } else if (_status!.isPending) {
-      bgColor = const Color(0xFFF59E0B).withOpacity(0.15);
-      textColor = const Color(0xFFF59E0B);
-      label = 'Pending';
-      icon = Icons.hourglass_top;
-    } else if (_status!.needsAction) {
-      bgColor = const Color(0xFFEF4444).withOpacity(0.15);
-      textColor = const Color(0xFFEF4444);
-      label = 'Action Required';
-      icon = Icons.warning_amber;
-    } else {
-      bgColor = Colors.white.withOpacity(0.08);
-      textColor = Colors.white.withOpacity(0.5);
-      label = 'Not Connected';
-      icon = Icons.link_off;
-    }
+    final bool hasWise = _wiseEmail != null && _wiseEmail!.isNotEmpty;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: bgColor,
+        color: hasWise
+            ? const Color(0xFF10B981).withOpacity(0.15)
+            : Colors.white.withOpacity(0.08),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: textColor.withOpacity(0.3)),
+        border: Border.all(
+          color: hasWise
+              ? const Color(0xFF10B981).withOpacity(0.3)
+              : Colors.white.withOpacity(0.15),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: textColor, size: 14),
+          Icon(
+            hasWise ? Icons.check_circle : Icons.link_off,
+            color: hasWise
+                ? const Color(0xFF10B981)
+                : Colors.white.withOpacity(0.5),
+            size: 14,
+          ),
           const SizedBox(width: 6),
           Text(
-            label,
+            hasWise ? 'Set Up' : 'Not Set',
             style: TextStyle(
-              color: textColor,
+              color: hasWise
+                  ? const Color(0xFF10B981)
+                  : Colors.white.withOpacity(0.5),
               fontWeight: FontWeight.w800,
               fontSize: 11,
             ),
@@ -197,7 +207,7 @@ class _PaymentSettingsCardState extends State<PaymentSettingsCard> {
       child: Padding(
         padding: EdgeInsets.all(20),
         child: CircularProgressIndicator(
-          color: Color(0xFF8B5CF6),
+          color: Color(0xFF10B981),
           strokeWidth: 2,
         ),
       ),
@@ -205,352 +215,304 @@ class _PaymentSettingsCardState extends State<PaymentSettingsCard> {
   }
 
   Widget _buildContent() {
-    if (_status == null) return _buildNotConnected();
-    if (_status!.isActive) return _buildConnectedState();
-    if (_status!.isPending) return _buildPendingState();
-    if (_status!.needsAction) return _buildActionRequired();
-    return _buildNotConnected();
+    final bool hasWise = _wiseEmail != null && _wiseEmail!.isNotEmpty;
+
+    if (_isEditing || !hasWise) {
+      return _buildEditState();
+    }
+    return _buildViewState();
   }
 
-  Widget _buildConnectedState() {
+  Widget _buildViewState() {
     return Column(
       children: [
-        _buildInfoRow(
-          icon: Icons.check_circle,
-          iconColor: const Color(0xFF10B981),
-          label: 'Account Status',
-          value: 'Verified & Active',
-          valueColor: const Color(0xFF10B981),
+        // Wise info row
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF10B981).withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: const Color(0xFF10B981).withOpacity(0.15),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF10B981), Color(0xFF059669)],
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Center(
+                  child: Icon(Icons.public, color: Colors.white, size: 16),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Wise Email',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.5),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _wiseEmail!,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.check_circle,
+                  color: Color(0xFF10B981), size: 18),
+            ],
+          ),
         ),
+
         const SizedBox(height: 12),
-        _buildInfoRow(
-          icon: Icons.account_balance,
-          iconColor: const Color(0xFF3B82F6),
-          label: 'Payouts',
-          value: _status!.payoutsEnabled ? 'Enabled' : 'Disabled',
-          valueColor: _status!.payoutsEnabled
-              ? const Color(0xFF10B981)
-              : const Color(0xFFEF4444),
-        ),
-        const SizedBox(height: 16),
-        _buildSecondaryButton(
-          label: 'Manage Stripe Account',
-          icon: Icons.open_in_new,
-          onTap: _handleConnect,
-        ),
-      ],
-    );
-  }
 
-  Widget _buildPendingState() {
-    return Column(
-      children: [
+        // Info text
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFFF59E0B).withOpacity(0.08),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: const Color(0xFFF59E0B).withOpacity(0.2),
-            ),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.hourglass_top,
-                  color: Color(0xFFF59E0B), size: 24),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Verification in Progress',
-                      style: TextStyle(
-                        color: Color(0xFFF59E0B),
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Stripe is verifying your identity. This typically takes 1-2 business days.',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.5),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        _buildSecondaryButton(
-          label: 'Check Status',
-          icon: Icons.refresh,
-          onTap: () async {
-            setState(() => _isLoading = true);
-            await _checkStatus();
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionRequired() {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFEF4444).withOpacity(0.08),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: const Color(0xFFEF4444).withOpacity(0.2),
-            ),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.warning_amber,
-                  color: Color(0xFFEF4444), size: 24),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Additional Info Needed',
-                      style: TextStyle(
-                        color: Color(0xFFEF4444),
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Stripe needs more information to complete your verification.',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.5),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        _buildPrimaryButton(
-          label: 'Complete Verification',
-          icon: Icons.open_in_new,
-          gradientColors: [const Color(0xFFEF4444), const Color(0xFFDC2626)],
-          glowColor: const Color(0xFFEF4444),
-          onTap: _handleConnect,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildNotConnected() {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.04),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white.withOpacity(0.08)),
+            color: Colors.white.withOpacity(0.03),
+            borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
             children: [
               Icon(Icons.info_outline,
-                  color: Colors.white.withOpacity(0.4), size: 24),
-              const SizedBox(width: 12),
+                  color: Colors.white.withOpacity(0.3), size: 16),
+              const SizedBox(width: 10),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Text(
+                  'Payouts are sent to this email via Wise.',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.4),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Edit button
+        MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: () => setState(() => _isEditing = true),
+            child: Container(
+              width: double.infinity,
+              height: 46,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+              ),
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    Icon(Icons.edit,
+                        color: Colors.white.withOpacity(0.6), size: 18),
+                    const SizedBox(width: 8),
                     Text(
-                      'Stripe Not Connected',
+                      'Update Wise Email',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.7),
                         fontWeight: FontWeight.w800,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Connect your Stripe account to receive payments directly to your bank.',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.4),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
                       ),
                     ),
                   ],
                 ),
               ),
-            ],
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
-        _buildPrimaryButton(
-          label: 'Connect to Stripe',
-          icon: Icons.link,
-          gradientColors: [const Color(0xFF8B5CF6), const Color(0xFF7C3AED)],
-          glowColor: const Color(0xFF8B5CF6),
-          onTap: _handleConnect,
         ),
       ],
     );
   }
 
-  Widget _buildInfoRow({
-    required IconData icon,
-    required Color iconColor,
-    required String label,
-    required String value,
-    required Color valueColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: iconColor, size: 18),
-          const SizedBox(width: 10),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.5),
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-            ),
-          ),
-          const Spacer(),
-          Text(
-            value,
-            style: TextStyle(
-              color: valueColor,
-              fontWeight: FontWeight.w900,
-              fontSize: 13,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPrimaryButton({
-    required String label,
-    required IconData icon,
-    required List<Color> gradientColors,
-    required Color glowColor,
-    required VoidCallback onTap,
-  }) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: _isConnecting ? null : onTap,
-        child: Container(
-          width: double.infinity,
-          height: 52,
+  Widget _buildEditState() {
+    return Column(
+      children: [
+        // Instruction
+        Container(
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: gradientColors),
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [
-              BoxShadow(
-                color: glowColor.withOpacity(0.4),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
+            color: const Color(0xFF10B981).withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: const Color(0xFF10B981).withOpacity(0.15),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF10B981), Color(0xFF059669)],
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Center(
+                  child: Icon(Icons.public, color: Colors.white, size: 16),
+                ),
               ),
-              BoxShadow(
-                color: Colors.white.withOpacity(0.1),
-                offset: const Offset(-2, -2),
-                blurRadius: 6,
-              ),
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                offset: const Offset(2, 2),
-                blurRadius: 8,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Enter the email linked to your Wise account. Payouts will be sent here.',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.6),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ],
           ),
-          child: Center(
-            child: _isConnecting
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(icon, color: Colors.white, size: 20),
-                      const SizedBox(width: 10),
-                      Text(
-                        label,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ],
-                  ),
-          ),
         ),
-      ),
-    );
-  }
 
-  Widget _buildSecondaryButton({
-    required String label,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: double.infinity,
-          height: 46,
+        const SizedBox(height: 16),
+
+        // Email input
+        Container(
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.06),
+            color: Colors.white.withOpacity(0.05),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.white.withOpacity(0.1)),
           ),
-          child: Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, color: Colors.white.withOpacity(0.6), size: 18),
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
+          child: TextField(
+            controller: _emailController,
+            style: const TextStyle(
+              color: Color(0xFF1F2937),
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+            ),
+            decoration: InputDecoration(
+              hintText: 'your-wise-email@example.com',
+              hintStyle: TextStyle(
+                color: Colors.grey.withOpacity(0.5),
+                fontWeight: FontWeight.w600,
+              ),
+              prefixIcon: Icon(Icons.email_outlined,
+                  color: Colors.grey.withOpacity(0.5), size: 20),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 14),
             ),
           ),
         ),
-      ),
+
+        const SizedBox(height: 16),
+
+        // Save / Cancel buttons
+        Row(
+          children: [
+            if (_wiseEmail != null && _wiseEmail!.isNotEmpty)
+              Expanded(
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: () => setState(() {
+                      _isEditing = false;
+                      _emailController.text = _wiseEmail ?? '';
+                    }),
+                    child: Container(
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: Colors.white.withOpacity(0.1)),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.6),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            if (_wiseEmail != null && _wiseEmail!.isNotEmpty)
+              const SizedBox(width: 12),
+            Expanded(
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: _isSaving ? null : _saveWiseEmail,
+                  child: Container(
+                    height: 46,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF10B981), Color(0xFF059669)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF10B981).withOpacity(0.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'Save',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 14,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

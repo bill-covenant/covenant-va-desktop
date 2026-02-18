@@ -48,7 +48,6 @@ class UserRepository {
     } catch (e) {
       print('❌ UserRepository: Error - $e');
       
-      // Check if it's an auth error
       if (e.toString().contains('Unauthorized') || 
           e.toString().contains('401')) {
         throw UnauthorizedException('Invalid token');
@@ -65,6 +64,7 @@ class UserRepository {
     String? phone,
     String? company,
     String? timezone,
+    String? wiseEmail, // ← NEW
   }) async {
     print('📋 UserRepository: updateProfile called');
     
@@ -74,6 +74,7 @@ class UserRepository {
     if (phone != null) body['phone'] = phone;
     if (company != null) body['company'] = company;
     if (timezone != null) body['timezone'] = timezone;
+    if (wiseEmail != null) body['wiseEmail'] = wiseEmail; // ← NEW
 
     try {
       final response = await _apiProvider.put(

@@ -5,6 +5,7 @@ class UserModel {
   final String lastName;
   final String role;
   final String status;
+  final String? wiseEmail; // ← NEW
   final UserProfile? profile;
 
   UserModel({
@@ -14,10 +15,10 @@ class UserModel {
     required this.lastName,
     required this.role,
     required this.status,
+    this.wiseEmail,
     this.profile,
   });
 
-  // From JSON (API response)
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id: json['id'] as String,
@@ -26,13 +27,13 @@ class UserModel {
       lastName: json['lastName'] as String,
       role: json['role'] as String,
       status: json['status'] as String,
+      wiseEmail: json['wiseEmail'] as String?, // ← NEW
       profile: json['profile'] != null
           ? UserProfile.fromJson(json['profile'] as Map<String, dynamic>)
           : null,
     );
   }
 
-  // To JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -41,20 +42,14 @@ class UserModel {
       'lastName': lastName,
       'role': role,
       'status': status,
+      'wiseEmail': wiseEmail,
       'profile': profile?.toJson(),
     };
   }
 
-  // Get full name
   String get fullName => '$firstName $lastName';
-
-  // Get initials
   String get initials => '${firstName[0]}${lastName[0]}'.toUpperCase();
 }
-
-// ============================================
-// USER PROFILE MODEL
-// ============================================
 
 class UserProfile {
   final String? phone;

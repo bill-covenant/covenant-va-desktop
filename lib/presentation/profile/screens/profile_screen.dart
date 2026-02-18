@@ -4,7 +4,7 @@ import 'package:covenant_va_desktop/presentation/profile/widgets/edit_profile_di
 import 'package:covenant_va_desktop/presentation/profile/widgets/logout_dialog_3d.dart';
 import 'package:covenant_va_desktop/presentation/profile/widgets/profile_card.dart';
 import 'package:covenant_va_desktop/presentation/profile/widgets/stats_grid.dart';
-import 'package:covenant_va_desktop/presentation/profile/widgets/payment_settings_card.dart'; // ← NEW
+import 'package:covenant_va_desktop/presentation/profile/widgets/payment_settings_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../data/models/user_model.dart';
@@ -329,7 +329,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (_stats != null) StatsGrid(stats: _stats!),
           const SizedBox(height: 24),
 
-          // ✅ Payment Settings + Change Password side by side
+          // Payment Settings + Change Password side by side
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
