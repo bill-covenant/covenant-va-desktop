@@ -1,6 +1,8 @@
 // lib/presentation/timecard/widgets/log_hours_dialog.dart
 
 import 'package:flutter/material.dart';
+import '../../../data/repositories/timecard_repository.dart';
+import '../../../core/di/service_locator.dart';
 import 'time_card_widgets/break_entry.dart';
 import 'time_card_widgets/break_section.dart';
 import 'time_card_widgets/clock_dialog/dialog_header.dart';
@@ -26,11 +28,16 @@ class LogHoursDialog extends StatefulWidget {
 }
 
 class _LogHoursDialogState extends State<LogHoursDialog> {
+  final TimecardRepository _timecardRepo = getIt<TimecardRepository>();
+
   DateTime _selectedDate = DateTime.now();
   TimeOfDay? _clockInTime;
   TimeOfDay? _clockOutTime;
+  DateTime? _clockInDateTime; // Full DateTime from backend
   final List<BreakEntry> _paidBreaks = [];
   final List<BreakEntry> _lunchBreaks = [];
+  bool _isLoading = true;
+  bool _isClockingIn = false;
 
   bool get _isClockedIn => _clockInTime != null && _clockOutTime == null;
   bool get _isClockedOut => _clockInTime != null && _clockOutTime != null;
@@ -39,31 +46,96 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
   @override
   void initState() {
     super.initState();
-    // Restore persisted clock state
-    _clockInTime = widget.initialClockIn;
-    _clockOutTime = widget.initialClockOut;
+    _loadActiveClockIn();
+  }
+
+  /// Check backend for active clock-in on dialog open
+  Future<void> _loadActiveClockIn() async {
+    try {
+      final activeClock = await _timecardRepo.getActiveClock();
+      if (activeClock != null && mounted) {
+        final localTime = activeClock.toLocal();
+        setState(() {
+          _clockInDateTime = activeClock;
+          _clockInTime = TimeOfDay(hour: localTime.hour, minute: localTime.minute);
+          _clockOutTime = null;
+          _isLoading = false;
+        });
+        _notifyClockState();
+      } else {
+        // Also check if parent passed initial state (fallback)
+        setState(() {
+          _clockInTime = widget.initialClockIn;
+          _clockOutTime = widget.initialClockOut;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('❌ Error loading active clock: $e');
+      setState(() {
+        _clockInTime = widget.initialClockIn;
+        _clockOutTime = widget.initialClockOut;
+        _isLoading = false;
+      });
+    }
   }
 
   void _notifyClockState() {
     widget.onClockStateChanged?.call(_clockInTime, _clockOutTime);
   }
 
-  void _handleClockToggle() {
-    setState(() {
+  Future<void> _handleClockToggle() async {
+    if (_isClockingIn) return;
+
+    setState(() => _isClockingIn = true);
+
+    try {
       if (_clockInTime == null) {
-        _clockInTime = TimeOfDay.now();
-        _clockOutTime = null;
+        // CLOCK IN — save to backend
+        final clockInDt = await _timecardRepo.clockIn();
+        final localTime = clockInDt.toLocal();
+        setState(() {
+          _clockInDateTime = clockInDt;
+          _clockInTime = TimeOfDay(hour: localTime.hour, minute: localTime.minute);
+          _clockOutTime = null;
+        });
+        print('✅ Clocked in at ${_clockInTime}');
       } else if (_clockOutTime == null) {
-        _clockOutTime = TimeOfDay.now();
+        // CLOCK OUT — clear backend, get times
+        final result = await _timecardRepo.clockOut();
+        final clockOutDt = (result['clockOutTime'] as DateTime).toLocal();
+        setState(() {
+          _clockOutTime = TimeOfDay(hour: clockOutDt.hour, minute: clockOutDt.minute);
+        });
+        print('✅ Clocked out at ${_clockOutTime}');
       }
-    });
-    _notifyClockState();
+    } catch (e) {
+      print('❌ Clock toggle error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Clock error: ${e.toString()}'),
+            backgroundColor: const Color(0xFFEF4444),
+          ),
+        );
+      }
+    } finally {
+      setState(() => _isClockingIn = false);
+      _notifyClockState();
+    }
   }
 
-  void _handleReset() {
+  void _handleReset() async {
+    // If clocked in, clear backend too
+    if (_clockInTime != null && _clockOutTime == null) {
+      try {
+        await _timecardRepo.clockOut();
+      } catch (_) {}
+    }
     setState(() {
       _clockInTime = null;
       _clockOutTime = null;
+      _clockInDateTime = null;
       _paidBreaks.clear();
       _lunchBreaks.clear();
     });
@@ -142,7 +214,6 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
   void _handleSave() async {
     if (!_canSave) return;
 
-    // Show day summary dialog for mood + notes
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       barrierDismissible: false,
@@ -153,7 +224,6 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
       ),
     );
 
-    // If user cancelled (null), stay on time card
     if (result == null || !mounted) return;
 
     final hours = _calculateHours();
@@ -197,90 +267,99 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
             ),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DialogHeader(
-              isClockedOut: _isClockedOut,
-              onReset: _handleReset,
-            ),
-            ClockButton(
-              clockInTime: _clockInTime,
-              clockOutTime: _clockOutTime,
-              isClockedIn: _isClockedIn,
-              isClockedOut: _isClockedOut,
-              totalHours: _calculateHours(),
-              formatTime: _formatTime,
-              onTap: _handleClockToggle,
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TimeLogSection(
-                      clockInTime: _clockInTime,
-                      clockOutTime: _clockOutTime,
-                      onEditClockIn: _clockInTime != null
-                          ? () => _selectTime((t) {
-                                setState(() => _clockInTime = t);
-                                _notifyClockState();
-                              }, _clockInTime)
-                          : null,
-                      onEditClockOut: _clockOutTime != null
-                          ? () => _selectTime((t) {
-                                setState(() => _clockOutTime = t);
-                                _notifyClockState();
-                              }, _clockOutTime)
-                          : null,
-                    ),
-                    const SizedBox(height: 16),
-                    BreakSection(
-                      title: 'Paid Breaks',
-                      icon: Icons.coffee_rounded,
-                      color: const Color(0xFF10B981),
-                      breaks: _paidBreaks,
-                      onAdd: _addPaidBreak,
-                      onRemove: _removePaidBreak,
-                      onEditStart: (i) => _selectTime(
-                        (t) => setState(() => _paidBreaks[i].start = t),
-                        _paidBreaks[i].start,
-                      ),
-                      onEditEnd: (i) => _selectTime(
-                        (t) => setState(() => _paidBreaks[i].end = t),
-                        _paidBreaks[i].end,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    BreakSection(
-                      title: 'Lunch Breaks',
-                      icon: Icons.restaurant_rounded,
-                      color: const Color(0xFFF59E0B),
-                      breaks: _lunchBreaks,
-                      onAdd: _addLunchBreak,
-                      onRemove: _removeLunchBreak,
-                      onEditStart: (i) => _selectTime(
-                        (t) => setState(() => _lunchBreaks[i].start = t),
-                        _lunchBreaks[i].start,
-                      ),
-                      onEditEnd: (i) => _selectTime(
-                        (t) => setState(() => _lunchBreaks[i].end = t),
-                        _lunchBreaks[i].end,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
+        child: _isLoading
+            ? const SizedBox(
+                height: 300,
+                child: Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
                 ),
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DialogHeader(
+                    isClockedOut: _isClockedOut,
+                    onReset: _handleReset,
+                  ),
+                  ClockButton(
+                    clockInTime: _clockInTime,
+                    clockOutTime: _clockOutTime,
+                    isClockedIn: _isClockedIn,
+                    isClockedOut: _isClockedOut,
+                    totalHours: _calculateHours(),
+                    formatTime: _formatTime,
+                    onTap: _isClockingIn ? () {} : _handleClockToggle,
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 28),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TimeLogSection(
+                            clockInTime: _clockInTime,
+                            clockOutTime: _clockOutTime,
+                            onEditClockIn: _clockInTime != null
+                                ? () => _selectTime((t) {
+                                      setState(() => _clockInTime = t);
+                                      _notifyClockState();
+                                    }, _clockInTime)
+                                : null,
+                            onEditClockOut: _clockOutTime != null
+                                ? () => _selectTime((t) {
+                                      setState(() => _clockOutTime = t);
+                                      _notifyClockState();
+                                    }, _clockOutTime)
+                                : null,
+                          ),
+                          const SizedBox(height: 16),
+                          BreakSection(
+                            title: 'Paid Breaks',
+                            icon: Icons.coffee_rounded,
+                            color: const Color(0xFF10B981),
+                            breaks: _paidBreaks,
+                            onAdd: _addPaidBreak,
+                            onRemove: _removePaidBreak,
+                            onEditStart: (i) => _selectTime(
+                              (t) => setState(() => _paidBreaks[i].start = t),
+                              _paidBreaks[i].start,
+                            ),
+                            onEditEnd: (i) => _selectTime(
+                              (t) => setState(() => _paidBreaks[i].end = t),
+                              _paidBreaks[i].end,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          BreakSection(
+                            title: 'Lunch Breaks',
+                            icon: Icons.restaurant_rounded,
+                            color: const Color(0xFFF59E0B),
+                            breaks: _lunchBreaks,
+                            onAdd: _addLunchBreak,
+                            onRemove: _removeLunchBreak,
+                            onEditStart: (i) => _selectTime(
+                              (t) => setState(() => _lunchBreaks[i].start = t),
+                              _lunchBreaks[i].start,
+                            ),
+                            onEditEnd: (i) => _selectTime(
+                              (t) => setState(() => _lunchBreaks[i].end = t),
+                              _lunchBreaks[i].end,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+                      ),
+                    ),
+                  ),
+                  DialogFooter(
+                    canSave: _canSave,
+                    onCancel: () => Navigator.pop(context),
+                    onSave: _handleSave,
+                  ),
+                ],
               ),
-            ),
-            DialogFooter(
-              canSave: _canSave,
-              onCancel: () => Navigator.pop(context),
-              onSave: _handleSave,
-            ),
-          ],
-        ),
       ),
     );
   }

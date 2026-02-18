@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../data/models/time_entry.dart';
 
-class TimeEntryCard extends StatelessWidget {
+class TimeEntryCard extends StatefulWidget {
   final TimeEntry entry;
   final Function(String) onDelete;
 
@@ -15,7 +15,19 @@ class TimeEntryCard extends StatelessWidget {
   });
 
   @override
+  State<TimeEntryCard> createState() => _TimeEntryCardState();
+}
+
+class _TimeEntryCardState extends State<TimeEntryCard> {
+  bool _isEditHovered = false;
+  bool _isEditPressed = false;
+  bool _isDeleteHovered = false;
+  bool _isDeletePressed = false;
+
+  @override
   Widget build(BuildContext context) {
+    final entry = widget.entry;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -151,22 +163,160 @@ class TimeEntryCard extends StatelessWidget {
             ),
           ],
 
-          // Delete Button
+          // 3D Edit & Delete Buttons
           if (entry.status != 'APPROVED') ...[
-            const SizedBox(width: 8),
-            SizedBox(
-              width: 32,
-              height: 32,
-              child: IconButton(
-                onPressed: () => _showDeleteConfirmation(context),
-                icon: const Icon(Icons.delete_outline, size: 16),
-                color: Colors.red.withOpacity(0.6),
-                padding: EdgeInsets.zero,
-                tooltip: 'Delete',
-                style: IconButton.styleFrom(
-                  backgroundColor: Colors.red.withOpacity(0.08),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
+            const SizedBox(width: 10),
+
+            // Edit Button
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              onEnter: (_) => setState(() => _isEditHovered = true),
+              onExit: (_) => setState(() {
+                _isEditHovered = false;
+                _isEditPressed = false;
+              }),
+              child: GestureDetector(
+                onTapDown: (_) => setState(() => _isEditPressed = true),
+                onTapUp: (_) => setState(() => _isEditPressed = false),
+                onTapCancel: () => setState(() => _isEditPressed = false),
+                onTap: () => _showEditNotesDialog(context),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  curve: Curves.easeOut,
+                  width: 36,
+                  height: 36,
+                  transform: Matrix4.translationValues(
+                    0,
+                    _isEditPressed ? 2 : (_isEditHovered ? -1 : 0),
+                    0,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: _isEditHovered
+                          ? [const Color(0xFF8B5CF6), const Color(0xFF7C3AED)]
+                          : [const Color(0xFF7C3AED), const Color(0xFF6D28D9)],
+                    ),
+                    boxShadow: _isEditPressed
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFF7C3AED).withOpacity(0.2),
+                              blurRadius: 2,
+                              offset: const Offset(0, 1),
+                            ),
+                          ]
+                        : [
+                            BoxShadow(
+                              color: const Color(0xFF4C1D95).withOpacity(0.6),
+                              blurRadius: 0,
+                              offset: const Offset(0, 3),
+                              spreadRadius: 0,
+                            ),
+                            BoxShadow(
+                              color: const Color(0xFF8B5CF6).withOpacity(
+                                _isEditHovered ? 0.4 : 0.15,
+                              ),
+                              blurRadius: _isEditHovered ? 12 : 6,
+                              offset: const Offset(0, 2),
+                              spreadRadius: _isEditHovered ? 1 : 0,
+                            ),
+                          ],
+                    border: Border.all(
+                      color: Colors.white.withOpacity(
+                        _isEditHovered ? 0.25 : 0.1,
+                      ),
+                      width: 1,
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.edit_rounded,
+                      size: 16,
+                      color: Colors.white.withOpacity(
+                        _isEditHovered ? 1.0 : 0.9,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+
+            // Delete Button
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              onEnter: (_) => setState(() => _isDeleteHovered = true),
+              onExit: (_) => setState(() {
+                _isDeleteHovered = false;
+                _isDeletePressed = false;
+              }),
+              child: GestureDetector(
+                onTapDown: (_) => setState(() => _isDeletePressed = true),
+                onTapUp: (_) => setState(() => _isDeletePressed = false),
+                onTapCancel: () => setState(() => _isDeletePressed = false),
+                onTap: () => _showDeleteConfirmation(context),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  curve: Curves.easeOut,
+                  width: 36,
+                  height: 36,
+                  transform: Matrix4.translationValues(
+                    0,
+                    _isDeletePressed ? 2 : (_isDeleteHovered ? -1 : 0),
+                    0,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: _isDeleteHovered
+                          ? [const Color(0xFFEF4444), const Color(0xFFDC2626)]
+                          : [const Color(0xFFDC2626), const Color(0xFFB91C1C)],
+                    ),
+                    boxShadow: _isDeletePressed
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFFEF4444).withOpacity(0.2),
+                              blurRadius: 2,
+                              offset: const Offset(0, 1),
+                            ),
+                          ]
+                        : [
+                            // Bottom shadow for 3D depth
+                            BoxShadow(
+                              color: const Color(0xFF991B1B).withOpacity(0.6),
+                              blurRadius: 0,
+                              offset: const Offset(0, 3),
+                              spreadRadius: 0,
+                            ),
+                            // Glow on hover
+                            BoxShadow(
+                              color: const Color(0xFFEF4444).withOpacity(
+                                _isDeleteHovered ? 0.4 : 0.15,
+                              ),
+                              blurRadius: _isDeleteHovered ? 12 : 6,
+                              offset: const Offset(0, 2),
+                              spreadRadius: _isDeleteHovered ? 1 : 0,
+                            ),
+                          ],
+                    border: Border.all(
+                      color: Colors.white.withOpacity(
+                        _isDeleteHovered ? 0.25 : 0.1,
+                      ),
+                      width: 1,
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.delete_rounded,
+                      size: 17,
+                      color: Colors.white.withOpacity(
+                        _isDeleteHovered ? 1.0 : 0.9,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -178,7 +328,7 @@ class TimeEntryCard extends StatelessWidget {
   }
 
   Color _getStatusColor() {
-    switch (entry.status) {
+    switch (widget.entry.status) {
       case 'APPROVED':
         return const Color(0xFF10B981);
       case 'REJECTED':
@@ -190,7 +340,7 @@ class TimeEntryCard extends StatelessWidget {
   }
 
   IconData _getStatusIcon() {
-    switch (entry.status) {
+    switch (widget.entry.status) {
       case 'APPROVED':
         return Icons.check_circle;
       case 'REJECTED':
@@ -202,7 +352,7 @@ class TimeEntryCard extends StatelessWidget {
   }
 
   String _getStatusText() {
-    switch (entry.status) {
+    switch (widget.entry.status) {
       case 'APPROVED':
         return 'Approved';
       case 'REJECTED':
@@ -243,6 +393,144 @@ class TimeEntryCard extends StatelessWidget {
     );
   }
 
+  void _showEditNotesDialog(BuildContext context) {
+    // Extract just the notes portion from description
+    final description = widget.entry.description ?? '';
+    String existingNotes = '';
+    for (final line in description.split('\n')) {
+      if (line.startsWith('Notes: ')) {
+        existingNotes = line.replaceFirst('Notes: ', '');
+        break;
+      }
+    }
+    final controller = TextEditingController(text: existingNotes);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1B4B),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: Colors.white.withOpacity(0.1)),
+        ),
+        title: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Center(
+                child: Icon(Icons.edit_rounded, size: 18, color: Colors.white),
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Edit Notes',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 400,
+          child: TextField(
+            controller: controller,
+            maxLines: 4,
+            autofocus: true,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+            decoration: InputDecoration(
+              hintText: 'Add notes about your work...',
+              hintStyle: TextStyle(
+                color: Colors.white.withOpacity(0.3),
+                fontSize: 14,
+              ),
+              filled: true,
+              fillColor: Colors.white.withOpacity(0.06),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
+              ),
+              contentPadding: const EdgeInsets.all(14),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.5),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(dialogContext, controller.text);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF7C3AED),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            ),
+            child: const Text(
+              'Save',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    ).then((newNotes) {
+      if (newNotes == null) return;
+      // Rebuild description with updated notes
+      final lines = description.split('\n');
+      final updatedLines = <String>[];
+      bool notesFound = false;
+      for (final line in lines) {
+        if (line.startsWith('Notes: ')) {
+          notesFound = true;
+          if ((newNotes as String).isNotEmpty) {
+            updatedLines.add('Notes: $newNotes');
+          }
+        } else {
+          updatedLines.add(line);
+        }
+      }
+      if (!notesFound && (newNotes as String).isNotEmpty) {
+        updatedLines.add('Notes: $newNotes');
+      }
+      final updatedDescription = updatedLines.join('\n').trim();
+
+      // TODO: Call your repository to update the entry on the backend
+      // e.g. _timecardRepo.updateTimeEntry(widget.entry.id, description: updatedDescription);
+      print('📝 Updated notes for entry ${widget.entry.id}: $updatedDescription');
+    });
+  }
+
   void _showDeleteConfirmation(BuildContext context) {
     showDialog(
       context: context,
@@ -267,7 +555,7 @@ class TimeEntryCard extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(dialogContext);
-              onDelete(entry.id);
+              widget.onDelete(widget.entry.id);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

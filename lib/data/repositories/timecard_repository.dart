@@ -8,6 +8,56 @@ class TimecardRepository {
 
   TimecardRepository({required this.apiProvider});
 
+  // ============================================
+  // CLOCK IN / OUT (persisted to backend)
+  // ============================================
+
+  /// Get active clock-in status
+  Future<DateTime?> getActiveClock() async {
+    try {
+      final response = await apiProvider.get(
+        '/timecard/clock',
+        requiresAuth: true,
+      );
+      final clockIn = response['activeClockIn'];
+      if (clockIn != null) {
+        return DateTime.parse(clockIn);
+      }
+      return null;
+    } catch (e) {
+      print('❌ getActiveClock error: $e');
+      return null;
+    }
+  }
+
+  /// Clock in — saves timestamp to backend
+  Future<DateTime> clockIn() async {
+    final response = await apiProvider.post(
+      '/timecard/clock-in',
+      {},
+      requiresAuth: true,
+    );
+    return DateTime.parse(response['activeClockIn']);
+  }
+
+  /// Clock out — clears backend clock-in, returns calculated hours
+  Future<Map<String, dynamic>> clockOut() async {
+    final response = await apiProvider.post(
+      '/timecard/clock-out',
+      {},
+      requiresAuth: true,
+    );
+    return {
+      'clockInTime': DateTime.parse(response['clockInTime']),
+      'clockOutTime': DateTime.parse(response['clockOutTime']),
+      'hoursWorked': (response['hoursWorked'] as num).toDouble(),
+    };
+  }
+
+  // ============================================
+  // EXISTING METHODS
+  // ============================================
+
   Future<TimeEntry> logHours({
     required String clientId,
     required DateTime date,
@@ -24,9 +74,6 @@ class TimecardRepository {
       },
       requiresAuth: true,
     );
-
-    print('📦 logHours response: $response'); // ← DEBUG
-
     return TimeEntry.fromJson(response['timeEntry']);
   }
 
@@ -37,13 +84,12 @@ class TimecardRepository {
     String? month,
   }) async {
     Map<String, String>? queryParams;
-    
+
     if (clientId != null && clientId.isNotEmpty ||
         month != null ||
         startDate != null ||
         endDate != null) {
       queryParams = {};
-      
       if (clientId != null && clientId.isNotEmpty) {
         queryParams['clientId'] = clientId;
       }
@@ -56,17 +102,11 @@ class TimecardRepository {
       }
     }
 
-    print('🔍 getTimeEntries queryParams: $queryParams'); // ← DEBUG
-
     final response = await apiProvider.get(
       '/timecard/entries',
       queryParams: queryParams,
       requiresAuth: true,
     );
-
-    print('📦 getTimeEntries response: $response'); // ← DEBUG
-    print('📦 Response type: ${response.runtimeType}'); // ← DEBUG
-    print('📦 Has timeEntries key: ${response.containsKey("timeEntries")}'); // ← DEBUG
 
     return (response['timeEntries'] as List)
         .map((e) => TimeEntry.fromJson(e))
@@ -78,12 +118,10 @@ class TimecardRepository {
     String? clientId,
   }) async {
     Map<String, String>? queryParams;
-    
+
     if (clientId != null && clientId.isNotEmpty) {
       queryParams = {'clientId': clientId};
     }
-
-    print('🔍 getMonthlySummary month: $month, clientId: $clientId'); // ← DEBUG
 
     final response = await apiProvider.get(
       '/timecard/summary/$month',
@@ -91,19 +129,13 @@ class TimecardRepository {
       requiresAuth: true,
     );
 
-    print('📦 getMonthlySummary response: $response'); // ← DEBUG
-
     return MonthlySummary.fromJson(response);
   }
 
   Future<void> deleteTimeEntry(String entryId) async {
-    print('🗑️ Deleting entry: $entryId'); // ← DEBUG
-    
     await apiProvider.delete(
       '/timecard/entries/$entryId',
       requiresAuth: true,
     );
-    
-    print('✅ Entry deleted successfully'); // ← DEBUG
   }
 }
