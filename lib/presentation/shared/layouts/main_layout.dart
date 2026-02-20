@@ -1,3 +1,4 @@
+import 'package:covenant_va_desktop/services/update_banner.dart';
 import 'package:flutter/material.dart';
 import '../../../services/socket_service.dart';
 import '../widgets/layout/layout_sidebar_header.dart';
@@ -22,12 +23,17 @@ class MainLayout extends StatefulWidget {
 class _MainLayoutState extends State<MainLayout> {
   String _selectedRoute = 'dashboard';
 
+  // Update this to match your backend URL
+  static const String _apiBaseUrl = String.fromEnvironment(
+    'API_URL',
+    defaultValue: 'http://localhost:5000/api',
+  );
+
   @override
   void initState() {
     super.initState();
     _selectedRoute = widget.currentRoute;
     
-    // Setup notification callback
     print('🔔 MainLayout: Setting up notification callback');
     SocketService().onNotification = _showNotificationBanner;
   }
@@ -66,7 +72,12 @@ class _MainLayoutState extends State<MainLayout> {
           children: [
             _buildSidebar(),
             Expanded(
-              child: widget.child,
+              child: Column(
+                children: [
+                  UpdateBanner(apiBaseUrl: _apiBaseUrl),
+                  Expanded(child: widget.child),
+                ],
+              ),
             ),
           ],
         ),
@@ -126,7 +137,6 @@ class _MainLayoutState extends State<MainLayout> {
                     onTap: () => _navigateTo('messages'),
                   ),
                   const SizedBox(height: 8),
-                  // ← NEW: TIMECARD MENU ITEM
                   LayoutSidebarNavItem(
                     icon: Icons.access_time_rounded,
                     label: 'Timecard',
