@@ -46,7 +46,7 @@ class CovenantVAApp extends StatelessWidget {
         ),
         BlocProvider(
           create: (context) {
-            final apiProvider = getIt<ApiProvider>(); // ← Use service locator
+            final apiProvider = getIt<ApiProvider>();
             final notificationRepo = NotificationRepository(apiProvider);
             return NotificationBloc(notificationRepo);
           },
@@ -67,6 +67,7 @@ class _AppContent extends StatefulWidget {
 class _AppContentState extends State<_AppContent> {
   Timer? _notificationTimer;
   bool _hasLoadedNotifications = false;
+  bool _splashComplete = false;
   final SocketService _socketService = SocketService();
   OverlayEntry? _overlayEntry;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
@@ -243,10 +244,13 @@ class _AppContentState extends State<_AppContent> {
         _notificationTimer = null;
         _socketService.disconnect();
         
-        _navigatorKey.currentState?.pushNamedAndRemoveUntil(
-          '/home',
-          (route) => false,
-        );
+        // Only navigate away if splash is complete
+        if (_splashComplete) {
+          _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+            '/home',
+            (route) => false,
+          );
+        }
       }
     });
     
@@ -266,13 +270,18 @@ class _AppContentState extends State<_AppContent> {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: _navigatorKey,
-      title: 'Covenant VA',
+      title: 'CVA Desktop',
       theme: AppTheme.lightTheme,
       debugShowCheckedModeBanner: false,
       initialRoute: '/splash',
       routes: {
         '/splash': (context) => const SplashScreen(),
-        '/home': (context) => _buildHome(context),
+        '/home': (context) {
+          // Mark splash as complete when we reach /home
+          _splashComplete = true;
+          return _buildHome(context);
+        },
+        '/login': (context) => const LoginScreen(),
         '/dashboard': (context) => BlocProvider(
               create: (context) => getIt<DashboardBloc>()
                 ..add(const DashboardLoadRequested()),
@@ -297,7 +306,6 @@ class _AppContentState extends State<_AppContent> {
                 child: MessagesScreen(),
               ),
             ),
-        // ← UPDATED: TIMECARD ROUTE (Using service locator)
         '/timecard': (context) {
           return BlocProvider(
             create: (context) => getIt<TimecardBloc>(),

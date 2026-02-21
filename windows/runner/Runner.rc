@@ -50,8 +50,6 @@ END
 // Icon
 //
 
-// Icon with lowest ID value placed first to ensure application icon
-// remains consistent on all systems.
 IDI_APP_ICON            ICON                    "resources\\app_icon.ico"
 
 
@@ -89,13 +87,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "covenant_va_desktop" "\0"
+            VALUE "CompanyName", "Covenant VA" "\0"
+            VALUE "FileDescription", "CVA Desktop" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "covenant_va_desktop" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2025 com.example. All rights reserved." "\0"
+            VALUE "InternalName", "cva_desktop" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2025 Covenant VA. All rights reserved." "\0"
             VALUE "OriginalFilename", "covenant_va_desktop.exe" "\0"
-            VALUE "ProductName", "covenant_va_desktop" "\0"
+            VALUE "ProductName", "CVA Desktop" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

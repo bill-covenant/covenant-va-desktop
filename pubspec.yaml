@@ -36,3 +36,6 @@ flutter:
 
   assets:
     - assets/sounds/notification.mp3
+    - assets/images/fav.png
+    - assets/images/fav2.png
+    - assets/images/fav.ico

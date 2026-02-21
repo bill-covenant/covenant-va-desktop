@@ -32,14 +32,13 @@ class LoginScreen extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Color(0xFF7C3AED), // Purple
-                Color(0xFFEC4899), // Pink
+                Color(0xFF7C3AED),
+                Color(0xFFEC4899),
               ],
             ),
           ),
           child: Stack(
             children: [
-              // Animated background circles
               Positioned(
                 top: -100,
                 right: -100,
@@ -75,13 +74,11 @@ class LoginScreen extends StatelessWidget {
                 ),
               ),
               
-              // Main content
               Center(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24),
                   child: Stack(
                     children: [
-                      // Glow effect behind card
                       Positioned.fill(
                         child: Container(
                           margin: const EdgeInsets.all(20),
@@ -98,7 +95,6 @@ class LoginScreen extends StatelessWidget {
                         ),
                       ),
                       
-                      // Glassmorphism card
                       Container(
                         width: 480,
                         decoration: BoxDecoration(
@@ -140,61 +136,55 @@ class LoginScreen extends StatelessWidget {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                // 3D Logo with shadow
-                                Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    // Shadow layer
-                                    Container(
-                                      width: 100,
-                                      height: 100,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: AppColors.primary.withOpacity(0.3),
-                                            blurRadius: 30,
-                                            spreadRadius: 5,
-                                          ),
-                                        ],
-                                      ),
+                                // Company Logo with 3D effect
+                                Container(
+                                  width: 130,
+                                  height: 130,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        Colors.white.withOpacity(0.9),
+                                        Colors.white.withOpacity(0.4),
+                                      ],
                                     ),
-                                    // Main logo
-                                    Container(
-                                      width: 100,
-                                      height: 100,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        gradient: LinearGradient(
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                          colors: [
-                                            AppColors.primary.withOpacity(0.2),
-                                            AppColors.secondary.withOpacity(0.1),
-                                          ],
-                                        ),
-                                        border: Border.all(
-                                          color: Colors.white.withOpacity(0.5),
-                                          width: 3,
-                                        ),
-                                      ),
-                                      child: Icon(
-                                        Icons.workspace_premium,
-                                        size: 50,
-                                        color: AppColors.primary,
-                                        shadows: [
-                                          Shadow(
-                                            color: AppColors.primary.withOpacity(0.5),
-                                            blurRadius: 20,
-                                          ),
-                                        ],
-                                      ),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.6),
+                                      width: 3,
                                     ),
-                                  ],
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.primary.withOpacity(0.4),
+                                        blurRadius: 40,
+                                        spreadRadius: 5,
+                                        offset: const Offset(0, 8),
+                                      ),
+                                      BoxShadow(
+                                        color: const Color(0xFFEC4899).withOpacity(0.2),
+                                        blurRadius: 30,
+                                        spreadRadius: 2,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                      BoxShadow(
+                                        color: Colors.white.withOpacity(0.8),
+                                        blurRadius: 20,
+                                        spreadRadius: -5,
+                                        offset: const Offset(0, -4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(18),
+                                    child: Image.asset(
+                                      'assets/images/fav.png',
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
                                 ),
                                 const SizedBox(height: 32),
 
-                                // Title with gradient
                                 ShaderMask(
                                   shaderCallback: (bounds) => const LinearGradient(
                                     colors: [
@@ -214,7 +204,6 @@ class LoginScreen extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 8),
 
-                                // Subtitle
                                 Text(
                                   'Virtual Assistant Portal',
                                   style: TextStyle(
@@ -225,7 +214,6 @@ class LoginScreen extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 48),
 
-                                // Login Form
                                 const LoginForm(),
                               ],
                             ),
