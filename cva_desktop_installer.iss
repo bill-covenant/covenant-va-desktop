@@ -15,7 +15,7 @@ PrivilegesRequired=lowest
 DisableProgramGroupPage=yes
 
 [Files]
-Source: "C:\Users\USER\Desktop\covenant-va-desktop\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
+Source: "C:\Users\USER\Desktop\covenant_va_desktop\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
 [Icons]
 Name: "{group}\CVA Desktop"; Filename: "{app}\covenant_va_desktop.exe"

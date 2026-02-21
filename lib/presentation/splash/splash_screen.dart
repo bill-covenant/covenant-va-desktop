@@ -255,8 +255,8 @@ class _SplashScreenState extends State<SplashScreen>
                               child: Opacity(
                                 opacity: _logoOpacity.value,
                                 child: Container(
-                                  width: 100,
-                                  height: 100,
+                                  width: 130,
+                                  height: 130,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     gradient: RadialGradient(
@@ -267,9 +267,9 @@ class _SplashScreenState extends State<SplashScreen>
                                     ),
                                   ),
                                   child: Padding(
-                                    padding: const EdgeInsets.all(10),
+                                    padding: const EdgeInsets.all(5),
                                     child: Image.asset(
-                                      'assets/images/fav.png',
+                                      'assets/images/fav3.png',
                                       fit: BoxFit.contain,
                                     ),
                                   ),
