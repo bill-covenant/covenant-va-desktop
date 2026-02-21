@@ -7,7 +7,6 @@ DefaultDirName={autopf}\CVA Desktop
 DefaultGroupName=CVA Desktop
 OutputDir=Output
 OutputBaseFilename=CVA-Desktop-Setup-v1.0.0
-SetupIconFile=C:\Users\USER\Desktop\covenant-va-desktop\windows\runner\resources\app_icon.ico
 UninstallDisplayIcon={app}\covenant_va_desktop.exe
 Compression=lzma2
 SolidCompression=yes
