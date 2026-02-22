@@ -1,5 +1,3 @@
-// lib/presentation/timecard/bloc/timecard_bloc.dart
-
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../data/repositories/timecard_repository.dart';
 import 'timecard_event.dart';
@@ -8,8 +6,8 @@ import 'timecard_state.dart';
 class TimecardBloc extends Bloc<TimecardEvent, TimecardState> {
   final TimecardRepository timecardRepository;
 
-  TimecardBloc({required this.timecardRepository}) 
-      : super(const TimecardInitial()) {  // ← Added const
+  TimecardBloc({required this.timecardRepository})
+      : super(const TimecardInitial()) {
     on<LoadTimecardData>(_onLoadTimecardData);
     on<LogHours>(_onLogHours);
     on<DeleteTimeEntry>(_onDeleteTimeEntry);
@@ -20,27 +18,25 @@ class TimecardBloc extends Bloc<TimecardEvent, TimecardState> {
     LoadTimecardData event,
     Emitter<TimecardState> emit,
   ) async {
-    emit(const TimecardLoading());  // ← Added const
-    
-    try {
-      // Load time entries
-      final entries = await timecardRepository.getTimeEntries(
-        clientId: event.clientId,
-        month: event.month,
-      );
+    // Only show loading spinner if we don't have data yet
+    if (state is! TimecardLoaded) {
+      emit(const TimecardLoading());
+    }
 
-      // Load monthly summary
-      final summary = await timecardRepository.getMonthlySummary(
-        month: event.month,
+    try {
+      // Fetch entries + summary in PARALLEL (was sequential before)
+      final data = await timecardRepository.loadTimecardData(
         clientId: event.clientId,
+        month: event.month,
       );
 
       emit(TimecardLoaded(
-        timeEntries: entries,
-        summary: summary,
+        timeEntries: data.entries,
+        summary: data.summary,
       ));
     } catch (e) {
-      emit(TimecardError(message: 'Failed to load timecard data: ${e.toString()}'));  // ← Added message:
+      emit(TimecardError(
+          message: 'Failed to load timecard data: ${e.toString()}'));
     }
   }
 
@@ -48,6 +44,9 @@ class TimecardBloc extends Bloc<TimecardEvent, TimecardState> {
     LogHours event,
     Emitter<TimecardState> emit,
   ) async {
+    // Keep current data visible while logging
+    final currentState = state;
+
     try {
       final entry = await timecardRepository.logHours(
         clientId: event.clientId,
@@ -56,16 +55,22 @@ class TimecardBloc extends Bloc<TimecardEvent, TimecardState> {
         description: event.description,
       );
 
-      emit(HoursLoggedSuccess(entry: entry));  // ← Added entry:
-      
-      // Reload data after logging hours
-      final currentMonth = '${event.date.year}-${event.date.month.toString().padLeft(2, '0')}';
-      add(LoadTimecardData(
+      emit(HoursLoggedSuccess(entry: entry));
+
+      // Silent refresh — no loading spinner, data updates in background
+      final currentMonth =
+          '${event.date.year}-${event.date.month.toString().padLeft(2, '0')}';
+      add(RefreshTimecard(
         clientId: event.clientId,
         month: currentMonth,
       ));
     } catch (e) {
-      emit(TimecardError(message: 'Failed to log hours: ${e.toString()}'));  // ← Added message:
+      // Restore previous state if we had data
+      if (currentState is TimecardLoaded) {
+        emit(currentState);
+      }
+      emit(TimecardError(
+          message: 'Failed to log hours: ${e.toString()}'));
     }
   }
 
@@ -73,11 +78,15 @@ class TimecardBloc extends Bloc<TimecardEvent, TimecardState> {
     DeleteTimeEntry event,
     Emitter<TimecardState> emit,
   ) async {
+    // Emit success immediately — UI already updated optimistically
+    emit(const TimeEntryDeleted());
+
+    // Delete from server in background
     try {
       await timecardRepository.deleteTimeEntry(event.entryId);
-      emit(const TimeEntryDeleted());  // ← Added const
     } catch (e) {
-      emit(TimecardError(message: 'Failed to delete entry: ${e.toString()}'));  // ← Added message:
+      emit(TimecardError(
+          message: 'Failed to delete entry: ${e.toString()}'));
     }
   }
 
@@ -85,24 +94,20 @@ class TimecardBloc extends Bloc<TimecardEvent, TimecardState> {
     RefreshTimecard event,
     Emitter<TimecardState> emit,
   ) async {
-    // Same as load, but without showing loading state
     try {
-      final entries = await timecardRepository.getTimeEntries(
+      // Parallel fetch, no loading spinner
+      final data = await timecardRepository.loadTimecardData(
         clientId: event.clientId,
         month: event.month,
-      );
-
-      final summary = await timecardRepository.getMonthlySummary(
-        month: event.month,
-        clientId: event.clientId,
       );
 
       emit(TimecardLoaded(
-        timeEntries: entries,
-        summary: summary,
+        timeEntries: data.entries,
+        summary: data.summary,
       ));
     } catch (e) {
-      emit(TimecardError(message: 'Failed to refresh timecard: ${e.toString()}'));  // ← Added message:
+      emit(TimecardError(
+          message: 'Failed to refresh timecard: ${e.toString()}'));
     }
   }
 }

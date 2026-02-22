@@ -1,5 +1,3 @@
-// lib/data/repositories/timecard_repository.dart
-
 import '../models/time_entry.dart';
 import '../providers/api_provider.dart';
 
@@ -9,15 +7,15 @@ class TimecardRepository {
   TimecardRepository({required this.apiProvider});
 
   // ============================================
-  // CLOCK IN / OUT (persisted to backend)
+  // CLOCK IN / OUT
   // ============================================
 
-  /// Get active clock-in status
   Future<DateTime?> getActiveClock() async {
     try {
       final response = await apiProvider.get(
         '/timecard/clock',
         requiresAuth: true,
+        cacheDuration: const Duration(seconds: 10),
       );
       final clockIn = response['activeClockIn'];
       if (clockIn != null) {
@@ -25,12 +23,10 @@ class TimecardRepository {
       }
       return null;
     } catch (e) {
-      print('❌ getActiveClock error: $e');
       return null;
     }
   }
 
-  /// Clock in — saves timestamp to backend
   Future<DateTime> clockIn() async {
     final response = await apiProvider.post(
       '/timecard/clock-in',
@@ -40,7 +36,6 @@ class TimecardRepository {
     return DateTime.parse(response['activeClockIn']);
   }
 
-  /// Clock out — clears backend clock-in, returns calculated hours
   Future<Map<String, dynamic>> clockOut() async {
     final response = await apiProvider.post(
       '/timecard/clock-out',
@@ -52,6 +47,26 @@ class TimecardRepository {
       'clockOutTime': DateTime.parse(response['clockOutTime']),
       'hoursWorked': (response['hoursWorked'] as num).toDouble(),
     };
+  }
+
+  // ============================================
+  // COMBINED LOAD — parallel fetch
+  // ============================================
+
+  /// Fetch entries + summary in parallel instead of sequentially
+  Future<({List<TimeEntry> entries, MonthlySummary summary})> loadTimecardData({
+    String? clientId,
+    required String month,
+  }) async {
+    final results = await Future.wait([
+      getTimeEntries(clientId: clientId, month: month),
+      getMonthlySummary(month: month, clientId: clientId),
+    ]);
+
+    return (
+      entries: results[0] as List<TimeEntry>,
+      summary: results[1] as MonthlySummary,
+    );
   }
 
   // ============================================

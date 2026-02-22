@@ -75,20 +75,12 @@ class _AppContentState extends State<_AppContent> {
   @override
   void initState() {
     super.initState();
-    
-    print('🔧 _AppContentState initState called');
-    
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      print('🔧 PostFrameCallback executing...');
       _setupAuthListener();
     });
   }
 
   void _showNotificationBanner(String title, String body) {
-    print('🎉🎉🎉 _showNotificationBanner called in main.dart!');
-    print('🎉 Title: $title');
-    print('🎉 Body: $body');
-    
     _overlayEntry?.remove();
     
     _overlayEntry = OverlayEntry(
@@ -186,48 +178,40 @@ class _AppContentState extends State<_AppContent> {
     
     if (mounted) {
       Overlay.of(context).insert(_overlayEntry!);
-      print('✅✅✅ Notification banner inserted into overlay');
       
       Future.delayed(const Duration(seconds: 5), () {
         _overlayEntry?.remove();
         _overlayEntry = null;
       });
-    } else {
-      print('❌ Context not mounted, cannot show notification');
     }
   }
 
   void _setupAuthListener() {
-    print('🔧 Setting up auth listener...');
     final authBloc = context.read<AuthBloc>();
     
-    print('🔧 Current auth state: ${authBloc.state}');
-    print('🔧 Auth state type: ${authBloc.state.runtimeType}');
-    
     authBloc.stream.listen((authState) {
-      print('🔧🔧🔧 Auth state changed!');
-      print('🔧 New state: $authState');
-      print('🔧 State type: ${authState.runtimeType}');
-      print('🔧 Is AuthAuthenticated? ${authState is AuthAuthenticated}');
-      print('🔧 Has loaded notifications? $_hasLoadedNotifications');
-      
       if (authState is AuthAuthenticated && !_hasLoadedNotifications) {
         _hasLoadedNotifications = true;
         
-        print('🔐 User authenticated, starting socket connection...');
-        print('🔐 User data: ${authState.user}');
-        
-        print('🔔 Setting up notification callback NOW');
         _socketService.onNotification = _showNotificationBanner;
-        print('🔔 Callback set! Callback is null? ${_socketService.onNotification == null}');
         
         context.read<NotificationBloc>()
           ..add(LoadNotifications())
           ..add(LoadUnreadCount());
         
         final userId = authState.user.id;
-        print('👤 Connecting with user ID: $userId');
         _socketService.connect(userId);
+        
+        // Pre-fetch all commonly used endpoints in parallel
+        // This warms the cache so screens load instantly
+        final apiProvider = getIt<ApiProvider>();
+        apiProvider.warmUp([
+          '/dashboard/va',
+          '/tasks/my-tasks',
+          '/timecard/entries',
+          '/messages',
+          '/notifications',
+        ]);
         
         _notificationTimer = Timer.periodic(
           const Duration(seconds: 30),
@@ -238,13 +222,15 @@ class _AppContentState extends State<_AppContent> {
           },
         );
       } else if (authState is! AuthAuthenticated) {
-        print('🔧 User NOT authenticated or already loaded notifications');
         _hasLoadedNotifications = false;
         _notificationTimer?.cancel();
         _notificationTimer = null;
         _socketService.disconnect();
         
-        // Only navigate away if splash is complete
+        // Clear cache on logout
+        final apiProvider = getIt<ApiProvider>();
+        apiProvider.clearCache();
+        
         if (_splashComplete) {
           _navigatorKey.currentState?.pushNamedAndRemoveUntil(
             '/home',
@@ -253,13 +239,10 @@ class _AppContentState extends State<_AppContent> {
         }
       }
     });
-    
-    print('🔧 Auth listener setup complete');
   }
 
   @override
   void dispose() {
-    print('🔧 _AppContentState disposing...');
     _notificationTimer?.cancel();
     _socketService.disconnect();
     _overlayEntry?.remove();
@@ -277,7 +260,6 @@ class _AppContentState extends State<_AppContent> {
       routes: {
         '/splash': (context) => const SplashScreen(),
         '/home': (context) {
-          // Mark splash as complete when we reach /home
           _splashComplete = true;
           return _buildHome(context);
         },
@@ -328,8 +310,6 @@ class _AppContentState extends State<_AppContent> {
   Widget _buildHome(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
-        print('🔧 Building home with state: ${state.runtimeType}');
-        
         if (state is AuthLoading || state is AuthInitial) {
           return const Scaffold(
             body: Center(
@@ -339,7 +319,6 @@ class _AppContentState extends State<_AppContent> {
         }
         
         if (state is AuthAuthenticated) {
-          print('🔧 Building MainLayout for authenticated user');
           return BlocProvider(
             create: (context) => getIt<DashboardBloc>()
               ..add(const DashboardLoadRequested()),
@@ -350,7 +329,6 @@ class _AppContentState extends State<_AppContent> {
           );
         }
         
-        print('🔧 Building LoginScreen');
         return const LoginScreen();
       },
     );
