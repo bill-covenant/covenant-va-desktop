@@ -5,13 +5,15 @@ import 'messages_state.dart';
 import '../../../data/repositories/message_repository.dart';
 import '../../../data/models/conversation_model.dart';
 import '../../../data/models/message_model.dart';
+import '../../../services/socket_service.dart';
 
 class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
   final MessageRepository _messageRepository;
+  final SocketService _socketService = SocketService();
   
   List<ConversationModel> _cachedConversations = [];
-  Timer? _autoRefreshTimer;
   String? _currentConversationId;
+  StreamSubscription<MessageModel>? _socketSubscription;
 
   MessagesBloc({required MessageRepository messageRepository})
       : _messageRepository = messageRepository,
@@ -20,36 +22,63 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
     on<MessagesLoadRequested>(_onMessagesLoadRequested);
     on<MessagesRefreshRequested>(_onMessagesRefreshRequested);
     on<ConversationMessagesLoadRequested>(_onConversationMessagesLoadRequested);
-    on<ConversationMessagesRefreshRequested>(_onConversationMessagesRefreshRequested);
     on<MessageSendRequested>(_onMessageSendRequested);
-    on<MessageDeleteRequested>(_onMessageDeleteRequested); // ✅ ADDED
+    on<MessageDeleteRequested>(_onMessageDeleteRequested);
     on<UnreadCountLoadRequested>(_onUnreadCountLoadRequested);
-  }
+    on<SocketMessageReceived>(_onSocketMessageReceived);
 
-  void _startAutoRefresh(String conversationId) {
-    _autoRefreshTimer?.cancel();
-    _currentConversationId = conversationId;
-    
-    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (_currentConversationId != null) {
-        add(ConversationMessagesRefreshRequested(_currentConversationId!));
-      }
+    // ✅ Listen for real-time messages from socket
+    _socketSubscription = _socketService.onNewMessage.listen((message) {
+      print('💬 Socket message received in BLoC: ${message.id}');
+      add(SocketMessageReceived(message));
     });
-    
-    print('🔄 Auto-refresh started for conversation $conversationId');
-  }
-  
-  void _stopAutoRefresh() {
-    _autoRefreshTimer?.cancel();
-    _autoRefreshTimer = null;
-    _currentConversationId = null;
-    print('⏹️ Auto-refresh stopped');
   }
 
   @override
   Future<void> close() {
-    _stopAutoRefresh();
+    _socketSubscription?.cancel();
     return super.close();
+  }
+
+  Future<void> _onSocketMessageReceived(
+    SocketMessageReceived event,
+    Emitter<MessagesState> emit,
+  ) async {
+    final message = event.message;
+    print('🔔 Processing socket message for conversation: ${message.conversationId}');
+
+    // ✅ INSTANT: Add message to current conversation view immediately
+    if (_currentConversationId == message.conversationId && 
+        state is ConversationMessagesLoaded) {
+      final currentState = state as ConversationMessagesLoaded;
+      final currentMessages = currentState.messages;
+
+      if (currentMessages.any((m) => m.id == message.id)) {
+        print('⚠️ Duplicate message ignored: ${message.id}');
+        return;
+      }
+
+      final updatedMessages = [...currentMessages, message];
+
+      emit(ConversationMessagesLoaded(
+        conversationId: message.conversationId,
+        messages: updatedMessages,
+        conversations: _cachedConversations,
+      ));
+
+      print('✅ Message added to current conversation view INSTANTLY');
+    }
+
+    // ✅ BACKGROUND: Refresh conversation list without blocking the UI
+    _messageRepository.getConversations().then((conversations) {
+      _cachedConversations = conversations;
+      // Only update if we're still in a loaded state
+      if (state is ConversationMessagesLoaded) {
+        add(MessagesRefreshRequested());
+      }
+    }).catchError((e) {
+      print('⚠️ Failed to refresh conversations after socket message: $e');
+    });
   }
 
   Future<void> _onMessagesLoadRequested(
@@ -86,19 +115,21 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
   ) async {
     print('🚀 BLoC: Loading messages for conversation ${event.conversationId}');
     
-    _startAutoRefresh(event.conversationId);
+    _currentConversationId = event.conversationId;
     
     emit(ConversationMessagesLoading(event.conversationId));
     
     try {
-      print('📡 BLoC: Calling API getMessagesForConversation...');
-      final messages = await _messageRepository.getMessagesForConversation(
-        event.conversationId,
-      );
-      print('✅ BLoC: Got ${messages.length} messages from API');
+      final results = await Future.wait([
+        _messageRepository.getMessagesForConversation(event.conversationId),
+        _messageRepository.getConversations(),
+      ]);
       
-      final conversations = await _messageRepository.getConversations();
+      final messages = results[0] as List<MessageModel>;
+      final conversations = results[1] as List<ConversationModel>;
       _cachedConversations = conversations;
+      
+      print('✅ BLoC: Got ${messages.length} messages from API');
       
       emit(ConversationMessagesLoaded(
         conversationId: event.conversationId,
@@ -112,30 +143,6 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
         message: e.toString(),
         conversations: _cachedConversations,
       ));
-    }
-  }
-
-  Future<void> _onConversationMessagesRefreshRequested(
-    ConversationMessagesRefreshRequested event,
-    Emitter<MessagesState> emit,
-  ) async {
-    try {
-      final messages = await _messageRepository.getMessagesForConversation(
-        event.conversationId,
-      );
-      
-      final conversations = await _messageRepository.getConversations();
-      _cachedConversations = conversations;
-      
-      emit(ConversationMessagesLoaded(
-        conversationId: event.conversationId,
-        messages: messages,
-        conversations: conversations,
-      ));
-      
-      print('🔄 Auto-refreshed: ${messages.length} messages');
-    } catch (e) {
-      print('⚠️ Auto-refresh error: $e');
     }
   }
 
@@ -158,9 +165,8 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
       updatedAt: DateTime.now(),
     );
     
-    print('📤 Creating optimistic message with senderId: ${event.senderId}');
-    
     final optimisticMessages = [...currentMessages, optimisticMessage];
+    
     emit(ConversationMessagesLoaded(
       conversationId: event.conversationId,
       messages: optimisticMessages,
@@ -173,18 +179,23 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
         content: event.content,
       );
       
-      print('✅ Message sent successfully. Server senderId: ${newMessage.senderId}');
-      
-      final updatedMessages = [...currentMessages, newMessage];
-      
-      final conversations = await _messageRepository.getConversations();
-      _cachedConversations = conversations;
+      final updatedMessages = optimisticMessages
+          .where((m) => !m.id.startsWith('temp-'))
+          .toList()
+        ..add(newMessage);
       
       emit(ConversationMessagesLoaded(
         conversationId: event.conversationId,
         messages: updatedMessages,
-        conversations: conversations,
+        conversations: _cachedConversations,
       ));
+
+      _messageRepository.getConversations().then((conversations) {
+        _cachedConversations = conversations;
+      }).catchError((e) {
+        print('⚠️ Background conversation refresh failed: $e');
+      });
+      
     } catch (error) {
       print('❌ Failed to send message: $error');
       
@@ -203,7 +214,6 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
     }
   }
 
-  // ✅ DELETE MESSAGE HANDLER (NEW)
   Future<void> _onMessageDeleteRequested(
     MessageDeleteRequested event,
     Emitter<MessagesState> emit,
@@ -213,7 +223,6 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
       currentMessages = (state as ConversationMessagesLoaded).messages;
     }
 
-    // ✅ Optimistic delete - remove immediately
     final updatedMessages = currentMessages
         .where((msg) => msg.id != event.messageId)
         .toList();
@@ -225,11 +234,8 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
     ));
 
     try {
-      // Delete from server
       await _messageRepository.deleteMessage(event.messageId);
-      print('✅ Message deleted: ${event.messageId}');
 
-      // Refresh conversations (update last message if needed)
       final conversations = await _messageRepository.getConversations();
       _cachedConversations = conversations;
 
@@ -241,7 +247,6 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
     } catch (error) {
       print('❌ Failed to delete message: $error');
 
-      // Restore message on error
       emit(ConversationMessagesLoaded(
         conversationId: event.conversationId,
         messages: currentMessages,

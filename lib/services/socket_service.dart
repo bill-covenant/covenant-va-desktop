@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../core/constants/api_constants.dart';
+import '../data/models/message_model.dart';
 
 class SocketService {
   static final SocketService _instance = SocketService._internal();
@@ -11,8 +13,12 @@ class SocketService {
   // Callback for showing in-app notifications
   Function(String title, String body)? onNotification;
   
-  // ✅ Add callback for task updates
+  // Callback for task updates
   Function()? onTaskUpdate;
+
+  // ✅ Stream for real-time incoming messages
+  final _newMessageController = StreamController<MessageModel>.broadcast();
+  Stream<MessageModel> get onNewMessage => _newMessageController.stream;
 
   Future<void> initNotifications() async {
     print('📱 Notification system ready');
@@ -26,14 +32,17 @@ class SocketService {
       return;
     }
 
-    // ✅ Use production URL from ApiConstants
     final socketUrl = ApiConstants.baseUrl.replaceAll('/api', '');
     print('🌐 Connecting to: $socketUrl');
     
-    _socket = IO.io(socketUrl, <String, dynamic>{
-      'transports': ['websocket'],
-      'autoConnect': false,
-    });
+    _socket = IO.io(socketUrl, IO.OptionBuilder()
+      .setTransports(['websocket'])
+      .disableAutoConnect()
+      .enableReconnection()
+      .setReconnectionAttempts(20)
+      .setReconnectionDelay(2000)
+      .build()
+    );
 
     _socket!.connect();
 
@@ -71,6 +80,13 @@ class SocketService {
       _handleTaskDeleted(data);
     });
 
+    // ✅ Listen for real-time messages
+    _socket!.on('new-message', (data) {
+      print('💬 ========== NEW MESSAGE RECEIVED ==========');
+      print('💬 Raw data: $data');
+      _handleNewMessage(data);
+    });
+
     _socket!.onError((error) {
       print('❌ Socket.io error: $error');
     });
@@ -78,6 +94,42 @@ class SocketService {
     _socket!.onConnectError((error) {
       print('❌ Socket.io connection error: $error');
     });
+
+    _socket!.onReconnect((_) {
+      print('🔄 Socket reconnected, re-authenticating...');
+      try {
+        final numericId = int.parse(vaId);
+        _socket!.emit('authenticate-va', numericId);
+      } catch (e) {
+        _socket!.emit('authenticate-va', vaId);
+      }
+    });
+  }
+
+  // ✅ Handle incoming real-time message
+  void _handleNewMessage(Map<String, dynamic> data) {
+    try {
+      final messageData = data['message'] as Map<String, dynamic>;
+      final message = MessageModel.fromJson(messageData);
+      
+      print('💬 Message from: ${message.senderId}');
+      print('💬 Content: ${message.content}');
+      print('💬 Conversation: ${message.conversationId}');
+
+      // Push to stream (MessagesBloc listens to this)
+      _newMessageController.add(message);
+
+      // Show notification
+      _showNotification(
+        title: 'New Message 💬',
+        body: message.content.length > 50 
+            ? '${message.content.substring(0, 50)}...' 
+            : message.content,
+      );
+    } catch (e) {
+      print('❌ Error parsing new message: $e');
+      print('❌ Raw data was: $data');
+    }
   }
 
   void _handleTaskCreated(Map<String, dynamic> data) {
@@ -85,17 +137,8 @@ class SocketService {
     final title = 'New Task Assigned! 📋';
     final body = task['title'];
     
-    print('🔔 Preparing to show notification');
-    print('🔔 Title: $title');
-    print('🔔 Body: $body');
-    print('🔔 onNotification callback is null? ${onNotification == null}');
+    _showNotification(title: title, body: body);
     
-    _showNotification(
-      title: title,
-      body: body,
-    );
-    
-    // ✅ Trigger task list refresh
     if (onTaskUpdate != null) {
       onTaskUpdate!();
     }
@@ -104,13 +147,8 @@ class SocketService {
   void _handleTaskUpdated(Map<String, dynamic> data) {
     final task = data['task'];
     
-    // ✅ Show notification for updates
-    _showNotification(
-      title: 'Task Updated 📝',
-      body: task['title'],
-    );
+    _showNotification(title: 'Task Updated 📝', body: task['title']);
     
-    // ✅ Trigger task list refresh
     if (onTaskUpdate != null) {
       print('🔄 Triggering task list refresh');
       onTaskUpdate!();
@@ -118,12 +156,8 @@ class SocketService {
   }
 
   void _handleTaskDeleted(Map<String, dynamic> data) {
-    _showNotification(
-      title: 'Task Deleted 🗑️',
-      body: 'A task has been removed',
-    );
+    _showNotification(title: 'Task Deleted 🗑️', body: 'A task has been removed');
     
-    // ✅ Trigger task list refresh
     if (onTaskUpdate != null) {
       onTaskUpdate!();
     }
@@ -133,17 +167,10 @@ class SocketService {
     required String title,
     required String body,
   }) {
-    print('✅ _showNotification called');
-    print('✅ Title: $title');
-    print('✅ Body: $body');
-    print('✅ Callback exists: ${onNotification != null}');
-    
     if (onNotification != null) {
-      print('✅ Calling onNotification callback...');
       onNotification!(title, body);
-      print('✅ Callback executed');
     } else {
-      print('❌ ERROR: onNotification callback is NULL!');
+      print('⚠️ onNotification callback is NULL - notification not shown');
     }
   }
 

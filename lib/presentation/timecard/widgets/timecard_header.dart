@@ -6,6 +6,7 @@ class TimecardHeader extends StatelessWidget {
   final List<String> monthOptions;
   final Function(String) onMonthChanged;
   final VoidCallback onLogHours;
+  final VoidCallback? onRefresh;
 
   const TimecardHeader({
     super.key,
@@ -13,6 +14,7 @@ class TimecardHeader extends StatelessWidget {
     required this.monthOptions,
     required this.onMonthChanged,
     required this.onLogHours,
+    this.onRefresh,
   });
 
   String _formatMonthDisplay(String month) {
@@ -115,7 +117,9 @@ class TimecardHeader extends StatelessWidget {
           Row(
             children: [
               _buildMonthSelector(),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
+              _buildRefreshButton(),
+              const SizedBox(width: 12),
               _buildLogHoursButton(),
             ],
           ),
@@ -169,6 +173,10 @@ class TimecardHeader extends StatelessWidget {
     );
   }
 
+  Widget _buildRefreshButton() {
+    return _RefreshButton(onRefresh: onRefresh);
+  }
+
   Widget _buildLogHoursButton() {
     return ElevatedButton.icon(
       onPressed: onLogHours,
@@ -188,6 +196,93 @@ class TimecardHeader extends StatelessWidget {
         shadowColor: Colors.white.withOpacity(0.3),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+  }
+}
+
+class _RefreshButton extends StatefulWidget {
+  final VoidCallback? onRefresh;
+  const _RefreshButton({this.onRefresh});
+
+  @override
+  State<_RefreshButton> createState() => _RefreshButtonState();
+}
+
+class _RefreshButtonState extends State<_RefreshButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _spinController;
+  bool _isRefreshing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _spinController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+  }
+
+  @override
+  void dispose() {
+    _spinController.dispose();
+    super.dispose();
+  }
+
+  void _handleRefresh() {
+    if (_isRefreshing) return;
+    setState(() => _isRefreshing = true);
+    _spinController.repeat();
+
+    widget.onRefresh?.call();
+
+    // Stop spinning after a short delay
+    Future.delayed(const Duration(milliseconds: 1000), () {
+      if (mounted) {
+        _spinController.stop();
+        setState(() => _isRefreshing = false);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Refresh',
+      child: GestureDetector(
+        onTap: _handleRefresh,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withOpacity(0.2),
+                  Colors.white.withOpacity(0.1),
+                ],
+              ),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.3),
+                width: 1.5,
+              ),
+            ),
+            child: Center(
+              child: RotationTransition(
+                turns: _spinController,
+                child: const Icon(
+                  Icons.refresh_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

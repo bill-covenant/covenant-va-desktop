@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../../data/models/message_model.dart';
 
 abstract class MessagesEvent extends Equatable {
   const MessagesEvent();
@@ -61,7 +62,7 @@ class MessageSendRequested extends MessagesEvent {
 }
 
 // ============================================
-// DELETE MESSAGE EVENT (NEW)
+// DELETE MESSAGE EVENT
 // ============================================
 
 class MessageDeleteRequested extends MessagesEvent {
@@ -83,4 +84,17 @@ class MessageDeleteRequested extends MessagesEvent {
 
 class UnreadCountLoadRequested extends MessagesEvent {
   const UnreadCountLoadRequested();
+}
+
+// ============================================
+// ✅ REAL-TIME SOCKET EVENT
+// ============================================
+
+class SocketMessageReceived extends MessagesEvent {
+  final MessageModel message;
+
+  const SocketMessageReceived(this.message);
+
+  @override
+  List<Object> get props => [message];
 }

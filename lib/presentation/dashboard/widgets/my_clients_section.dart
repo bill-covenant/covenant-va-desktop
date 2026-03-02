@@ -229,8 +229,8 @@ class _MyClientsSectionState extends State<MyClientsSection> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.95), // ✅ More opaque
-            Colors.white.withOpacity(0.85), // ✅ More opaque
+            Colors.white.withOpacity(0.95),
+            Colors.white.withOpacity(0.85),
           ],
         ),
         borderRadius: BorderRadius.circular(20),
@@ -299,18 +299,6 @@ class _MyClientsSectionState extends State<MyClientsSection> {
                     color: Color(0xFF1F2937),
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                // Email
-                Text(
-                  client.email,
-                  style: const TextStyle(
-                    color: Color(0xFF6B7280),
-                    fontSize: 12,
                   ),
                   textAlign: TextAlign.center,
                   maxLines: 1,

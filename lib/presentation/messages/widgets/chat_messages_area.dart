@@ -8,8 +8,8 @@ import '../bloc/messages_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'message_bubble.dart';
-import 'messages_empty_state.dart';  // ✅ FIXED: Changed from empty_messages_state
-import 'messages_error_state.dart';  // ✅ FIXED: Changed from error_messages_state
+import 'messages_empty_state.dart';
+import 'messages_error_state.dart';
 
 class ChatMessagesArea extends StatefulWidget {
   final ConversationModel conversation;
@@ -117,89 +117,68 @@ class _ChatMessagesAreaState extends State<ChatMessagesArea> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<MessagesBloc, MessagesState>(
+    return BlocListener<MessagesBloc, MessagesState>(
       listener: (context, state) {
         if (state is ConversationMessagesLoaded) {
           if (state.conversationId == widget.conversation.id) {
-            setState(() {
-              _messages = state.messages;
-              _isLoaded = true;
-            });
-            _saveCachedMessages(state.messages);
-            _scrollToBottom();
-            _animationController.forward(from: 0.0);
+            // ✅ Only update if messages actually changed
+            if (state.messages.length != _messages.length ||
+                (state.messages.isNotEmpty && _messages.isNotEmpty &&
+                 state.messages.last.id != _messages.last.id)) {
+              print('🔄 ChatMessagesArea: Updating UI with ${state.messages.length} messages');
+              setState(() {
+                _messages = state.messages;
+                _isLoaded = true;
+              });
+              _saveCachedMessages(state.messages);
+              _scrollToBottom();
+              _animationController.forward(from: 0.0);
+            }
           }
         }
       },
-      builder: (context, state) {
-        if (state is ConversationMessagesError) {
-          if (state.conversationId == widget.conversation.id && _messages.isEmpty && _isLoaded) {
-            return MessagesErrorState(  // ✅ FIXED: Changed from ErrorMessagesState
-              error: state.message,
-              onRetry: _loadMessages,
-            );
-          }
-        }
-
-        if (_messages.isEmpty) {
-          return const MessagesEmptyState();  // ✅ FIXED: Changed from EmptyMessagesState
-        }
-        
-        return _buildMessagesList(_messages);
-      },
+      child: _buildContent(),
     );
+  }
+
+  Widget _buildContent() {
+    // Check for error state
+    final state = context.watch<MessagesBloc>().state;
+    
+    if (state is ConversationMessagesError) {
+      if (state.conversationId == widget.conversation.id && _messages.isEmpty && _isLoaded) {
+        return MessagesErrorState(
+          error: state.message,
+          onRetry: _loadMessages,
+        );
+      }
+    }
+
+    if (_messages.isEmpty) {
+      return const MessagesEmptyState();
+    }
+    
+    return _buildMessagesList(_messages);
   }
 
   Widget _buildMessagesList(List<MessageModel> messages) {
     return Container(
-      decoration: _buildBackgroundDecoration(),
-      child: RefreshIndicator(
-        onRefresh: () async {
-          context.read<MessagesBloc>().add(
-                ConversationMessagesRefreshRequested(widget.conversation.id),
-              );
+      color: const Color(0xFFFDFDFD),
+      child: ListView.builder(
+        controller: _scrollController,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        itemCount: messages.length,
+        itemBuilder: (context, index) {
+          final message = messages[index];
+          final isMe = message.senderId == widget.currentUserId;
+          
+          return MessageBubble(
+            message: message,
+            isMe: isMe,
+            conversationId: widget.conversation.id,
+          );
         },
-        color: const Color(0xFF7C3AED),
-        child: ListView.builder(
-          controller: _scrollController,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          itemCount: messages.length,
-          itemBuilder: (context, index) {
-            final message = messages[index];
-            final isMe = message.senderId == widget.currentUserId;
-            
-            return MessageBubble(
-              message: message,
-              isMe: isMe,
-              conversationId: widget.conversation.id,  // ✅ Already correct!
-            );
-          },
-        ),
       ),
-    );
-  }
-
-  BoxDecoration _buildBackgroundDecoration() {
-    return BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          const Color(0xFFFDFDFD),
-          const Color(0xFFFAFAFA),
-        ],
-      ),
-      image: DecorationImage(
-        image: _buildPatternImage(),
-        repeat: ImageRepeat.repeat,
-        opacity: 0.03,
-      ),
-    );
-  }
-
-  ImageProvider _buildPatternImage() {
-    return const NetworkImage(
-      'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9IiM3QzNBRUQiLz48L3N2Zz4=',
     );
   }
 }
