@@ -69,7 +69,7 @@ class _ChatMessagesAreaState extends State<ChatMessagesArea> with SingleTickerPr
             _messages = cachedMessages;
             _isLoaded = true;
           });
-          _scrollToBottom();
+          _scrollToBottom(animate: false);
         }
       }
     } catch (e) {
@@ -94,18 +94,22 @@ class _ChatMessagesAreaState extends State<ChatMessagesArea> with SingleTickerPr
         );
   }
 
-  void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (_scrollController.hasClients) {
+  void _scrollToBottom({bool animate = true}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        if (animate) {
           _scrollController.animateTo(
             _scrollController.position.maxScrollExtent,
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeOut,
           );
+        } else {
+          _scrollController.jumpTo(
+            _scrollController.position.maxScrollExtent,
+          );
         }
-      });
-    }
+      }
+    });
   }
 
   @override
@@ -162,6 +166,13 @@ class _ChatMessagesAreaState extends State<ChatMessagesArea> with SingleTickerPr
   }
 
   Widget _buildMessagesList(List<MessageModel> messages) {
+    // ✅ Jump to bottom after list renders
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      }
+    });
+
     return Container(
       color: const Color(0xFFFDFDFD),
       child: ListView.builder(

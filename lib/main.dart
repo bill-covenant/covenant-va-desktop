@@ -51,6 +51,10 @@ class CovenantVAApp extends StatelessWidget {
             return NotificationBloc(notificationRepo);
           },
         ),
+        // ✅ Global MessagesBloc — stays alive across screen navigations
+        BlocProvider(
+          create: (context) => getIt<MessagesBloc>(),
+        ),
       ],
       child: const _AppContent(),
     );
@@ -202,8 +206,6 @@ class _AppContentState extends State<_AppContent> {
         final userId = authState.user.id;
         _socketService.connect(userId);
         
-        // Pre-fetch all commonly used endpoints in parallel
-        // This warms the cache so screens load instantly
         final apiProvider = getIt<ApiProvider>();
         apiProvider.warmUp([
           '/dashboard/va',
@@ -227,7 +229,6 @@ class _AppContentState extends State<_AppContent> {
         _notificationTimer = null;
         _socketService.disconnect();
         
-        // Clear cache on logout
         final apiProvider = getIt<ApiProvider>();
         apiProvider.clearCache();
         
@@ -280,14 +281,14 @@ class _AppContentState extends State<_AppContent> {
                 child: MyTasksScreen(),
               ),
             ),
-        '/messages': (context) => BlocProvider(
-              create: (context) => getIt<MessagesBloc>()
-                ..add(const MessagesLoadRequested()),
-              child: const MainLayout(
-                currentRoute: 'messages',
-                child: MessagesScreen(),
-              ),
-            ),
+        // ✅ No more BlocProvider wrapper — uses the global one
+        '/messages': (context) {
+          context.read<MessagesBloc>().add(const MessagesLoadRequested());
+          return const MainLayout(
+            currentRoute: 'messages',
+            child: MessagesScreen(),
+          );
+        },
         '/timecard': (context) {
           return BlocProvider(
             create: (context) => getIt<TimecardBloc>(),

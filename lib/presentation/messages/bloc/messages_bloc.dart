@@ -14,6 +14,12 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
   List<ConversationModel> _cachedConversations = [];
   String? _currentConversationId;
   StreamSubscription<MessageModel>? _socketSubscription;
+  
+  // ✅ NEW: Cache messages per conversation so they survive navigation
+  final Map<String, List<MessageModel>> _messageCache = {};
+  
+  // ✅ NEW: Track request IDs to prevent stale responses
+  int _loadRequestId = 0;
 
   MessagesBloc({required MessageRepository messageRepository})
       : _messageRepository = messageRepository,
@@ -27,7 +33,6 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
     on<UnreadCountLoadRequested>(_onUnreadCountLoadRequested);
     on<SocketMessageReceived>(_onSocketMessageReceived);
 
-    // ✅ Listen for real-time messages from socket
     _socketSubscription = _socketService.onNewMessage.listen((message) {
       print('💬 Socket message received in BLoC: ${message.id}');
       add(SocketMessageReceived(message));
@@ -47,33 +52,34 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
     final message = event.message;
     print('🔔 Processing socket message for conversation: ${message.conversationId}');
 
-    // ✅ INSTANT: Add message to current conversation view immediately
+    // ✅ Always add to message cache, regardless of current view
+    final cachedMessages = _messageCache[message.conversationId] ?? [];
+    if (!cachedMessages.any((m) => m.id == message.id)) {
+      _messageCache[message.conversationId] = [...cachedMessages, message];
+      print('✅ Message cached for conversation: ${message.conversationId}');
+    } else {
+      print('⚠️ Duplicate message ignored: ${message.id}');
+      return;
+    }
+
+    // ✅ If viewing this conversation, update UI instantly
     if (_currentConversationId == message.conversationId && 
         state is ConversationMessagesLoaded) {
-      final currentState = state as ConversationMessagesLoaded;
-      final currentMessages = currentState.messages;
-
-      if (currentMessages.any((m) => m.id == message.id)) {
-        print('⚠️ Duplicate message ignored: ${message.id}');
-        return;
-      }
-
-      final updatedMessages = [...currentMessages, message];
-
       emit(ConversationMessagesLoaded(
         conversationId: message.conversationId,
-        messages: updatedMessages,
+        messages: _messageCache[message.conversationId]!,
         conversations: _cachedConversations,
       ));
-
       print('✅ Message added to current conversation view INSTANTLY');
     }
 
-    // ✅ BACKGROUND: Refresh conversation list without blocking the UI
+    // ✅ BACKGROUND: Refresh conversation list
     _messageRepository.getConversations().then((conversations) {
       _cachedConversations = conversations;
-      // Only update if we're still in a loaded state
       if (state is ConversationMessagesLoaded) {
+        final currentState = state as ConversationMessagesLoaded;
+        add(MessagesRefreshRequested());
+      } else if (state is MessagesLoaded) {
         add(MessagesRefreshRequested());
       }
     }).catchError((e) {
@@ -85,14 +91,22 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
     MessagesLoadRequested event,
     Emitter<MessagesState> emit,
   ) async {
-    emit(const MessagesLoading());
+    // ✅ Don't show loading if we have cached conversations
+    if (_cachedConversations.isEmpty) {
+      emit(const MessagesLoading());
+    }
     
     try {
       final conversations = await _messageRepository.getConversations();
       _cachedConversations = conversations;
       emit(MessagesLoaded(conversations));
     } catch (e) {
-      emit(MessagesError(e.toString()));
+      // ✅ If we have cache, use it instead of showing error
+      if (_cachedConversations.isNotEmpty) {
+        emit(MessagesLoaded(_cachedConversations));
+      } else {
+        emit(MessagesError(e.toString()));
+      }
     }
   }
 
@@ -103,9 +117,20 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
     try {
       final conversations = await _messageRepository.getConversations();
       _cachedConversations = conversations;
-      emit(MessagesLoaded(conversations));
+      
+      // ✅ Preserve current conversation view if we're in one
+      if (_currentConversationId != null && 
+          _messageCache.containsKey(_currentConversationId)) {
+        emit(ConversationMessagesLoaded(
+          conversationId: _currentConversationId!,
+          messages: _messageCache[_currentConversationId]!,
+          conversations: conversations,
+        ));
+      } else {
+        emit(MessagesLoaded(conversations));
+      }
     } catch (e) {
-      emit(MessagesError(e.toString()));
+      print('⚠️ Refresh failed: $e');
     }
   }
 
@@ -113,33 +138,69 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
     ConversationMessagesLoadRequested event,
     Emitter<MessagesState> emit,
   ) async {
-    print('🚀 BLoC: Loading messages for conversation ${event.conversationId}');
+    final requestConversationId = event.conversationId;
+    print('🚀 BLoC: Loading messages for conversation $requestConversationId');
     
-    _currentConversationId = event.conversationId;
+    _currentConversationId = requestConversationId;
     
-    emit(ConversationMessagesLoading(event.conversationId));
+    // ✅ NEW: Increment request ID to track this specific request
+    final thisRequestId = ++_loadRequestId;
+    
+    // ✅ Show cached messages immediately if available (no loading spinner)
+    if (_messageCache.containsKey(requestConversationId)) {
+      emit(ConversationMessagesLoaded(
+        conversationId: requestConversationId,
+        messages: _messageCache[requestConversationId]!,
+        conversations: _cachedConversations,
+      ));
+    } else {
+      emit(ConversationMessagesLoading(requestConversationId));
+    }
     
     try {
       final results = await Future.wait([
-        _messageRepository.getMessagesForConversation(event.conversationId),
+        _messageRepository.getMessagesForConversation(requestConversationId),
         _messageRepository.getConversations(),
       ]);
       
-      final messages = results[0] as List<MessageModel>;
+      // ✅ NEW: Guard against stale responses — if user switched conversations
+      // while we were loading, discard this response
+      if (thisRequestId != _loadRequestId || 
+          _currentConversationId != requestConversationId) {
+        print('⚠️ BLoC: Discarding stale response for $requestConversationId (current: $_currentConversationId)');
+        return;
+      }
+      
+      final apiMessages = results[0] as List<MessageModel>;
       final conversations = results[1] as List<ConversationModel>;
       _cachedConversations = conversations;
       
-      print('✅ BLoC: Got ${messages.length} messages from API');
+      // ✅ Merge: keep any socket messages that arrived while we were fetching
+      final existingCache = _messageCache[requestConversationId] ?? [];
+      final apiMessageIds = apiMessages.map((m) => m.id).toSet();
+      final socketOnlyMessages = existingCache.where(
+        (m) => !apiMessageIds.contains(m.id) && !m.id.startsWith('temp-'),
+      ).toList();
+      
+      final mergedMessages = [...apiMessages, ...socketOnlyMessages];
+      mergedMessages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      
+      _messageCache[requestConversationId] = mergedMessages;
+      
+      print('✅ BLoC: Got ${apiMessages.length} from API + ${socketOnlyMessages.length} socket-only = ${mergedMessages.length} total');
       
       emit(ConversationMessagesLoaded(
-        conversationId: event.conversationId,
-        messages: messages,
+        conversationId: requestConversationId,
+        messages: mergedMessages,
         conversations: conversations,
       ));
     } catch (e) {
+      // ✅ Guard stale errors too
+      if (thisRequestId != _loadRequestId) return;
+      
       print('❌ BLoC: Error loading messages: $e');
       emit(ConversationMessagesError(
-        conversationId: event.conversationId,
+        conversationId: requestConversationId,
         message: e.toString(),
         conversations: _cachedConversations,
       ));
@@ -150,10 +211,8 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
     MessageSendRequested event,
     Emitter<MessagesState> emit,
   ) async {
-    List<MessageModel> currentMessages = [];
-    if (state is ConversationMessagesLoaded) {
-      currentMessages = (state as ConversationMessagesLoaded).messages;
-    }
+    List<MessageModel> currentMessages = 
+        _messageCache[event.conversationId] ?? [];
     
     final optimisticMessage = MessageModel(
       id: 'temp-${DateTime.now().millisecondsSinceEpoch}',
@@ -166,6 +225,7 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
     );
     
     final optimisticMessages = [...currentMessages, optimisticMessage];
+    _messageCache[event.conversationId] = optimisticMessages;
     
     emit(ConversationMessagesLoaded(
       conversationId: event.conversationId,
@@ -184,6 +244,8 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
           .toList()
         ..add(newMessage);
       
+      _messageCache[event.conversationId] = updatedMessages;
+      
       emit(ConversationMessagesLoaded(
         conversationId: event.conversationId,
         messages: updatedMessages,
@@ -198,6 +260,9 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
       
     } catch (error) {
       print('❌ Failed to send message: $error');
+      
+      // ✅ Restore cache without the optimistic message
+      _messageCache[event.conversationId] = currentMessages;
       
       emit(MessageSendError(
         conversationId: event.conversationId,
@@ -218,14 +283,14 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
     MessageDeleteRequested event,
     Emitter<MessagesState> emit,
   ) async {
-    List<MessageModel> currentMessages = [];
-    if (state is ConversationMessagesLoaded) {
-      currentMessages = (state as ConversationMessagesLoaded).messages;
-    }
+    List<MessageModel> currentMessages = 
+        _messageCache[event.conversationId] ?? [];
 
     final updatedMessages = currentMessages
         .where((msg) => msg.id != event.messageId)
         .toList();
+
+    _messageCache[event.conversationId] = updatedMessages;
 
     emit(ConversationMessagesLoaded(
       conversationId: event.conversationId,
@@ -246,6 +311,8 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
       ));
     } catch (error) {
       print('❌ Failed to delete message: $error');
+
+      _messageCache[event.conversationId] = currentMessages;
 
       emit(ConversationMessagesLoaded(
         conversationId: event.conversationId,

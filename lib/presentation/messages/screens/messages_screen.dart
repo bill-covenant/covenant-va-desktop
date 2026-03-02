@@ -37,7 +37,29 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
     );
     _loadCurrentUser();
     _loadCachedConversations();
-    _loadConversations();
+    
+    // ✅ Only fetch from API if BLoC doesn't already have conversations
+    final currentState = context.read<MessagesBloc>().state;
+    if (currentState is MessagesLoaded) {
+      // BLoC already has data — just use it, no API call
+      setState(() {
+        _conversations = currentState.conversations;
+        _isInitialized = true;
+      });
+    } else if (currentState is ConversationMessagesLoaded) {
+      // User was viewing a conversation — restore it
+      setState(() {
+        _conversations = currentState.conversations;
+        _isInitialized = true;
+        // ✅ Restore the previously selected conversation
+        _selectedConversation = _conversations.firstWhere(
+          (c) => c.id == currentState.conversationId,
+          orElse: () => _conversations.first,
+        );
+      });
+    } else {
+      _loadConversations();
+    }
   }
 
   Future<void> _loadCurrentUser() async {
@@ -60,7 +82,7 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
             .map((json) => ConversationModel.fromJson(json))
             .toList();
         
-        if (mounted) {
+        if (mounted && _conversations.isEmpty) {
           setState(() {
             _conversations = cachedConversations;
             _isInitialized = true;
@@ -112,6 +134,12 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
   void _onConversationSelected(ConversationModel conversation) {
     print('🎯 Conversation selected: ${conversation.id}');
     if (!mounted) return;
+    
+    // ✅ Don't reload if same conversation is already selected
+    if (_selectedConversation?.id == conversation.id) {
+      print('⏭️ Same conversation already selected, skipping reload');
+      return;
+    }
     
     setState(() {
       _selectedConversation = conversation;
@@ -198,10 +226,9 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
 
   Widget _buildHeader() {
   return Padding(
-    padding: const EdgeInsets.fromLTRB(50, 24, 48, 24), // ✅ Added bottom padding (24)
+    padding: const EdgeInsets.fromLTRB(50, 24, 48, 24),
     child: Row(
       children: [
-        // 3D Icon Container
         Container(
           width: 56,
           height: 56,
@@ -232,7 +259,6 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
           ),
           child: Stack(
             children: [
-              // Shine effect
               Positioned(
                 top: 4,
                 left: 4,
@@ -252,7 +278,6 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
                   ),
                 ),
               ),
-              // Icon
               const Center(
                 child: Icon(
                   Icons.message,
@@ -264,7 +289,6 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
           ),
         ),
         const SizedBox(width: 16),
-        // 3D Text with gradient
         ShaderMask(
           shaderCallback: (bounds) => const LinearGradient(
             colors: [
@@ -285,7 +309,6 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
           ),
         ),
         const Spacer(),
-        // Refresh Button
         MouseRegion(
           cursor: SystemMouseCursors.click,
           child: GestureDetector(
