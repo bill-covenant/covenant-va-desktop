@@ -291,6 +291,7 @@ class _TimecardScreenState extends State<TimecardScreen> {
               monthOptions: _getMonthOptions(),
               onMonthChanged: _handleMonthChanged,
               onLogHours: _handleLogHours,
+              onRefresh: _silentRefresh,
             ),
             Expanded(
               child: RefreshIndicator(

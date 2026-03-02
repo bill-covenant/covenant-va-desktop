@@ -7,11 +7,13 @@ import '../../data/repositories/message_repository.dart';
 import '../../data/repositories/user_repository.dart';
 import '../../data/repositories/client_repository.dart';
 import '../../data/repositories/timecard_repository.dart';
-import '../../data/repositories/stripe_repository.dart'; // ← NEW
+import '../../data/repositories/stripe_repository.dart';
+import '../../data/repositories/note_repository.dart';
 import '../../presentation/auth/bloc/auth_bloc.dart';
 import '../../presentation/dashboard/bloc/dashboard_bloc.dart';
 import '../../presentation/messages/bloc/messages_bloc.dart';
 import '../../presentation/timecard/bloc/timecard_bloc.dart';
+import '../../presentation/notes/bloc/notes_bloc.dart';
 
 final getIt = GetIt.instance;
 
@@ -40,7 +42,6 @@ Future<void> setupServiceLocator() async {
     ),
   );
 
-  // ✅ FIXED: Now includes ApiProvider!
   getIt.registerLazySingleton<UserRepository>(
     () => UserRepository(
       apiProvider: getIt<ApiProvider>(),
@@ -60,11 +61,15 @@ Future<void> setupServiceLocator() async {
     ),
   );
 
-  // ✅ NEW: Stripe Repository
   getIt.registerLazySingleton<StripeRepository>(
     () => StripeRepository(
       apiProvider: getIt<ApiProvider>(),
     ),
+  );
+
+  // ✅ NEW: Note Repository
+  getIt.registerLazySingleton<NoteRepository>(
+    () => NoteRepository(getIt<ApiProvider>()),
   );
 
   // BLoCs
@@ -84,5 +89,10 @@ Future<void> setupServiceLocator() async {
     () => TimecardBloc(
       timecardRepository: getIt<TimecardRepository>(),
     ),
+  );
+
+  // ✅ NEW: Notes BLoC
+  getIt.registerFactory<NotesBloc>(
+    () => NotesBloc(noteRepository: getIt<NoteRepository>()),
   );
 }

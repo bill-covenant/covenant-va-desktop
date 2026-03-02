@@ -23,7 +23,6 @@ class MainLayout extends StatefulWidget {
 class _MainLayoutState extends State<MainLayout> {
   String _selectedRoute = 'dashboard';
 
-  // Update this to match your backend URL
   static const String _apiBaseUrl = String.fromEnvironment(
     'API_URL',
     defaultValue: 'http://localhost:5000/api',
@@ -127,6 +126,14 @@ class _MainLayoutState extends State<MainLayout> {
                     route: 'tasks',
                     isSelected: _selectedRoute == 'tasks',
                     onTap: () => _navigateTo('tasks'),
+                  ),
+                  const SizedBox(height: 8),
+                  LayoutSidebarNavItem(
+                    icon: Icons.sticky_note_2_rounded,
+                    label: 'Notes',
+                    route: 'notes',
+                    isSelected: _selectedRoute == 'notes',
+                    onTap: () => _navigateTo('notes'),
                   ),
                   const SizedBox(height: 8),
                   LayoutSidebarNavItem(
