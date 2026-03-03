@@ -15,14 +15,6 @@ class NotesListPanel extends StatelessWidget {
     required this.onNoteSelected,
   });
 
-  Color _parseColor(String hex) {
-    try {
-      return Color(int.parse(hex.replaceFirst('#', '0xFF')));
-    } catch (_) {
-      return const Color(0xFF8B5CF6);
-    }
-  }
-
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final diff = now.difference(date);
@@ -126,31 +118,9 @@ class NotesListPanel extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 8),
-            Row(
-              children: [
-                if (note.category != null) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: _parseColor(note.category!.color).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      note.category!.name,
-                      style: TextStyle(
-                        color: _parseColor(note.category!.color),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                Text(
-                  _formatDate(note.updatedAt),
-                  style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 11),
-                ),
-              ],
+            Text(
+              _formatDate(note.updatedAt),
+              style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 11),
             ),
           ],
         ),

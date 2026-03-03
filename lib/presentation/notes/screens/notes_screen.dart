@@ -5,7 +5,6 @@ import '../bloc/notes_event.dart';
 import '../bloc/notes_state.dart';
 import '../../../data/models/note_model.dart';
 import '../widgets/notes_header.dart';
-import '../widgets/notes_category_bar.dart';
 import '../widgets/notes_list_panel.dart';
 import '../widgets/notes_editor_panel.dart';
 import '../widgets/notes_dialogs.dart';
@@ -62,25 +61,40 @@ class _NotesScreenState extends State<NotesScreen> {
     }
   }
 
+  bool _isCreatingNew = false;
+
   void _createNewNote() {
-    _saveCurrentNote();
+    // Save current note if editing
+    if (_selectedNote != null && _isEditing && !_selectedNote!.id.startsWith('temp_')) {
+      final title = _titleController.text.trim();
+      if (title.isNotEmpty) {
+        context.read<NotesBloc>().add(NoteUpdateRequested(
+          noteId: _selectedNote!.id,
+          title: title,
+          content: _contentController.text,
+        ));
+      }
+    }
 
-    final tempNote = NoteModel(
-      id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
-      title: 'Untitled Note',
-      content: '',
-      isPinned: false,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
+    // Set flag so _onStateChanged doesn't override our selection
+    _isCreatingNew = true;
 
+    // Immediately show blank editor
     setState(() {
-      _selectedNote = tempNote;
-      _titleController.text = tempNote.title;
+      _selectedNote = NoteModel(
+        id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
+        title: 'Untitled Note',
+        content: '',
+        isPinned: false,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      _titleController.text = 'Untitled Note';
       _contentController.text = '';
       _isEditing = false;
     });
 
+    // Create note on server
     context.read<NotesBloc>().add(const NoteCreateRequested(
       title: 'Untitled Note',
     ));
@@ -119,12 +133,26 @@ class _NotesScreenState extends State<NotesScreen> {
   void _onStateChanged(BuildContext context, NotesState state) {
     if (state is NotesLoaded && state.notes.isNotEmpty) {
       if (_selectedNote != null && _selectedNote!.id.startsWith('temp_')) {
+        // We're creating a new note — find the real one from the server
         final realNote = state.notes.firstWhere(
           (n) => !n.id.startsWith('temp_'),
           orElse: () => state.notes.first,
         );
-        setState(() => _selectedNote = realNote);
-      } else if (_selectedNote == null) {
+        // Only swap the ID, don't touch the editor
+        setState(() {
+          _selectedNote = _selectedNote!.copyWith().copyWith();
+          // Find the newest note (the one just created)
+          final newest = state.notes.reduce((a, b) =>
+              a.createdAt.isAfter(b.createdAt) ? a : b);
+          _selectedNote = newest;
+          _isCreatingNew = false;
+        });
+        return;
+      }
+
+      if (_isCreatingNew) return; // Don't override during creation
+
+      if (_selectedNote == null) {
         _selectNote(state.notes.first);
       } else {
         final updated = state.notes.cast<NoteModel?>().firstWhere(
@@ -160,55 +188,40 @@ class _NotesScreenState extends State<NotesScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Left panel
+          // Left panel - Notes list
           SizedBox(
             width: 340,
-            child: Column(
-              children: [
-                NotesCategoryBar(
-                  categories: state.categories,
-                  activeCategoryId: state.activeCategoryId,
-                  onCategorySelected: (id) =>
-                      context.read<NotesBloc>().add(NotesCategoryFilterChanged(id)),
-                  onCategoryLongPress: (cat) async {
-                    final delete = await NotesDialogs.showCategoryOptions(context, cat);
-                    if (delete == true && mounted) {
-                      context.read<NotesBloc>().add(CategoryDeleteRequested(cat.id));
-                    }
-                  },
-                  onAddCategory: () async {
-                    final result = await NotesDialogs.showCreateCategory(context);
-                    if (result != null && mounted) {
-                      context.read<NotesBloc>().add(CategoryCreateRequested(
-                        name: result['name']!,
-                        color: result['color'],
-                      ));
-                    }
-                  },
-                ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: NotesListPanel(
-                    notes: state.notes,
-                    searchQuery: _searchQuery,
-                    selectedNote: _selectedNote,
-                    onNoteSelected: _selectNote,
-                  ),
-                ),
-              ],
+            child: NotesListPanel(
+              notes: state.notes,
+              searchQuery: _searchQuery,
+              selectedNote: _selectedNote,
+              onNoteSelected: _selectNote,
             ),
           ),
           const SizedBox(width: 24),
-          // Right panel
+          // Right panel - Editor
           Expanded(
             child: NotesEditorPanel(
               selectedNote: _selectedNote,
               titleController: _titleController,
               contentController: _contentController,
-              categories: state.categories,
               onContentChanged: () => setState(() => _isEditing = true),
               onSave: () {
-                _saveCurrentNote();
+                if (_selectedNote == null) return;
+                final title = _titleController.text.trim();
+                if (title.isEmpty) return;
+                
+                print('💾 Save clicked — noteId: ${_selectedNote!.id}, title: $title');
+                
+                if (!_selectedNote!.id.startsWith('temp_')) {
+                  context.read<NotesBloc>().add(NoteUpdateRequested(
+                    noteId: _selectedNote!.id,
+                    title: title,
+                    content: _contentController.text,
+                  ));
+                }
+                _isEditing = false;
+                
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: const Text('Note saved'),
@@ -231,15 +244,6 @@ class _NotesScreenState extends State<NotesScreen> {
               onTogglePin: () {
                 if (!_selectedNote!.id.startsWith('temp_')) {
                   context.read<NotesBloc>().add(NotePinToggled(_selectedNote!.id));
-                }
-              },
-              onCategoryChanged: (catId) {
-                if (!_selectedNote!.id.startsWith('temp_')) {
-                  setState(() => _isEditing = true);
-                  context.read<NotesBloc>().add(NoteUpdateRequested(
-                    noteId: _selectedNote!.id,
-                    categoryId: catId,
-                  ));
                 }
               },
             ),

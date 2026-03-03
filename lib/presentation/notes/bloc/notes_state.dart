@@ -17,17 +17,9 @@ class NotesLoading extends NotesState {
 
 class NotesLoaded extends NotesState {
   final List<NoteModel> notes;
-  final List<NoteCategory> categories;
-  final String? activeCategoryId;
-
-  const NotesLoaded({
-    required this.notes,
-    required this.categories,
-    this.activeCategoryId,
-  });
-
+  const NotesLoaded({required this.notes});
   @override
-  List<Object?> get props => [notes, categories, activeCategoryId];
+  List<Object?> get props => [notes];
 }
 
 class NotesError extends NotesState {

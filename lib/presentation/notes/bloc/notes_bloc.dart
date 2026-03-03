@@ -8,70 +8,44 @@ class NotesBloc extends Bloc<NotesEvent, NotesState> {
   final NoteRepository _noteRepository;
   
   List<NoteModel> _cachedNotes = [];
-  List<NoteCategory> _cachedCategories = [];
-  String? _activeCategoryId;
 
   NotesBloc({required NoteRepository noteRepository})
       : _noteRepository = noteRepository,
         super(const NotesInitial()) {
     on<NotesLoadRequested>(_onLoadRequested);
-    on<NotesCategoryFilterChanged>(_onCategoryFilterChanged);
     on<NoteCreateRequested>(_onNoteCreate);
     on<NoteUpdateRequested>(_onNoteUpdate);
     on<NotePinToggled>(_onPinToggle);
     on<NoteDeleteRequested>(_onNoteDelete);
-    on<CategoryCreateRequested>(_onCategoryCreate);
-    on<CategoryUpdateRequested>(_onCategoryUpdate);
-    on<CategoryDeleteRequested>(_onCategoryDelete);
   }
 
   void _emitLoaded(Emitter<NotesState> emit) {
-    emit(NotesLoaded(
-      notes: _cachedNotes,
-      categories: _cachedCategories,
-      activeCategoryId: _activeCategoryId,
-    ));
+    // Always emit a new list copy so Equatable detects the change
+    emit(NotesLoaded(notes: List<NoteModel>.from(_cachedNotes)));
   }
 
   Future<void> _onLoadRequested(NotesLoadRequested event, Emitter<NotesState> emit) async {
-    if (_cachedNotes.isEmpty && _cachedCategories.isEmpty) {
+    if (_cachedNotes.isEmpty) {
       emit(const NotesLoading());
     }
     try {
-      final results = await Future.wait([
-        _noteRepository.getNotes(categoryId: _activeCategoryId),
-        _noteRepository.getCategories(),
-      ]);
-      _cachedNotes = results[0] as List<NoteModel>;
-      _cachedCategories = results[1] as List<NoteCategory>;
+      print('📝 NotesBloc: Fetching notes...');
+      _cachedNotes = await _noteRepository.getNotes();
+      print('📝 NotesBloc: Got ${_cachedNotes.length} notes');
       _emitLoaded(emit);
     } catch (e) {
-      emit(NotesError(e.toString()));
-    }
-  }
-
-  Future<void> _onCategoryFilterChanged(NotesCategoryFilterChanged event, Emitter<NotesState> emit) async {
-    _activeCategoryId = event.categoryId;
-    try {
-      _cachedNotes = await _noteRepository.getNotes(categoryId: _activeCategoryId);
-      _emitLoaded(emit);
-    } catch (e) {
+      print('❌ NotesBloc: Error loading notes: $e');
       emit(NotesError(e.toString()));
     }
   }
 
   Future<void> _onNoteCreate(NoteCreateRequested event, Emitter<NotesState> emit) async {
-    // ✅ Optimistic: add instantly with temp ID
+    // Optimistic: add instantly with temp ID
     final optimisticNote = NoteModel(
       id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
       title: event.title,
       content: event.content,
-      categoryId: event.categoryId,
       isPinned: false,
-      category: event.categoryId != null
-          ? _cachedCategories.cast<NoteCategory?>().firstWhere(
-              (c) => c!.id == event.categoryId, orElse: () => null)
-          : null,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
@@ -80,16 +54,17 @@ class NotesBloc extends Bloc<NotesEvent, NotesState> {
 
     // Background: create on server and replace temp note
     try {
+      print('📝 NotesBloc: Creating note on server...');
       final note = await _noteRepository.createNote(
         title: event.title,
         content: event.content,
-        categoryId: event.categoryId,
       );
+      print('📝 NotesBloc: Note created with id: ${note.id}');
       final idx = _cachedNotes.indexWhere((n) => n.id == optimisticNote.id);
       if (idx != -1) _cachedNotes[idx] = note;
-      _cachedCategories = await _noteRepository.getCategories();
       _emitLoaded(emit);
     } catch (e) {
+      print('❌ NotesBloc: Error creating note: $e');
       _cachedNotes.removeWhere((n) => n.id == optimisticNote.id);
       emit(NotesError(e.toString()));
       _emitLoaded(emit);
@@ -97,30 +72,31 @@ class NotesBloc extends Bloc<NotesEvent, NotesState> {
   }
 
   Future<void> _onNoteUpdate(NoteUpdateRequested event, Emitter<NotesState> emit) async {
-    // Optimistic update
+    if (_cachedNotes.isEmpty) return;
+    
     final idx = _cachedNotes.indexWhere((n) => n.id == event.noteId);
-    NoteModel? old;
-    if (idx != -1) {
-      old = _cachedNotes[idx];
-      _cachedNotes[idx] = old.copyWith(
-        title: event.title,
-        content: event.content,
-        categoryId: event.categoryId,
-      );
-      _emitLoaded(emit);
-    }
+    if (idx == -1) return;
+    
+    // Optimistic update
+    final old = _cachedNotes[idx];
+    _cachedNotes[idx] = old.copyWith(
+      title: event.title,
+      content: event.content,
+    );
+    _emitLoaded(emit);
+
     try {
       final updated = await _noteRepository.updateNote(
         event.noteId,
         title: event.title,
         content: event.content,
-        categoryId: event.categoryId,
       );
-      if (idx != -1) _cachedNotes[idx] = updated;
-      _cachedCategories = await _noteRepository.getCategories();
+      final currentIdx = _cachedNotes.indexWhere((n) => n.id == event.noteId);
+      if (currentIdx != -1) _cachedNotes[currentIdx] = updated;
       _emitLoaded(emit);
     } catch (e) {
-      if (old != null && idx != -1) _cachedNotes[idx] = old;
+      final restoreIdx = _cachedNotes.indexWhere((n) => n.id == event.noteId);
+      if (restoreIdx != -1) _cachedNotes[restoreIdx] = old;
       emit(NotesError(e.toString()));
       _emitLoaded(emit);
     }
@@ -154,50 +130,8 @@ class NotesBloc extends Bloc<NotesEvent, NotesState> {
 
     try {
       await _noteRepository.deleteNote(event.noteId);
-      _cachedCategories = await _noteRepository.getCategories();
-      _emitLoaded(emit);
     } catch (e) {
       _cachedNotes.add(deleted);
-      _emitLoaded(emit);
-    }
-  }
-
-  Future<void> _onCategoryCreate(CategoryCreateRequested event, Emitter<NotesState> emit) async {
-    try {
-      final cat = await _noteRepository.createCategory(name: event.name, color: event.color);
-      _cachedCategories.add(cat);
-      _emitLoaded(emit);
-    } catch (e) {
-      emit(NotesError(e.toString()));
-      _emitLoaded(emit);
-    }
-  }
-
-  Future<void> _onCategoryUpdate(CategoryUpdateRequested event, Emitter<NotesState> emit) async {
-    try {
-      final updated = await _noteRepository.updateCategory(event.categoryId, name: event.name, color: event.color);
-      final idx = _cachedCategories.indexWhere((c) => c.id == event.categoryId);
-      if (idx != -1) _cachedCategories[idx] = updated;
-      _emitLoaded(emit);
-    } catch (e) {
-      emit(NotesError(e.toString()));
-      _emitLoaded(emit);
-    }
-  }
-
-  Future<void> _onCategoryDelete(CategoryDeleteRequested event, Emitter<NotesState> emit) async {
-    final deleted = _cachedCategories.firstWhere((c) => c.id == event.categoryId);
-    _cachedCategories.removeWhere((c) => c.id == event.categoryId);
-    if (_activeCategoryId == event.categoryId) _activeCategoryId = null;
-    _emitLoaded(emit);
-
-    try {
-      await _noteRepository.deleteCategory(event.categoryId);
-      // Refresh notes since some may have lost their category
-      _cachedNotes = await _noteRepository.getNotes(categoryId: _activeCategoryId);
-      _emitLoaded(emit);
-    } catch (e) {
-      _cachedCategories.add(deleted);
       _emitLoaded(emit);
     }
   }
