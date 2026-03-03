@@ -5,7 +5,7 @@ import '../bloc/dashboard_event.dart';
 import '../bloc/dashboard_state.dart';
 import 'stat_card.dart';
 import 'my_clients_section.dart';
-
+import 'dashboard_widgets.dart';
 
 class DashboardContent extends StatelessWidget {
   final DashboardLoaded? cachedState;
@@ -35,8 +35,8 @@ class DashboardContent extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildSkeletonStatsCards(),
-                      const SizedBox(height: 40),
-                      _buildSkeletonClientsSection(),
+                      const SizedBox(height: 32),
+                      _buildSkeletonTwoColumn(),
                     ],
                   ),
                 ),
@@ -50,24 +50,12 @@ class DashboardContent extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.error_outline,
-                  size: 64,
-                  color: Colors.white70,
-                ),
+                const Icon(Icons.error_outline, size: 64, color: Colors.white70),
                 const SizedBox(height: 16),
-                Text(
-                  displayState.message,
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
-                  textAlign: TextAlign.center,
-                ),
+                Text(displayState.message, style: const TextStyle(color: Colors.white, fontSize: 16), textAlign: TextAlign.center),
                 const SizedBox(height: 24),
                 ElevatedButton(
-                  onPressed: () {
-                    context
-                        .read<DashboardBloc>()
-                        .add(const DashboardRefreshRequested());
-                  },
+                  onPressed: () => context.read<DashboardBloc>().add(const DashboardRefreshRequested()),
                   child: const Text('Retry'),
                 ),
               ],
@@ -80,13 +68,10 @@ class DashboardContent extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeader(),
-              
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: () async {
-                    context
-                        .read<DashboardBloc>()
-                        .add(const DashboardRefreshRequested());
+                    context.read<DashboardBloc>().add(const DashboardRefreshRequested());
                   },
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
@@ -95,8 +80,8 @@ class DashboardContent extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildStatsCards(displayState),
-                        const SizedBox(height: 40),
-                        const MyClientsSection(),
+                        const SizedBox(height: 32),
+                        _buildTwoColumnLayout(displayState),
                       ],
                     ),
                   ),
@@ -108,6 +93,48 @@ class DashboardContent extends StatelessWidget {
 
         return const SizedBox();
       },
+    );
+  }
+
+  /// Two-column layout: left = widgets, right = clients
+  Widget _buildTwoColumnLayout(DashboardLoaded state) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Left column — Summary, Upcoming Tasks, Recent Activity
+        Expanded(
+          flex: 3,
+          child: Column(
+            children: [
+              TodaySummaryCard(state: state),
+              const SizedBox(height: 20),
+              UpcomingTasksCard(tasks: state.upcomingTasks),
+              const SizedBox(height: 20),
+              RecentActivityCard(
+                recentEntries: state.recentEntries,
+                todayTasks: state.todayTasks,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 28),
+        // Right column — My Clients wrapped in a card
+        Expanded(
+          flex: 2,
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 20, offset: const Offset(0, 6)),
+                BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
+              ],
+            ),
+            child: const MyClientsSection(),
+          ),
+        ),
+      ],
     );
   }
 
@@ -123,10 +150,7 @@ class DashboardContent extends StatelessWidget {
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF3B82F6),
-                  Color(0xFF2563EB),
-                ],
+                colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
               ),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
@@ -134,65 +158,40 @@ class DashboardContent extends StatelessWidget {
                   color: const Color(0xFF3B82F6).withOpacity(0.5),
                   offset: const Offset(0, 8),
                   blurRadius: 24,
-                  spreadRadius: 0,
                 ),
                 BoxShadow(
                   color: Colors.white.withOpacity(0.2),
                   offset: const Offset(-2, -2),
                   blurRadius: 8,
-                  spreadRadius: 0,
                 ),
               ],
             ),
             child: Stack(
               children: [
                 Positioned(
-                  top: 4,
-                  left: 4,
-                  right: 20,
+                  top: 4, left: 4, right: 20,
                   child: Container(
                     height: 20,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white.withOpacity(0.3),
-                          Colors.white.withOpacity(0.0),
-                        ],
+                        colors: [Colors.white.withOpacity(0.3), Colors.white.withOpacity(0.0)],
                       ),
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 ),
-                const Center(
-                  child: Icon(
-                    Icons.dashboard,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                ),
+                const Center(child: Icon(Icons.dashboard, color: Colors.white, size: 28)),
               ],
             ),
           ),
           const SizedBox(width: 16),
           ShaderMask(
             shaderCallback: (bounds) => const LinearGradient(
-              colors: [
-                Colors.white,
-                Color(0xFFE0E7FF),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+              colors: [Colors.white, Color(0xFFE0E7FF)],
             ).createShader(bounds),
             child: const Text(
               'Dashboard',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 32,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.5,
-              ),
+              style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -0.5),
             ),
           ),
         ],
@@ -202,143 +201,50 @@ class DashboardContent extends StatelessWidget {
 
   Widget _buildSkeletonStatsCards() {
     return Row(
-      children: [
-        Expanded(child: _buildSkeletonStatCard()),
-        const SizedBox(width: 20),
-        Expanded(child: _buildSkeletonStatCard()),
-        const SizedBox(width: 20),
-        Expanded(child: _buildSkeletonStatCard()),
-        const SizedBox(width: 20),
-        Expanded(child: _buildSkeletonStatCard()),
-      ],
+      children: List.generate(4, (i) => [
+        if (i > 0) const SizedBox(width: 20),
+        Expanded(child: _buildSkeletonBox(height: 120)),
+      ]).expand((e) => e).toList(),
     );
   }
 
-  Widget _buildSkeletonStatCard() {
-    return TweenAnimationBuilder(
-      tween: Tween<double>(begin: 0.3, end: 1.0),
-      duration: const Duration(milliseconds: 1000),
-      curve: Curves.easeInOut,
-      builder: (context, double value, child) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05 * value),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.1 * value),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1 * value),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  Container(
-                    width: 60,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1 * value),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Container(
-                width: 80,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1 * value),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildSkeletonClientsSection() {
-    return Column(
+  Widget _buildSkeletonTwoColumn() {
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'My Clients',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.w900,
+        Expanded(
+          flex: 3,
+          child: Column(
+            children: [
+              _buildSkeletonBox(height: 150),
+              const SizedBox(height: 20),
+              _buildSkeletonBox(height: 200),
+              const SizedBox(height: 20),
+              _buildSkeletonBox(height: 200),
+            ],
           ),
         ),
-        const SizedBox(height: 20),
-        Row(
-          children: [
-            Expanded(child: _buildSkeletonClientCard()),
-            const SizedBox(width: 20),
-            Expanded(child: _buildSkeletonClientCard()),
-            const SizedBox(width: 20),
-            Expanded(child: _buildSkeletonClientCard()),
-          ],
+        const SizedBox(width: 28),
+        Expanded(
+          flex: 2,
+          child: _buildSkeletonBox(height: 300),
         ),
       ],
     );
   }
 
-  Widget _buildSkeletonClientCard() {
+  Widget _buildSkeletonBox({required double height}) {
     return TweenAnimationBuilder(
       tween: Tween<double>(begin: 0.3, end: 1.0),
       duration: const Duration(milliseconds: 1000),
       curve: Curves.easeInOut,
       builder: (context, double value, child) {
         return Container(
-          padding: const EdgeInsets.all(24),
+          height: height,
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.05 * value),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.1 * value),
-            ),
-          ),
-          child: Column(
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1 * value),
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                width: 120,
-                height: 18,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1 * value),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                width: 150,
-                height: 14,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05 * value),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-            ],
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withOpacity(0.1 * value)),
           ),
         );
       },

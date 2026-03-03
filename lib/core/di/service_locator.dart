@@ -78,7 +78,10 @@ Future<void> setupServiceLocator() async {
   );
 
   getIt.registerFactory<DashboardBloc>(
-    () => DashboardBloc(taskRepository: getIt<TaskRepository>()),
+    () => DashboardBloc(
+      taskRepository: getIt<TaskRepository>(),
+      timecardRepository: getIt<TimecardRepository>(),
+    ),
   );
 
   getIt.registerFactory<MessagesBloc>(

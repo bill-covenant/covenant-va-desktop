@@ -94,8 +94,8 @@ class _MyClientsSectionState extends State<MyClientsSection> {
             const Text(
               'My Clients',
               style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
+                color: Color(0xFF1F2937),
+                fontSize: 20,
                 fontWeight: FontWeight.w900,
                 letterSpacing: -0.3,
               ),
@@ -103,22 +103,17 @@ class _MyClientsSectionState extends State<MyClientsSection> {
             const Spacer(),
             if (!_isLoading || _clients.isNotEmpty)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.white.withOpacity(0.2),
-                      Colors.white.withOpacity(0.1),
-                    ],
-                  ),
+                  color: const Color(0xFF8B5CF6).withOpacity(0.08),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withOpacity(0.25)),
+                  border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.15)),
                 ),
                 child: Text(
                   '${_clients.length} ${_clients.length == 1 ? 'Client' : 'Clients'}',
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
+                    color: Color(0xFF7C3AED),
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -133,7 +128,7 @@ class _MyClientsSectionState extends State<MyClientsSection> {
         else if (_clients.isEmpty)
           _buildEmptyState()
         else
-          _buildClientsGrid(),
+          _buildClientsList(),
       ],
     );
   }
@@ -196,24 +191,17 @@ class _MyClientsSectionState extends State<MyClientsSection> {
     );
   }
 
-  Widget _buildClientsGrid() {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 20,
-        mainAxisSpacing: 20,
-        childAspectRatio: 1.0,
-      ),
-      itemCount: _clients.length,
-      itemBuilder: (context, index) {
+  Widget _buildClientsList() {
+    return Wrap(
+      spacing: 20,
+      runSpacing: 20,
+      children: _clients.asMap().entries.map((entry) {
         return _ClientCard(
-          client: _clients[index],
-          gradient: _cardGradients[index % _cardGradients.length],
-          index: index,
+          client: entry.value,
+          gradient: _cardGradients[entry.key % _cardGradients.length],
+          index: entry.key,
         );
-      },
+      }).toList(),
     );
   }
 }
@@ -235,6 +223,8 @@ class _ClientCard extends StatefulWidget {
 
 class _ClientCardState extends State<_ClientCard> with SingleTickerProviderStateMixin {
   bool _isHovered = false;
+  bool _isMsgHovered = false;
+  bool _isMsgPressed = false;
   late AnimationController _entryController;
   late Animation<double> _entryAnimation;
 
@@ -283,270 +273,181 @@ class _ClientCardState extends State<_ClientCard> with SingleTickerProviderState
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeOutCubic,
+          width: 220,
+          padding: const EdgeInsets.all(20),
           transform: Matrix4.identity()
-            ..translate(0.0, _isHovered ? -6.0 : 0.0),
+            ..translate(0.0, _isHovered ? -4.0 : 0.0),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withOpacity(0.98),
+                Colors.white.withOpacity(0.92),
+                Colors.grey.shade50,
+              ],
+              stops: const [0.0, 0.6, 1.0],
+            ),
+            border: Border.all(color: Colors.white.withOpacity(0.8), width: 1.5),
             boxShadow: [
-              // Main shadow
               BoxShadow(
-                color: widget.gradient[0].withOpacity(_isHovered ? 0.4 : 0.2),
-                blurRadius: _isHovered ? 32 : 20,
-                offset: Offset(0, _isHovered ? 16 : 10),
-                spreadRadius: _isHovered ? 2 : 0,
+                color: widget.gradient[0].withOpacity(_isHovered ? 0.35 : 0.15),
+                blurRadius: _isHovered ? 24 : 16,
+                offset: Offset(0, _isHovered ? 12 : 8),
+                spreadRadius: _isHovered ? 1 : 0,
               ),
-              // Bottom edge glow
-              BoxShadow(
-                color: widget.gradient[1].withOpacity(_isHovered ? 0.3 : 0.1),
-                blurRadius: 40,
-                offset: const Offset(0, 20),
-              ),
-              // Top-left highlight (3D rim light)
               BoxShadow(
                 color: Colors.white.withOpacity(_isHovered ? 0.15 : 0.08),
-                blurRadius: 8,
-                offset: const Offset(-3, -3),
+                blurRadius: 6,
+                offset: const Offset(-2, -2),
               ),
             ],
           ),
           child: GestureDetector(
             onTap: () => Navigator.pushNamed(context, '/messages'),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white.withOpacity(0.98),
-                      Colors.white.withOpacity(0.92),
-                      Colors.grey.shade50,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Avatar
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  width: _isHovered ? 56 : 52,
+                  height: _isHovered ? 56 : 52,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: widget.gradient,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: widget.gradient[0].withOpacity(_isHovered ? 0.5 : 0.3),
+                        blurRadius: _isHovered ? 16 : 10,
+                        offset: const Offset(0, 4),
+                      ),
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.7),
+                        blurRadius: 3,
+                        offset: const Offset(-1, -1),
+                      ),
                     ],
-                    stops: const [0.0, 0.6, 1.0],
                   ),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.8),
-                    width: 1.5,
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        top: 5, left: 8,
+                        child: Container(
+                          width: 18, height: 10,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Colors.white.withOpacity(0.4), Colors.white.withOpacity(0.0)],
+                            ),
+                          ),
+                        ),
+                      ),
+                      Center(
+                        child: Text(
+                          initials,
+                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Stack(
+                const SizedBox(height: 14),
+                // Name
+                Text(
+                  name,
+                  style: const TextStyle(
+                    color: Color(0xFF1F2937),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                // Status
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Decorative gradient orb (top-right)
-                    Positioned(
-                      top: -30,
-                      right: -30,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        width: _isHovered ? 110 : 90,
-                        height: _isHovered ? 110 : 90,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              widget.gradient[0].withOpacity(_isHovered ? 0.15 : 0.08),
-                              widget.gradient[1].withOpacity(0.0),
-                            ],
-                          ),
-                        ),
+                    Container(
+                      width: 7, height: 7,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981),
+                        shape: BoxShape.circle,
+                        boxShadow: [BoxShadow(color: const Color(0xFF10B981).withOpacity(0.5), blurRadius: 5)],
                       ),
                     ),
-                    // Decorative gradient orb (bottom-left)
-                    Positioned(
-                      bottom: -20,
-                      left: -20,
-                      child: Container(
-                        width: 70,
-                        height: 70,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              widget.gradient[1].withOpacity(0.06),
-                              widget.gradient[0].withOpacity(0.0),
-                            ],
-                          ),
-                        ),
+                    const SizedBox(width: 5),
+                    Text('Active', style: TextStyle(color: Colors.grey.shade500, fontSize: 11, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Message button with 3D effect
+                MouseRegion(
+                  onEnter: (_) => setState(() => _isMsgHovered = true),
+                  onExit: (_) => setState(() { _isMsgHovered = false; _isMsgPressed = false; }),
+                  child: GestureDetector(
+                    onTapDown: (_) => setState(() => _isMsgPressed = true),
+                    onTapUp: (_) => setState(() => _isMsgPressed = false),
+                    onTapCancel: () => setState(() => _isMsgPressed = false),
+                    onTap: () => Navigator.pushNamed(context, '/messages'),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      transform: Matrix4.translationValues(
+                        0, _isMsgPressed ? 2 : (_isMsgHovered ? -1 : 0), 0,
                       ),
-                    ),
-                    // Card content
-                    Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // 3D Avatar
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
-                            width: _isHovered ? 72 : 68,
-                            height: _isHovered ? 72 : 68,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: widget.gradient,
-                              ),
-                              boxShadow: [
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: _isMsgHovered
+                              ? [widget.gradient[0], widget.gradient[1]]
+                              : [widget.gradient[0].withOpacity(0.85), widget.gradient[1].withOpacity(0.85)],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white.withOpacity(_isMsgHovered ? 0.25 : 0.1)),
+                        boxShadow: _isMsgPressed
+                            ? [BoxShadow(color: widget.gradient[0].withOpacity(0.15), blurRadius: 2, offset: const Offset(0, 1))]
+                            : [
                                 BoxShadow(
-                                  color: widget.gradient[0].withOpacity(_isHovered ? 0.5 : 0.35),
-                                  blurRadius: _isHovered ? 20 : 14,
-                                  offset: const Offset(0, 6),
-                                ),
-                                BoxShadow(
-                                  color: Colors.white.withOpacity(0.8),
-                                  blurRadius: 4,
-                                  offset: const Offset(-2, -2),
-                                ),
-                              ],
-                            ),
-                            child: Stack(
-                              children: [
-                                // Inner shine
-                                Positioned(
-                                  top: 6,
-                                  left: 10,
-                                  child: Container(
-                                    width: 24,
-                                    height: 14,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(10),
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                        colors: [
-                                          Colors.white.withOpacity(0.45),
-                                          Colors.white.withOpacity(0.0),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Center(
-                                  child: Text(
-                                    initials,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 1,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          // Name
-                          Text(
-                            name,
-                            style: TextStyle(
-                              color: const Color(0xFF1F2937),
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.2,
-                              shadows: [
-                                Shadow(
-                                  color: Colors.black.withOpacity(0.04),
-                                  blurRadius: 4,
+                                  color: widget.gradient[1].withOpacity(0.6),
+                                  blurRadius: 0,
                                   offset: const Offset(0, 2),
                                 ),
-                              ],
-                            ),
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 6),
-                          // Status indicator
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF10B981),
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFF10B981).withOpacity(0.5),
-                                      blurRadius: 6,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Active',
-                                style: TextStyle(
-                                  color: Colors.grey.shade500,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Spacer(),
-                          // Message button
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: _isHovered
-                                    ? widget.gradient
-                                    : [
-                                        widget.gradient[0].withOpacity(0.85),
-                                        widget.gradient[1].withOpacity(0.85),
-                                      ],
-                              ),
-                              borderRadius: BorderRadius.circular(14),
-                              boxShadow: [
                                 BoxShadow(
-                                  color: widget.gradient[0].withOpacity(_isHovered ? 0.45 : 0.25),
-                                  blurRadius: _isHovered ? 16 : 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                                // Top edge highlight for 3D button
-                                BoxShadow(
-                                  color: Colors.white.withOpacity(0.15),
-                                  blurRadius: 1,
-                                  offset: const Offset(0, -1),
+                                  color: widget.gradient[0].withOpacity(_isMsgHovered ? 0.4 : 0.2),
+                                  blurRadius: _isMsgHovered ? 12 : 6,
+                                  offset: const Offset(0, 3),
                                 ),
                               ],
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.chat_bubble_rounded,
-                                  size: 16,
-                                  color: Colors.white.withOpacity(0.95),
-                                ),
-                                const SizedBox(width: 8),
-                                const Text(
-                                  'Message',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.3,
-                                  ),
-                                ),
-                              ],
-                            ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.chat_bubble_rounded, size: 14, color: Colors.white.withOpacity(0.95)),
+                          const SizedBox(width: 6),
+                          const Text(
+                            'Message',
+                            style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
                           ),
                         ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ),

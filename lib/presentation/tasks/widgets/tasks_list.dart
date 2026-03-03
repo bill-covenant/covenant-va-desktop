@@ -8,7 +8,6 @@ import '../../dashboard/bloc/dashboard_event.dart';
 import '../../dashboard/bloc/dashboard_state.dart';
 import 'task_detail_modal.dart';
 
-// Priority order: URGENT -> HIGH -> MEDIUM -> LOW
 const _priorityOrder = ['URGENT', 'HIGH', 'MEDIUM', 'LOW'];
 
 const _priorityConfig = {
@@ -80,7 +79,6 @@ class TasksList extends StatelessWidget {
       final t = tasks.where((t) => t.priority == p).toList();
       if (t.isNotEmpty) grouped[p] = t;
     }
-    // Catch any unknown priorities
     final known = _priorityOrder.toSet();
     final other = tasks.where((t) => !known.contains(t.priority)).toList();
     if (other.isNotEmpty) grouped['OTHER'] = other;
@@ -134,14 +132,9 @@ class _PriorityGroupTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: style.color.withOpacity(0.12),
-          width: 1.5,
-        ),
         boxShadow: [
           BoxShadow(
             color: style.color.withOpacity(0.10),
@@ -156,37 +149,36 @@ class _PriorityGroupTable extends StatelessWidget {
           ),
         ],
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          // Priority banner header
-          _buildPriorityBanner(),
-          // Column header row
-          _buildColumnHeaders(),
-          // Task rows
-          ...List.generate(tasks.length, (i) {
-            return _TaskRow(
-              task: tasks[i],
-              index: i + 1,
-              isLast: i == tasks.length - 1,
-              priorityColor: style.color,
-              onStatusChanged: onTaskUpdated,
-            );
-          }),
-          // Bottom accent bar
-          Container(
-            height: 3,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  style.gradientStart.withOpacity(0.3),
-                  style.gradientEnd.withOpacity(0.05),
-                  style.gradientStart.withOpacity(0.3),
-                ],
-              ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: style.color.withOpacity(0.12),
+              width: 1.5,
+            ),
+            borderRadius: BorderRadius.circular(22),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20.5),
+            child: Column(
+              children: [
+                _buildPriorityBanner(),
+                _buildColumnHeaders(),
+                ...List.generate(tasks.length, (i) {
+                  return _TaskRow(
+                    task: tasks[i],
+                    index: i + 1,
+                    isLast: i == tasks.length - 1,
+                    priorityColor: style.color,
+                    bgTint: style.bgTint,
+                    onStatusChanged: onTaskUpdated,
+                  );
+                }),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -214,65 +206,39 @@ class _PriorityGroupTable extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // Top shine
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
+            top: 0, left: 0, right: 0,
             child: Container(
               height: 1,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [
-                    Colors.white.withOpacity(0.0),
-                    Colors.white.withOpacity(0.3),
-                    Colors.white.withOpacity(0.0),
-                  ],
+                  colors: [Colors.white.withOpacity(0.0), Colors.white.withOpacity(0.3), Colors.white.withOpacity(0.0)],
                 ),
               ),
             ),
           ),
           Row(
             children: [
-              // Emoji in glass circle
               Container(
-                width: 36,
-                height: 36,
+                width: 36, height: 36,
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.white.withOpacity(0.25)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 6, offset: const Offset(0, 2))],
                 ),
                 alignment: Alignment.center,
                 child: Text(style.emoji, style: const TextStyle(fontSize: 16)),
               ),
               const SizedBox(width: 14),
-              // Priority label
               Text(
                 style.label.toUpperCase(),
                 style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.2,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black.withOpacity(0.2),
-                      offset: const Offset(0, 1),
-                      blurRadius: 3,
-                    ),
-                  ],
+                  color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.2,
+                  shadows: [Shadow(color: Colors.black.withOpacity(0.2), offset: const Offset(0, 1), blurRadius: 3)],
                 ),
               ),
               const SizedBox(width: 12),
-              // Task count pill
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                 decoration: BoxDecoration(
@@ -282,11 +248,7 @@ class _PriorityGroupTable extends StatelessWidget {
                 ),
                 child: Text(
                   '${tasks.length} ${tasks.length == 1 ? 'task' : 'tasks'}',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.95),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: TextStyle(color: Colors.white.withOpacity(0.95), fontSize: 11, fontWeight: FontWeight.w700),
                 ),
               ),
             ],
@@ -300,33 +262,16 @@ class _PriorityGroupTable extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: BoxDecoration(
-        color: style.bgTint.withOpacity(0.5),
-        border: Border(
-          bottom: BorderSide(color: style.color.withOpacity(0.08), width: 1),
-        ),
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: style.color.withOpacity(0.08), width: 1)),
       ),
       child: Row(
         children: [
-          SizedBox(
-            width: 48,
-            child: _ColHeader(label: '#', color: style.color),
-          ),
-          Expanded(
-            flex: 3,
-            child: _ColHeader(label: 'Task', color: style.color),
-          ),
-          Expanded(
-            flex: 2,
-            child: _ColHeader(label: 'Status', color: style.color),
-          ),
-          Expanded(
-            flex: 3,
-            child: _ColHeader(label: 'Due Date', color: style.color),
-          ),
-          SizedBox(
-            width: 64,
-            child: _ColHeader(label: 'View', color: style.color, center: true),
-          ),
+          SizedBox(width: 48, child: _ColHeader(label: '#', color: style.color)),
+          Expanded(flex: 3, child: _ColHeader(label: 'Task', color: style.color)),
+          Expanded(flex: 2, child: _ColHeader(label: 'Status', color: style.color)),
+          Expanded(flex: 3, child: _ColHeader(label: 'Due Date', color: style.color)),
+          SizedBox(width: 64, child: _ColHeader(label: 'View', color: style.color, center: true)),
         ],
       ),
     );
@@ -338,23 +283,14 @@ class _ColHeader extends StatelessWidget {
   final Color color;
   final bool center;
 
-  const _ColHeader({
-    required this.label,
-    required this.color,
-    this.center = false,
-  });
+  const _ColHeader({required this.label, required this.color, this.center = false});
 
   @override
   Widget build(BuildContext context) {
     return Text(
       label,
       textAlign: center ? TextAlign.center : TextAlign.left,
-      style: TextStyle(
-        color: color.withOpacity(0.6),
-        fontSize: 11,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 0.8,
-      ),
+      style: TextStyle(color: color.withOpacity(0.6), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.8),
     );
   }
 }
@@ -364,6 +300,7 @@ class _TaskRow extends StatefulWidget {
   final int index;
   final bool isLast;
   final Color priorityColor;
+  final Color bgTint;
   final VoidCallback onStatusChanged;
 
   const _TaskRow({
@@ -371,6 +308,7 @@ class _TaskRow extends StatefulWidget {
     required this.index,
     required this.isLast,
     required this.priorityColor,
+    required this.bgTint,
     required this.onStatusChanged,
   });
 
@@ -389,19 +327,18 @@ class _TaskRowState extends State<_TaskRow> with SingleTickerProviderStateMixin 
   @override
   void initState() {
     super.initState();
-    _hoverController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 200),
-    );
-    _elevationAnim = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _hoverController, curve: Curves.easeOut),
-    );
+    _hoverController = AnimationController(vsync: this, duration: const Duration(milliseconds: 200));
+    _elevationAnim = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _hoverController, curve: Curves.easeOut));
   }
 
   @override
   void dispose() {
     _hoverController.dispose();
     super.dispose();
+  }
+
+  Color _rowBgColor() {
+    return Colors.white;
   }
 
   @override
@@ -416,396 +353,191 @@ class _TaskRowState extends State<_TaskRow> with SingleTickerProviderStateMixin 
         }
       },
       child: MouseRegion(
-        onEnter: (_) {
-          setState(() => _isHovered = true);
-          _hoverController.forward();
-        },
-        onExit: (_) {
-          setState(() => _isHovered = false);
-          _hoverController.reverse();
-        },
+        onEnter: (_) { setState(() => _isHovered = true); _hoverController.forward(); },
+        onExit: (_) { setState(() => _isHovered = false); _hoverController.reverse(); },
         cursor: SystemMouseCursors.click,
         child: GestureDetector(
           onTap: () => _showTaskDetails(context),
           child: AnimatedBuilder(
             animation: _elevationAnim,
             builder: (context, _) {
-              return Transform.translate(
-                offset: Offset(0, -_elevationAnim.value * 2),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: _isHovered
-                        ? widget.priorityColor.withOpacity(0.04)
-                        : (widget.index.isOdd
-                            ? Colors.white
-                            : const Color(0xFFFCFCFD)),
-                    border: Border(
-                      bottom: widget.isLast
-                          ? BorderSide.none
-                          : BorderSide(
-                              color: Colors.grey.withOpacity(0.07),
-                              width: 1,
-                            ),
-                    ),
-                    boxShadow: _isHovered
-                        ? [
-                            BoxShadow(
-                              color: widget.priorityColor.withOpacity(0.06),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ]
-                        : [],
-                  ),
-                  child: IntrinsicHeight(
-                    child: Row(
-                      children: [
-                        // Priority accent bar
-                        Container(
-                          width: 4,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                widget.priorityColor,
-                                widget.priorityColor.withOpacity(0.5),
-                              ],
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: widget.priorityColor.withOpacity(0.3),
-                                blurRadius: 6,
-                                offset: const Offset(2, 0),
+              return Container(
+                color: _rowBgColor(),
+                child: Column(
+                  children: [
+                    IntrinsicHeight(
+                      child: Row(
+                        children: [
+                          // Priority accent bar
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            width: _isHovered ? 5 : 3,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  widget.priorityColor.withOpacity(_isHovered ? 1.0 : 0.7),
+                                  widget.priorityColor.withOpacity(_isHovered ? 0.7 : 0.3),
+                                ],
                               ),
-                            ],
-                          ),
-                        ),
-
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 16,
+                              boxShadow: _isHovered
+                                  ? [BoxShadow(color: widget.priorityColor.withOpacity(0.4), blurRadius: 8, offset: const Offset(2, 0))]
+                                  : [],
                             ),
-                            child: Row(
-                              children: [
-                                // # Column
-                                SizedBox(
-                                  width: 48,
-                                  child: Container(
-                                    width: 28,
-                                    height: 28,
-                                    alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                      color: _isHovered
-                                          ? widget.priorityColor.withOpacity(0.1)
-                                          : Colors.grey.withOpacity(0.06),
-                                      borderRadius: BorderRadius.circular(9),
-                                      border: Border.all(
-                                        color: _isHovered
-                                            ? widget.priorityColor.withOpacity(0.2)
-                                            : Colors.grey.withOpacity(0.08),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      '${widget.index}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w800,
-                                        color: _isHovered
-                                            ? widget.priorityColor
-                                            : Colors.grey[500],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-
-                                // Task Name
-                                Expanded(
-                                  flex: 3,
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(left: 4),
-                                    child: Text(
-                                      widget.task.title,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w700,
-                                        color: const Color(0xFF111827),
-                                        letterSpacing: -0.2,
-                                        shadows: [
-                                          Shadow(
-                                            color: Colors.black.withOpacity(0.05),
-                                            offset: const Offset(0, 1),
-                                            blurRadius: 1,
-                                          ),
-                                        ],
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ),
-
-                                // Status Dropdown
-                                Expanded(
-                                  flex: 2,
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
+                          ),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                              child: Row(
+                                children: [
+                                  // # Column
+                                  SizedBox(
+                                    width: 48,
                                     child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 4,
-                                      ),
+                                      width: 28, height: 28,
+                                      alignment: Alignment.center,
                                       decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                          colors: [
-                                            statusColor.withOpacity(0.15),
-                                            statusColor.withOpacity(0.06),
-                                          ],
-                                        ),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: statusColor.withOpacity(0.3),
-                                          width: 1.5,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: statusColor.withOpacity(0.15),
-                                            blurRadius: 6,
-                                            offset: const Offset(0, 3),
-                                          ),
-                                          BoxShadow(
-                                            color: Colors.white.withOpacity(0.6),
-                                            blurRadius: 2,
-                                            offset: const Offset(-1, -1),
-                                          ),
-                                        ],
+                                        color: _isHovered ? widget.priorityColor.withOpacity(0.1) : widget.priorityColor.withOpacity(0.04),
+                                        borderRadius: BorderRadius.circular(9),
+                                        border: Border.all(color: _isHovered ? widget.priorityColor.withOpacity(0.2) : widget.priorityColor.withOpacity(0.08)),
                                       ),
-                                      child: DropdownButton<String>(
-                                        value: _displayStatus,
-                                        underline: const SizedBox(),
-                                        isDense: true,
-                                        dropdownColor: Colors.white,
-                                        borderRadius: BorderRadius.circular(14),
-                                        icon: Icon(
-                                          Icons.arrow_drop_down,
-                                          color: statusColor,
-                                          size: 20,
-                                        ),
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w700,
-                                          color: statusColor,
-                                        ),
-                                        items: const [
-                                          DropdownMenuItem(
-                                            value: 'PENDING',
-                                            child: Text('Pending'),
-                                          ),
-                                          DropdownMenuItem(
-                                            value: 'IN_PROGRESS',
-                                            child: Text('In Progress'),
-                                          ),
-                                          DropdownMenuItem(
-                                            value: 'COMPLETED',
-                                            child: Text('Completed'),
-                                          ),
-                                        ],
-                                        onChanged: (String? newStatus) {
-                                          if (newStatus != null &&
-                                              newStatus != widget.task.status) {
-                                            setState(() =>
-                                                _optimisticStatus = newStatus);
-                                            context.read<DashboardBloc>().add(
-                                                  TaskStatusUpdated(
-                                                    taskId: widget.task.id,
-                                                    newStatus: newStatus,
-                                                  ),
-                                                );
-                                          }
-                                        },
+                                      child: Text(
+                                        '${widget.index}',
+                                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: _isHovered ? widget.priorityColor : widget.priorityColor.withOpacity(0.5)),
                                       ),
                                     ),
                                   ),
-                                ),
-
-                                // Due Date
-                                Expanded(
-                                  flex: 3,
-                                  child: widget.task.dueDate != null
-                                      ? Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.all(5),
-                                              decoration: BoxDecoration(
-                                                color: isOverdue
-                                                    ? const Color(0xFFDC2626)
-                                                        .withOpacity(0.08)
-                                                    : Colors.grey.withOpacity(0.06),
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: (isOverdue
-                                                            ? const Color(0xFFDC2626)
-                                                            : Colors.grey)
-                                                        .withOpacity(0.08),
-                                                    blurRadius: 4,
-                                                    offset: const Offset(0, 2),
-                                                  ),
-                                                ],
-                                              ),
-                                              child: Icon(
-                                                Icons.calendar_today,
-                                                size: 13,
-                                                color: isOverdue
-                                                    ? const Color(0xFFDC2626)
-                                                    : Colors.grey[500],
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              DateFormat('MMM dd, yyyy')
-                                                  .format(widget.task.dueDate!),
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: isOverdue
-                                                    ? FontWeight.w700
-                                                    : FontWeight.w600,
-                                                color: isOverdue
-                                                    ? const Color(0xFFDC2626)
-                                                    : Colors.grey[600],
-                                              ),
-                                            ),
-                                            if (isOverdue) ...[
-                                              const SizedBox(width: 10),
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                  horizontal: 8,
-                                                  vertical: 4,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  gradient:
-                                                      const LinearGradient(
-                                                    colors: [
-                                                      Color(0xFFDC2626),
-                                                      Color(0xFFEF4444),
-                                                    ],
-                                                  ),
-                                                  borderRadius:
-                                                      BorderRadius.circular(7),
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                      color: const Color(
-                                                              0xFFDC2626)
-                                                          .withOpacity(0.3),
-                                                      blurRadius: 8,
-                                                      offset:
-                                                          const Offset(0, 3),
-                                                    ),
-                                                  ],
-                                                ),
-                                                child: const Text(
-                                                  'OVERDUE',
-                                                  style: TextStyle(
-                                                    fontSize: 9,
-                                                    color: Colors.white,
-                                                    fontWeight: FontWeight.w800,
-                                                    letterSpacing: 0.6,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ],
-                                        )
-                                      : Text(
-                                          'No date',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.grey[400],
-                                            fontStyle: FontStyle.italic,
-                                          ),
+                                  // Task Name
+                                  Expanded(
+                                    flex: 3,
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(left: 4),
+                                      child: Text(
+                                        widget.task.title,
+                                        style: TextStyle(
+                                          fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF111827), letterSpacing: -0.2,
+                                          shadows: [Shadow(color: Colors.black.withOpacity(0.05), offset: const Offset(0, 1), blurRadius: 1)],
                                         ),
-                                ),
-
-                                // View Button
-                                SizedBox(
-                                  width: 64,
-                                  child: Center(
-                                    child: GestureDetector(
-                                      onTap: () => _showTaskDetails(context),
-                                      child: AnimatedContainer(
-                                        duration:
-                                            const Duration(milliseconds: 200),
-                                        padding: const EdgeInsets.all(9),
+                                        maxLines: 1, overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ),
+                                  // Status Dropdown
+                                  Expanded(
+                                    flex: 2,
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                         decoration: BoxDecoration(
                                           gradient: LinearGradient(
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                            colors: _isHovered
-                                                ? [
-                                                    widget.priorityColor
-                                                        .withOpacity(0.15),
-                                                    widget.priorityColor
-                                                        .withOpacity(0.05),
-                                                  ]
-                                                : [
-                                                    Colors.grey
-                                                        .withOpacity(0.07),
-                                                    Colors.grey
-                                                        .withOpacity(0.03),
-                                                  ],
+                                            begin: Alignment.topLeft, end: Alignment.bottomRight,
+                                            colors: [statusColor.withOpacity(0.15), statusColor.withOpacity(0.06)],
                                           ),
-                                          borderRadius:
-                                              BorderRadius.circular(11),
-                                          border: Border.all(
-                                            color: _isHovered
-                                                ? widget.priorityColor
-                                                    .withOpacity(0.25)
-                                                : Colors.grey.withOpacity(0.1),
-                                            width: 1.5,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: (_isHovered
-                                                      ? widget.priorityColor
-                                                      : Colors.grey)
-                                                  .withOpacity(
-                                                      _isHovered ? 0.15 : 0.06),
-                                              blurRadius: 6,
-                                              offset: const Offset(0, 3),
-                                            ),
-                                            BoxShadow(
-                                              color: Colors.white
-                                                  .withOpacity(0.7),
-                                              blurRadius: 2,
-                                              offset: const Offset(-1, -1),
-                                            ),
-                                          ],
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: statusColor.withOpacity(0.3), width: 1.5),
                                         ),
-                                        child: Icon(
-                                          Icons.visibility_outlined,
-                                          size: 17,
-                                          color: _isHovered
-                                              ? widget.priorityColor
-                                              : Colors.grey[500],
+                                        child: DropdownButton<String>(
+                                          value: _displayStatus,
+                                          underline: const SizedBox(),
+                                          isDense: true,
+                                          dropdownColor: Colors.white,
+                                          borderRadius: BorderRadius.circular(14),
+                                          icon: Icon(Icons.arrow_drop_down, color: statusColor, size: 20),
+                                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: statusColor),
+                                          items: const [
+                                            DropdownMenuItem(value: 'PENDING', child: Text('Pending')),
+                                            DropdownMenuItem(value: 'IN_PROGRESS', child: Text('In Progress')),
+                                            DropdownMenuItem(value: 'COMPLETED', child: Text('Completed')),
+                                          ],
+                                          onChanged: (String? newStatus) {
+                                            if (newStatus != null && newStatus != widget.task.status) {
+                                              setState(() => _optimisticStatus = newStatus);
+                                              context.read<DashboardBloc>().add(TaskStatusUpdated(taskId: widget.task.id, newStatus: newStatus));
+                                            }
+                                          },
                                         ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                  // Due Date
+                                  Expanded(
+                                    flex: 3,
+                                    child: widget.task.dueDate != null
+                                        ? Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Container(
+                                                padding: const EdgeInsets.all(5),
+                                                decoration: BoxDecoration(
+                                                  color: isOverdue ? const Color(0xFFDC2626).withOpacity(0.08) : widget.priorityColor.withOpacity(0.06),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                ),
+                                                child: Icon(Icons.calendar_today, size: 13, color: isOverdue ? const Color(0xFFDC2626) : Colors.grey[500]),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                DateFormat('MMM dd, yyyy').format(widget.task.dueDate!),
+                                                style: TextStyle(fontSize: 13, fontWeight: isOverdue ? FontWeight.w700 : FontWeight.w600, color: isOverdue ? const Color(0xFFDC2626) : Colors.grey[600]),
+                                              ),
+                                              if (isOverdue) ...[
+                                                const SizedBox(width: 10),
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    gradient: const LinearGradient(colors: [Color(0xFFDC2626), Color(0xFFEF4444)]),
+                                                    borderRadius: BorderRadius.circular(7),
+                                                    boxShadow: [BoxShadow(color: const Color(0xFFDC2626).withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3))],
+                                                  ),
+                                                  child: const Text('OVERDUE', style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.w800, letterSpacing: 0.6)),
+                                                ),
+                                              ],
+                                            ],
+                                          )
+                                        : Text('No date', style: TextStyle(fontSize: 13, color: Colors.grey[400], fontStyle: FontStyle.italic)),
+                                  ),
+                                  // View Button
+                                  SizedBox(
+                                    width: 64,
+                                    child: Center(
+                                      child: GestureDetector(
+                                        onTap: () => _showTaskDetails(context),
+                                        child: AnimatedContainer(
+                                          duration: const Duration(milliseconds: 200),
+                                          padding: const EdgeInsets.all(9),
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              begin: Alignment.topLeft, end: Alignment.bottomRight,
+                                              colors: _isHovered
+                                                  ? [widget.priorityColor.withOpacity(0.15), widget.priorityColor.withOpacity(0.05)]
+                                                  : [widget.priorityColor.withOpacity(0.05), widget.priorityColor.withOpacity(0.02)],
+                                            ),
+                                            borderRadius: BorderRadius.circular(11),
+                                            border: Border.all(
+                                              color: _isHovered ? widget.priorityColor.withOpacity(0.25) : widget.priorityColor.withOpacity(0.1),
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                          child: Icon(Icons.visibility_outlined, size: 17, color: _isHovered ? widget.priorityColor : widget.priorityColor.withOpacity(0.4)),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
+                    if (!widget.isLast)
+                      Divider(
+                        height: 1,
+                        thickness: 1,
+                        color: widget.priorityColor.withOpacity(0.06),
+                      ),
+                  ],
                 ),
               );
             },
@@ -816,22 +548,15 @@ class _TaskRowState extends State<_TaskRow> with SingleTickerProviderStateMixin 
   }
 
   void _showTaskDetails(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => TaskDetailModal(task: widget.task),
-    );
+    showDialog(context: context, builder: (context) => TaskDetailModal(task: widget.task));
   }
 
   Color _getStatusColor(String status) {
     switch (status) {
-      case 'COMPLETED':
-        return const Color(0xFF10B981);
-      case 'IN_PROGRESS':
-        return const Color(0xFF8B5CF6);
-      case 'PENDING':
-        return const Color(0xFFF59E0B);
-      default:
-        return const Color(0xFF6B7280);
+      case 'COMPLETED': return const Color(0xFF10B981);
+      case 'IN_PROGRESS': return const Color(0xFF8B5CF6);
+      case 'PENDING': return const Color(0xFFF59E0B);
+      default: return const Color(0xFF6B7280);
     }
   }
 }
