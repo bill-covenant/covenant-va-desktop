@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../data/models/conversation_model.dart';
 
@@ -14,86 +15,228 @@ class ChatHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final otherUserName = conversation.getOtherParticipantName(currentUserId);
+    final initials = _getInitials(otherUserName);
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E).withOpacity(0.3),
-        border: Border(
-          bottom: BorderSide(
-            color: Colors.white.withOpacity(0.1),
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          // Avatar
-          Container(
-            width: 45,
-            height: 45,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF10B981), Color(0xFF059669)],
-              ),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                _getInitials(otherUserName),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.65),
+            border: Border(
+              bottom: BorderSide(
+                color: const Color(0xFF7C3AED).withOpacity(0.06),
               ),
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 12,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-
-          // Name and status
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  otherUserName,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF10B981), // Green for online
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Online', // TODO: Make this dynamic
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
-                        fontSize: 13,
-                      ),
+          child: Row(
+            children: [
+              // Avatar with ring glow
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF059669).withOpacity(0.25),
+                      blurRadius: 12,
+                      spreadRadius: 1,
                     ),
                   ],
                 ),
-              ],
+                child: Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF10B981), Color(0xFF059669)],
+                    ),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white,
+                      width: 2.5,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      initials,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 14),
+
+              // Name and status
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      otherUserName,
+                      style: const TextStyle(
+                        color: Color(0xFF1E1B4B),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF22C55E),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    const Color(0xFF22C55E).withOpacity(0.5),
+                                blurRadius: 6,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Online',
+                          style: TextStyle(
+                            color: const Color(0xFF22C55E).withOpacity(0.9),
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // 3D Action buttons
+              _build3DActionButton(
+                icon: Icons.phone_rounded,
+                gradientColors: [
+                  const Color(0xFF10B981),
+                  const Color(0xFF059669),
+                ],
+                shadowColor: const Color(0xFF10B981),
+              ),
+              const SizedBox(width: 10),
+              _build3DActionButton(
+                icon: Icons.videocam_rounded,
+                gradientColors: [
+                  const Color(0xFF8B5CF6),
+                  const Color(0xFF7C3AED),
+                ],
+                shadowColor: const Color(0xFF7C3AED),
+              ),
+              const SizedBox(width: 10),
+              _build3DActionButton(
+                icon: Icons.more_vert_rounded,
+                gradientColors: [
+                  const Color(0xFF64748B),
+                  const Color(0xFF475569),
+                ],
+                shadowColor: const Color(0xFF475569),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _build3DActionButton({
+    required IconData icon,
+    required List<Color> gradientColors,
+    required Color shadowColor,
+  }) {
+    return Container(
+      width: 42,
+      height: 42,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradientColors,
+        ),
+        boxShadow: [
+          // Main drop shadow
+          BoxShadow(
+            color: shadowColor.withOpacity(0.4),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+            spreadRadius: 0,
+          ),
+          // Softer ambient shadow
+          BoxShadow(
+            color: shadowColor.withOpacity(0.2),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+            spreadRadius: -4,
+          ),
+          // Top-left highlight for 3D raised effect
+          BoxShadow(
+            color: Colors.white.withOpacity(0.15),
+            blurRadius: 6,
+            offset: const Offset(-1, -1),
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          // Inner highlight / gloss overlay
+          Positioned.fill(
+            child: Container(
+              margin: const EdgeInsets.all(1),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(13),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.center,
+                  colors: [
+                    Colors.white.withOpacity(0.25),
+                    Colors.white.withOpacity(0.0),
+                  ],
+                ),
+              ),
             ),
           ),
-
-          // Actions (optional)
-          IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.white70),
-            onPressed: () {
-              // TODO: Show options menu
-            },
+          // Icon
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {},
+              borderRadius: BorderRadius.circular(14),
+              child: Center(
+                child: Icon(
+                  icon,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ),
           ),
         ],
       ),

@@ -1,3 +1,4 @@
+import 'package:covenant_va_desktop/presentation/shared/widgets/cross_hatch_pattern.dart';
 import 'package:covenant_va_desktop/services/update_banner.dart';
 import 'package:flutter/material.dart';
 import '../../../services/socket_service.dart';
@@ -32,7 +33,7 @@ class _MainLayoutState extends State<MainLayout> {
   void initState() {
     super.initState();
     _selectedRoute = widget.currentRoute;
-    
+
     print('🔔 MainLayout: Setting up notification callback');
     SocketService().onNotification = _showNotificationBanner;
   }
@@ -67,18 +68,25 @@ class _MainLayoutState extends State<MainLayout> {
             ],
           ),
         ),
-        child: Row(
-          children: [
-            _buildSidebar(),
-            Expanded(
-              child: Column(
-                children: [
-                  UpdateBanner(apiBaseUrl: _apiBaseUrl),
-                  Expanded(child: widget.child),
-                ],
+        // ── Wrap the entire body in the pattern overlay ──
+        child: CrossHatchPatternOverlay(
+          // You can tweak these values to taste:
+          // lineSpacing: 18.0,  // distance between lines (smaller = denser)
+          // strokeWidth: 0.5,   // line thickness
+          // opacity: 0.04,      // 0.0–1.0 (keep it low for subtlety)
+          child: Row(
+            children: [
+              _buildSidebar(),
+              Expanded(
+                child: Column(
+                  children: [
+                    UpdateBanner(apiBaseUrl: _apiBaseUrl),
+                    Expanded(child: widget.child),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

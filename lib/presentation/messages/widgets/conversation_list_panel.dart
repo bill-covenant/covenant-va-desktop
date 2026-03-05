@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../data/models/conversation_model.dart';
 import '../../../data/models/client_model.dart';
@@ -36,18 +37,18 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
     super.dispose();
   }
 
+  // ──────────────────────────────────────────────
+  // NEW MESSAGE DIALOG (kept same logic, updated visuals)
+  // ──────────────────────────────────────────────
+
   Future<void> _showNewMessageDialog() async {
     try {
-      // Fetch assigned clients
       final clients = await _clientRepository.getAssignedClients();
-
       if (!mounted) return;
-
       if (clients.isEmpty) {
         _showNoClientsDialog();
         return;
       }
-
       _showClientSelectionDialog(clients);
     } catch (e) {
       if (!mounted) return;
@@ -67,13 +68,10 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
-        title: const Text(
-          'No Clients Assigned',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: const Text('No Clients Assigned',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         content: const Text(
-          'You don\'t have any clients assigned yet. Please contact your administrator.',
-        ),
+            'You don\'t have any clients assigned yet. Please contact your administrator.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -97,14 +95,13 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Header
               Container(
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
                     colors: [Color(0xFF7C3AED), Color(0xFFEC4899)],
                   ),
-                  borderRadius: const BorderRadius.only(
+                  borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(24),
                     topRight: Radius.circular(24),
                   ),
@@ -113,14 +110,11 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
                   children: [
                     const Icon(Icons.message, color: Colors.white),
                     const SizedBox(width: 12),
-                    const Text(
-                      'New Message',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    const Text('New Message',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold)),
                     const Spacer(),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
@@ -129,8 +123,6 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
                   ],
                 ),
               ),
-              
-              // Client list
               Flexible(
                 child: ListView.builder(
                   shrinkWrap: true,
@@ -138,8 +130,9 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
                   itemCount: clients.length,
                   itemBuilder: (context, index) {
                     final client = clients[index];
-                    final initials = '${client.firstName[0]}${client.lastName[0]}'.toUpperCase();
-                    
+                    final initials =
+                        '${client.firstName[0]}${client.lastName[0]}'
+                            .toUpperCase();
                     return Material(
                       color: Colors.transparent,
                       child: InkWell(
@@ -158,55 +151,42 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
                           ),
                           child: Row(
                             children: [
-                              // Avatar
                               Container(
                                 width: 48,
                                 height: 48,
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [Color(0xFF7C3AED), Color(0xFFEC4899)],
-                                  ),
+                                decoration: const BoxDecoration(
+                                  gradient: LinearGradient(colors: [
+                                    Color(0xFF7C3AED),
+                                    Color(0xFFEC4899)
+                                  ]),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Center(
-                                  child: Text(
-                                    initials,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
+                                    child: Text(initials,
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold))),
                               ),
                               const SizedBox(width: 16),
-                              // Client info
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      '${client.firstName} ${client.lastName}',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    Text(
-                                      client.email,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
+                                        '${client.firstName} ${client.lastName}',
+                                        style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold)),
+                                    Text(client.email,
+                                        style: TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.grey[600])),
                                   ],
                                 ),
                               ),
-                              Icon(
-                                Icons.arrow_forward_ios,
-                                size: 16,
-                                color: Colors.grey[400],
-                              ),
+                              Icon(Icons.arrow_forward_ios,
+                                  size: 16, color: Colors.grey[400]),
                             ],
                           ),
                         ),
@@ -223,7 +203,6 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
   }
 
   void _startConversationWithClient(ClientModel client) {
-    // Check if conversation already exists with this client
     final existingConversation = widget.conversations.firstWhere(
       (conv) => conv.clientId == client.id,
       orElse: () => ConversationModel(
@@ -245,12 +224,9 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
       ),
     );
 
-    // If conversation exists, select it
     if (!existingConversation.id.startsWith('temp_')) {
       widget.onConversationSelected(existingConversation);
     } else {
-      // Create a temporary conversation to start chatting
-      // The actual conversation will be created when the first message is sent
       final tempConversation = ConversationModel(
         id: 'new_${client.id}',
         clientId: client.id,
@@ -268,71 +244,110 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
         va: null,
         unreadCount: 0,
       );
-      
       widget.onConversationSelected(tempConversation);
     }
   }
+
+  // ──────────────────────────────────────────────
+  // BUILD
+  // ──────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFE8DEFF), // Lavender top
+            Color(0xFFDDD0FC), // Purple mid
+            Color(0xFFE3D6FB), // Lavender-pink bottom
+          ],
+          stops: [0.0, 0.5, 1.0],
+        ),
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: const Color(0xFF7C3AED).withOpacity(0.06),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withOpacity(0.06),
             blurRadius: 30,
             offset: const Offset(0, 10),
-            spreadRadius: 0,
+          ),
+          BoxShadow(
+            color: const Color(0xFF7C3AED).withOpacity(0.04),
+            blurRadius: 40,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
-        children: [
-          _buildHeader(),
-          _buildSearchBar(),
-          Expanded(
-            child: _buildConversationList(),
-          ),
-        ],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
+          children: [
+            // Pattern overlay
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  painter: _ConversationListPatternPainter(),
+                ),
+              ),
+            ),
+            // Actual content
+            Column(
+              children: [
+                _buildHeader(),
+                _buildSearchBar(),
+                Expanded(child: _buildConversationList()),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildHeader() {
-    return Container(
+    return Padding(
       padding: const EdgeInsets.fromLTRB(24, 24, 20, 16),
       child: Row(
         children: [
-          const Text(
-            'Conversations',
-            style: TextStyle(
-              color: Colors.black87,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.5,
+          ShaderMask(
+            shaderCallback: (bounds) => const LinearGradient(
+              colors: [Color(0xFF7C3AED), Color(0xFFA855F7)],
+            ).createShader(bounds),
+            child: const Text(
+              'Messages',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 21,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.5,
+              ),
             ),
           ),
           const Spacer(),
-          // New Message Button
+          // New message button
           Material(
             color: Colors.transparent,
             child: InkWell(
               onTap: _showNewMessageDialog,
               borderRadius: BorderRadius.circular(12),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF7C3AED), Color(0xFFEC4899)],
+                    colors: [Color(0xFF7C3AED), Color(0xFF9333EA)],
                   ),
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
                       color: const Color(0xFF7C3AED).withOpacity(0.3),
-                      blurRadius: 8,
+                      blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
                   ],
@@ -340,33 +355,17 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.add, color: Colors.white, size: 18),
-                    SizedBox(width: 4),
+                    Icon(Icons.add, color: Colors.white, size: 16),
+                    SizedBox(width: 5),
                     Text(
                       'New',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 13,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: widget.onRefresh,
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                child: Icon(
-                  Icons.refresh_rounded,
-                  color: Colors.black.withOpacity(0.5),
-                  size: 20,
                 ),
               ),
             ),
@@ -377,34 +376,37 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
   }
 
   Widget _buildSearchBar() {
-    return Container(
+    return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F7),
-          borderRadius: BorderRadius.circular(12),
+          color: const Color(0xFF7C3AED).withOpacity(0.03),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: const Color(0xFF7C3AED).withOpacity(0.06),
+          ),
         ),
         child: TextField(
           controller: _searchController,
           style: const TextStyle(
-            color: Colors.black87,
+            color: Color(0xFF4A3560),
             fontSize: 14,
           ),
           decoration: InputDecoration(
             hintText: 'Search conversations...',
             hintStyle: TextStyle(
-              color: Colors.black.withOpacity(0.4),
+              color: const Color(0xFFA78BFA).withOpacity(0.6),
               fontSize: 14,
             ),
             prefixIcon: Icon(
               Icons.search_rounded,
-              color: Colors.black.withOpacity(0.4),
+              color: const Color(0xFFA78BFA).withOpacity(0.5),
               size: 20,
             ),
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
-              vertical: 14,
+              vertical: 13,
             ),
           ),
           onChanged: (value) {
@@ -420,27 +422,27 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
   Widget _buildConversationList() {
     var filteredConversations = widget.conversations;
 
-    // Apply search filter
     if (_searchQuery.isNotEmpty) {
       filteredConversations = filteredConversations.where((conv) {
         final searchLower = _searchQuery.toLowerCase();
-        final otherUserName = conv.getOtherParticipantName(widget.currentUserId).toLowerCase();
+        final otherUserName =
+            conv.getOtherParticipantName(widget.currentUserId).toLowerCase();
         return otherUserName.contains(searchLower) ||
             (conv.lastMessage?.toLowerCase().contains(searchLower) ?? false);
       }).toList();
     }
 
-    // Show empty state
     if (filteredConversations.isEmpty) {
       return _buildEmptyState();
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       itemCount: filteredConversations.length,
       itemBuilder: (context, index) {
         final conversation = filteredConversations[index];
-        final isSelected = widget.selectedConversation?.id == conversation.id;
+        final isSelected =
+            widget.selectedConversation?.id == conversation.id;
 
         return ConversationListItem(
           conversation: conversation,
@@ -462,22 +464,22 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F7),
+                color: const Color(0xFF7C3AED).withOpacity(0.04),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.chat_bubble_outline_rounded,
                 size: 40,
-                color: Colors.black.withOpacity(0.3),
+                color: const Color(0xFFA78BFA).withOpacity(0.5),
               ),
             ),
             const SizedBox(height: 20),
             Text(
-              _searchQuery.isEmpty 
-                  ? 'No conversations yet' 
+              _searchQuery.isEmpty
+                  ? 'No conversations yet'
                   : 'No results found',
               style: TextStyle(
-                color: Colors.black.withOpacity(0.7),
+                color: Colors.black.withOpacity(0.65),
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
@@ -489,7 +491,7 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
                   ? 'Click "+ New" to start chatting\nwith your clients'
                   : 'Try a different search',
               style: TextStyle(
-                color: Colors.black.withOpacity(0.4),
+                color: Colors.black.withOpacity(0.35),
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
               ),
@@ -500,4 +502,68 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
       ),
     );
   }
+}
+
+/// Same pattern style as the chat messages area — small shapes in a
+/// staggered grid at low opacity for a themed wallpaper feel.
+class _ConversationListPatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
+    const double spacing = 40.0;
+    final int cols = (size.width / spacing).ceil() + 1;
+    final int rows = (size.height / spacing).ceil() + 1;
+
+    for (int row = 0; row < rows; row++) {
+      for (int col = 0; col < cols; col++) {
+        final double offsetX = (row % 2 == 0) ? 0 : spacing / 2;
+        final double x = col * spacing + offsetX;
+        final double y = row * spacing;
+
+        final int shapeIndex = (row * 7 + col * 13) % 5;
+
+        final double opacity = 0.12 + ((row * 3 + col * 5) % 4) * 0.02;
+        paint.color = const Color(0xFF8B5CF6).withOpacity(opacity);
+
+        switch (shapeIndex) {
+          case 0:
+            canvas.drawCircle(Offset(x, y), 5.0, paint);
+            break;
+          case 1:
+            paint.style = PaintingStyle.fill;
+            paint.color = const Color(0xFF8B5CF6).withOpacity(opacity * 0.7);
+            canvas.drawCircle(Offset(x, y), 2.5, paint);
+            paint.style = PaintingStyle.stroke;
+            paint.color = const Color(0xFF8B5CF6).withOpacity(opacity);
+            break;
+          case 2:
+            canvas.drawLine(Offset(x - 5, y), Offset(x + 5, y), paint);
+            canvas.drawLine(Offset(x, y - 5), Offset(x, y + 5), paint);
+            break;
+          case 3:
+            final path = Path()
+              ..moveTo(x, y - 5)
+              ..lineTo(x + 4.5, y)
+              ..lineTo(x, y + 5)
+              ..lineTo(x - 4.5, y)
+              ..close();
+            canvas.drawPath(path, paint);
+            break;
+          case 4:
+            canvas.save();
+            canvas.translate(x, y);
+            canvas.rotate(math.pi / 6);
+            canvas.drawRect(const Rect.fromLTWH(-4, -4, 8, 8), paint);
+            canvas.restore();
+            break;
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

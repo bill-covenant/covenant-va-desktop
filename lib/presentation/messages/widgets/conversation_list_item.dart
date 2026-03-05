@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../data/models/conversation_model.dart';
 import 'package:intl/intl.dart';
 
-class ConversationListItem extends StatelessWidget {
+class ConversationListItem extends StatefulWidget {
   final ConversationModel conversation;
   final String currentUserId;
   final bool isSelected;
@@ -17,111 +17,164 @@ class ConversationListItem extends StatelessWidget {
   });
 
   @override
+  State<ConversationListItem> createState() => _ConversationListItemState();
+}
+
+class _ConversationListItemState extends State<ConversationListItem> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    final otherUserName = conversation.getOtherParticipantName(currentUserId);
-    final hasUnread = conversation.unreadCount > 0;
+    final otherUserName =
+        widget.conversation.getOtherParticipantName(widget.currentUserId);
+    final hasUnread = widget.conversation.unreadCount > 0;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            transform: Matrix4.translationValues(
+              _isHovered && !widget.isSelected ? 3.0 : 0,
+              0,
+              0,
+            ),
             decoration: BoxDecoration(
-              color: isSelected
-                  ? const Color(0xFFF5F3FF) // Light purple tint
-                  : Colors.transparent,
+              gradient: widget.isSelected
+                  ? LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [
+                        const Color(0xFF7C3AED).withOpacity(0.1),
+                        const Color(0xFFA855F7).withOpacity(0.06),
+                      ],
+                    )
+                  : null,
+              color: widget.isSelected
+                  ? null
+                  : _isHovered
+                      ? const Color(0xFF7C3AED).withOpacity(0.03)
+                      : Colors.transparent,
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: widget.isSelected
+                    ? const Color(0xFF7C3AED).withOpacity(0.12)
+                    : Colors.transparent,
+              ),
+              boxShadow: widget.isSelected
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF7C3AED).withOpacity(0.08),
+                        blurRadius: 12,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : [],
             ),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Avatar with online indicator
+                // Avatar
                 _buildAvatar(otherUserName),
-                const SizedBox(width: 12),
+                const SizedBox(width: 13),
 
                 // Content
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Name
                           Expanded(
                             child: Text(
                               otherUserName,
                               style: TextStyle(
-                                color: Colors.black87,
-                                fontSize: 15,
-                                fontWeight: hasUnread
-                                    ? FontWeight.w700
-                                    : FontWeight.w600,
+                                color: widget.isSelected
+                                    ? const Color(0xFF5B21B6)
+                                    : const Color(0xFF1E1B4B),
+                                fontSize: 14.5,
+                                fontWeight:
+                                    hasUnread ? FontWeight.w700 : FontWeight.w600,
                                 letterSpacing: -0.2,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          // Timestamp
-                          if (conversation.lastMessageAt != null)
+                          if (widget.conversation.lastMessageAt != null) ...[
+                            const SizedBox(width: 8),
                             Text(
-                              _formatDate(conversation.lastMessageAt!),
+                              _formatDate(widget.conversation.lastMessageAt!),
                               style: TextStyle(
-                                color: Colors.black.withOpacity(0.4),
-                                fontSize: 12,
+                                color: const Color(0xFFA78BFA).withOpacity(0.8),
+                                fontSize: 11.5,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 4),
-
-                      // Last message with unread badge
                       Row(
                         children: [
                           Expanded(
                             child: Text(
-                              conversation.lastMessage ?? 'No messages yet',
+                              widget.conversation.lastMessage ??
+                                  'No messages yet',
                               style: TextStyle(
-                                color: Colors.black.withOpacity(0.5),
-                                fontSize: 14,
-                                fontWeight: hasUnread
-                                    ? FontWeight.w500
-                                    : FontWeight.w400,
+                                color: hasUnread
+                                    ? const Color(0xFF6D28D9)
+                                    : const Color(0xFF8B7FA8),
+                                fontSize: 13,
+                                fontWeight:
+                                    hasUnread ? FontWeight.w600 : FontWeight.w400,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           if (hasUnread) ...[
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 10),
                             Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
+                              width: 22,
+                              height: 22,
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                   colors: [
-                                    Color(0xFFB24FE0),
-                                    Color(0xFF8B2FC9),
+                                    Color(0xFF7C3AED),
+                                    Color(0xFFA855F7),
                                   ],
                                 ),
-                                borderRadius: BorderRadius.circular(12),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF7C3AED)
+                                        .withOpacity(0.4),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
-                              child: Text(
-                                conversation.unreadCount > 9
-                                    ? '9+'
-                                    : conversation.unreadCount.toString(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
+                              child: Center(
+                                child: Text(
+                                  widget.conversation.unreadCount > 9
+                                      ? '9+'
+                                      : widget.conversation.unreadCount
+                                          .toString(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ),
                             ),
@@ -140,58 +193,79 @@ class ConversationListItem extends StatelessWidget {
   }
 
   Widget _buildAvatar(String name) {
-    return Stack(
-      children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFFB24FE0),
-                Color(0xFF8B2FC9),
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          if (widget.isSelected)
+            BoxShadow(
+              color: const Color(0xFF7C3AED).withOpacity(0.2),
+              blurRadius: 10,
+              spreadRadius: 1,
+            ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFFB24FE0),
+                  Color(0xFF8B2FC9),
+                ],
+              ),
+              shape: BoxShape.circle,
+              border: widget.isSelected
+                  ? Border.all(color: Colors.white, width: 2.5)
+                  : null,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF8B2FC9).withOpacity(0.25),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
               ],
             ),
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF8B2FC9).withOpacity(0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Center(
-            child: Text(
-              _getInitials(name),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
+            child: Center(
+              child: Text(
+                _getInitials(name),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
           ),
-        ),
-        // Online indicator
-        Positioned(
-          bottom: 0,
-          right: 0,
-          child: Container(
-            width: 14,
-            height: 14,
-            decoration: BoxDecoration(
-              color: const Color(0xFF34C759), // iOS green
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white,
-                width: 2.5,
+          // Online indicator
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Container(
+              width: 13,
+              height: 13,
+              decoration: BoxDecoration(
+                color: const Color(0xFF22C55E),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF22C55E).withOpacity(0.4),
+                    blurRadius: 4,
+                    spreadRadius: 0,
+                  ),
+                ],
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

@@ -28,7 +28,8 @@ class _MyClientsSectionState extends State<MyClientsSection> {
       _isInitialLoad = false;
       _isLoading = false;
       if (_lastFetchTime == null ||
-          DateTime.now().difference(_lastFetchTime!) > const Duration(seconds: 30)) {
+          DateTime.now().difference(_lastFetchTime!) >
+              const Duration(seconds: 30)) {
         _loadClients(showLoading: false);
       }
     } else {
@@ -39,17 +40,29 @@ class _MyClientsSectionState extends State<MyClientsSection> {
 
   Future<void> _loadClients({bool showLoading = true}) async {
     if (showLoading && mounted) {
-      setState(() { _isLoading = true; _error = null; });
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
     }
     try {
       final clients = await _clientRepository.getAssignedClients();
       if (mounted) {
         _cachedClients = clients;
         _lastFetchTime = DateTime.now();
-        setState(() { _clients = clients; _isLoading = false; _isInitialLoad = false; });
+        setState(() {
+          _clients = clients;
+          _isLoading = false;
+          _isInitialLoad = false;
+        });
       }
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _isLoading = false; });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -87,7 +100,8 @@ class _MyClientsSectionState extends State<MyClientsSection> {
                 ],
               ),
               child: const Center(
-                child: Icon(Icons.people_alt_rounded, color: Colors.white, size: 20),
+                child: Icon(Icons.people_alt_rounded,
+                    color: Colors.white, size: 20),
               ),
             ),
             const SizedBox(width: 14),
@@ -103,11 +117,13 @@ class _MyClientsSectionState extends State<MyClientsSection> {
             const Spacer(),
             if (!_isLoading || _clients.isNotEmpty)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFF8B5CF6).withOpacity(0.08),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.15)),
+                  border: Border.all(
+                      color: const Color(0xFF8B5CF6).withOpacity(0.15)),
                 ),
                 child: Text(
                   '${_clients.length} ${_clients.length == 1 ? 'Client' : 'Clients'}',
@@ -142,7 +158,8 @@ class _MyClientsSectionState extends State<MyClientsSection> {
         border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: const Center(
-        child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+        child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
       ),
     );
   }
@@ -160,9 +177,14 @@ class _MyClientsSectionState extends State<MyClientsSection> {
           children: [
             const Icon(Icons.error_outline, size: 48, color: Colors.white70),
             const SizedBox(height: 16),
-            Text(_error!, style: const TextStyle(color: Colors.white70, fontSize: 14), textAlign: TextAlign.center),
+            Text(_error!,
+                style:
+                    const TextStyle(color: Colors.white70, fontSize: 14),
+                textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: () => _loadClients(showLoading: true), child: const Text('Retry')),
+            ElevatedButton(
+                onPressed: () => _loadClients(showLoading: true),
+                child: const Text('Retry')),
           ],
         ),
       ),
@@ -180,11 +202,18 @@ class _MyClientsSectionState extends State<MyClientsSection> {
       child: Center(
         child: Column(
           children: [
-            Icon(Icons.people_outline, size: 64, color: Colors.white.withOpacity(0.3)),
+            Icon(Icons.people_outline,
+                size: 64, color: Colors.white.withOpacity(0.3)),
             const SizedBox(height: 16),
-            const Text('No clients assigned yet', style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w600)),
+            const Text('No clients assigned yet',
+                style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            Text('You will see your assigned clients here', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14)),
+            Text('You will see your assigned clients here',
+                style: TextStyle(
+                    color: Colors.white.withOpacity(0.5), fontSize: 14)),
           ],
         ),
       ),
@@ -192,16 +221,26 @@ class _MyClientsSectionState extends State<MyClientsSection> {
   }
 
   Widget _buildClientsList() {
-    return Wrap(
-      spacing: 20,
-      runSpacing: 20,
-      children: _clients.asMap().entries.map((entry) {
+    // Calculate number of rows needed for 2-column grid
+    final int rowCount = (_clients.length / 2).ceil();
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 1.2, // Wider than tall
+      ),
+      itemCount: _clients.length,
+      itemBuilder: (context, index) {
         return _ClientCard(
-          client: entry.value,
-          gradient: _cardGradients[entry.key % _cardGradients.length],
-          index: entry.key,
+          client: _clients[index],
+          gradient: _cardGradients[index % _cardGradients.length],
+          index: index,
         );
-      }).toList(),
+      },
     );
   }
 }
@@ -221,7 +260,8 @@ class _ClientCard extends StatefulWidget {
   State<_ClientCard> createState() => _ClientCardState();
 }
 
-class _ClientCardState extends State<_ClientCard> with SingleTickerProviderStateMixin {
+class _ClientCardState extends State<_ClientCard>
+    with SingleTickerProviderStateMixin {
   bool _isHovered = false;
   bool _isMsgHovered = false;
   bool _isMsgPressed = false;
@@ -252,7 +292,9 @@ class _ClientCardState extends State<_ClientCard> with SingleTickerProviderState
 
   @override
   Widget build(BuildContext context) {
-    final initials = '${widget.client.firstName[0]}${widget.client.lastName[0]}'.toUpperCase();
+    final initials =
+        '${widget.client.firstName[0]}${widget.client.lastName[0]}'
+            .toUpperCase();
     final name = '${widget.client.firstName} ${widget.client.lastName}';
 
     return AnimatedBuilder(
@@ -273,7 +315,6 @@ class _ClientCardState extends State<_ClientCard> with SingleTickerProviderState
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeOutCubic,
-          width: 220,
           padding: const EdgeInsets.all(20),
           transform: Matrix4.identity()
             ..translate(0.0, _isHovered ? -4.0 : 0.0),
@@ -289,16 +330,19 @@ class _ClientCardState extends State<_ClientCard> with SingleTickerProviderState
               ],
               stops: const [0.0, 0.6, 1.0],
             ),
-            border: Border.all(color: Colors.white.withOpacity(0.8), width: 1.5),
+            border: Border.all(
+                color: Colors.white.withOpacity(0.8), width: 1.5),
             boxShadow: [
               BoxShadow(
-                color: widget.gradient[0].withOpacity(_isHovered ? 0.35 : 0.15),
+                color: widget.gradient[0]
+                    .withOpacity(_isHovered ? 0.35 : 0.15),
                 blurRadius: _isHovered ? 24 : 16,
                 offset: Offset(0, _isHovered ? 12 : 8),
                 spreadRadius: _isHovered ? 1 : 0,
               ),
               BoxShadow(
-                color: Colors.white.withOpacity(_isHovered ? 0.15 : 0.08),
+                color:
+                    Colors.white.withOpacity(_isHovered ? 0.15 : 0.08),
                 blurRadius: 6,
                 offset: const Offset(-2, -2),
               ),
@@ -307,6 +351,7 @@ class _ClientCardState extends State<_ClientCard> with SingleTickerProviderState
           child: GestureDetector(
             onTap: () => Navigator.pushNamed(context, '/messages'),
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Avatar
@@ -323,7 +368,8 @@ class _ClientCardState extends State<_ClientCard> with SingleTickerProviderState
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: widget.gradient[0].withOpacity(_isHovered ? 0.5 : 0.3),
+                        color: widget.gradient[0]
+                            .withOpacity(_isHovered ? 0.5 : 0.3),
                         blurRadius: _isHovered ? 16 : 10,
                         offset: const Offset(0, 4),
                       ),
@@ -337,15 +383,20 @@ class _ClientCardState extends State<_ClientCard> with SingleTickerProviderState
                   child: Stack(
                     children: [
                       Positioned(
-                        top: 5, left: 8,
+                        top: 5,
+                        left: 8,
                         child: Container(
-                          width: 18, height: 10,
+                          width: 18,
+                          height: 10,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(8),
                             gradient: LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
-                              colors: [Colors.white.withOpacity(0.4), Colors.white.withOpacity(0.0)],
+                              colors: [
+                                Colors.white.withOpacity(0.4),
+                                Colors.white.withOpacity(0.0),
+                              ],
                             ),
                           ),
                         ),
@@ -353,7 +404,12 @@ class _ClientCardState extends State<_ClientCard> with SingleTickerProviderState
                       Center(
                         child: Text(
                           initials,
-                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ),
                     ],
@@ -380,55 +436,95 @@ class _ClientCardState extends State<_ClientCard> with SingleTickerProviderState
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      width: 7, height: 7,
+                      width: 7,
+                      height: 7,
                       decoration: BoxDecoration(
                         color: const Color(0xFF10B981),
                         shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: const Color(0xFF10B981).withOpacity(0.5), blurRadius: 5)],
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF10B981).withOpacity(0.5),
+                            blurRadius: 5,
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 5),
-                    Text('Active', style: TextStyle(color: Colors.grey.shade500, fontSize: 11, fontWeight: FontWeight.w600)),
+                    Text('Active',
+                        style: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600)),
                   ],
                 ),
                 const SizedBox(height: 16),
                 // Message button with 3D effect
                 MouseRegion(
                   onEnter: (_) => setState(() => _isMsgHovered = true),
-                  onExit: (_) => setState(() { _isMsgHovered = false; _isMsgPressed = false; }),
+                  onExit: (_) => setState(() {
+                    _isMsgHovered = false;
+                    _isMsgPressed = false;
+                  }),
                   child: GestureDetector(
-                    onTapDown: (_) => setState(() => _isMsgPressed = true),
-                    onTapUp: (_) => setState(() => _isMsgPressed = false),
-                    onTapCancel: () => setState(() => _isMsgPressed = false),
-                    onTap: () => Navigator.pushNamed(context, '/messages'),
+                    onTapDown: (_) =>
+                        setState(() => _isMsgPressed = true),
+                    onTapUp: (_) =>
+                        setState(() => _isMsgPressed = false),
+                    onTapCancel: () =>
+                        setState(() => _isMsgPressed = false),
+                    onTap: () =>
+                        Navigator.pushNamed(context, '/messages'),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 150),
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       transform: Matrix4.translationValues(
-                        0, _isMsgPressed ? 2 : (_isMsgHovered ? -1 : 0), 0,
+                        0,
+                        _isMsgPressed
+                            ? 2
+                            : (_isMsgHovered ? -1 : 0),
+                        0,
                       ),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: _isMsgHovered
-                              ? [widget.gradient[0], widget.gradient[1]]
-                              : [widget.gradient[0].withOpacity(0.85), widget.gradient[1].withOpacity(0.85)],
+                              ? [
+                                  widget.gradient[0],
+                                  widget.gradient[1],
+                                ]
+                              : [
+                                  widget.gradient[0].withOpacity(0.85),
+                                  widget.gradient[1].withOpacity(0.85),
+                                ],
                         ),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white.withOpacity(_isMsgHovered ? 0.25 : 0.1)),
+                        border: Border.all(
+                          color: Colors.white
+                              .withOpacity(_isMsgHovered ? 0.25 : 0.1),
+                        ),
                         boxShadow: _isMsgPressed
-                            ? [BoxShadow(color: widget.gradient[0].withOpacity(0.15), blurRadius: 2, offset: const Offset(0, 1))]
+                            ? [
+                                BoxShadow(
+                                  color: widget.gradient[0]
+                                      .withOpacity(0.15),
+                                  blurRadius: 2,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ]
                             : [
                                 BoxShadow(
-                                  color: widget.gradient[1].withOpacity(0.6),
+                                  color:
+                                      widget.gradient[1].withOpacity(0.6),
                                   blurRadius: 0,
                                   offset: const Offset(0, 2),
                                 ),
                                 BoxShadow(
-                                  color: widget.gradient[0].withOpacity(_isMsgHovered ? 0.4 : 0.2),
-                                  blurRadius: _isMsgHovered ? 12 : 6,
+                                  color: widget.gradient[0].withOpacity(
+                                      _isMsgHovered ? 0.4 : 0.2),
+                                  blurRadius:
+                                      _isMsgHovered ? 12 : 6,
                                   offset: const Offset(0, 3),
                                 ),
                               ],
@@ -436,11 +532,17 @@ class _ClientCardState extends State<_ClientCard> with SingleTickerProviderState
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.chat_bubble_rounded, size: 14, color: Colors.white.withOpacity(0.95)),
+                          Icon(Icons.chat_bubble_rounded,
+                              size: 14,
+                              color: Colors.white.withOpacity(0.95)),
                           const SizedBox(width: 6),
                           const Text(
                             'Message',
-                            style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ],
                       ),
