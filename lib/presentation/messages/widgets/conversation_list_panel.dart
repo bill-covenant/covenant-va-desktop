@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../data/models/conversation_model.dart';
 import '../../../data/models/client_model.dart';
 import '../../../data/repositories/client_repository.dart';
+import '../../../data/providers/storage_provider.dart';
 import '../../../core/di/service_locator.dart';
 import 'conversation_list_item.dart';
 
@@ -29,7 +30,58 @@ class ConversationListPanel extends StatefulWidget {
 class _ConversationListPanelState extends State<ConversationListPanel> {
   final TextEditingController _searchController = TextEditingController();
   final ClientRepository _clientRepository = getIt<ClientRepository>();
+  final StorageProvider _storageProvider = StorageProvider();
   String _searchQuery = '';
+  String _currentVaFirstName = '';
+  String _currentVaLastName = '';
+  List<ClientModel> _clients = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentVaName();
+    _loadClients();
+  }
+
+  Future<void> _loadCurrentVaName() async {
+    final user = await _storageProvider.getUser();
+    if (user != null && mounted) {
+      setState(() {
+        _currentVaFirstName = user.firstName;
+        _currentVaLastName = user.lastName;
+      });
+    }
+  }
+
+  Future<void> _loadClients() async {
+    try {
+      final clients = await _clientRepository.getAssignedClients();
+      if (mounted) setState(() => _clients = clients);
+    } catch (_) {}
+  }
+
+  /// Returns the conversation enriched with the client's real name
+  /// when Firestore has an empty clientName (legacy conversations).
+  ConversationModel _enrichConversation(ConversationModel conv) {
+    final hasClientName = conv.client?.firstName.isNotEmpty == true ||
+        conv.client?.lastName.isNotEmpty == true;
+    if (hasClientName) return conv;
+
+    final match = _clients.firstWhere(
+      (c) => c.id == conv.clientId,
+      orElse: () => ClientModel(id: '', firstName: '', lastName: '', email: ''),
+    );
+    if (match.id.isEmpty) return conv;
+
+    return conv.copyWith(
+      client: UserInfo(
+        id: match.id,
+        email: match.email,
+        firstName: match.firstName,
+        lastName: match.lastName,
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -241,7 +293,12 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
           firstName: client.firstName,
           lastName: client.lastName,
         ),
-        va: null,
+        va: UserInfo(
+          id: widget.currentUserId,
+          email: '',
+          firstName: _currentVaFirstName,
+          lastName: _currentVaLastName,
+        ),
         unreadCount: 0,
       );
       widget.onConversationSelected(tempConversation);
@@ -444,11 +501,12 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
         final isSelected =
             widget.selectedConversation?.id == conversation.id;
 
+        final enriched = _enrichConversation(conversation);
         return ConversationListItem(
-          conversation: conversation,
+          conversation: enriched,
           currentUserId: widget.currentUserId,
           isSelected: isSelected,
-          onTap: () => widget.onConversationSelected(conversation),
+          onTap: () => widget.onConversationSelected(enriched),
         );
       },
     );

@@ -54,15 +54,19 @@ class MessageSendRequested extends MessagesEvent {
   final String conversationId;
   final String content;
   final String senderId;
+  final String clientName;
+  final String vaName;
 
   const MessageSendRequested({
     required this.conversationId,
     required this.content,
     required this.senderId,
+    this.clientName = '',
+    this.vaName = '',
   });
 
   @override
-  List<Object> get props => [conversationId, content, senderId];
+  List<Object> get props => [conversationId, content, senderId, clientName, vaName];
 }
 
 // ============================================

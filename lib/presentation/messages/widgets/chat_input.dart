@@ -87,6 +87,8 @@ class _ChatInputState extends State<ChatInput>
             conversationId: widget.conversation.id,
             content: message,
             senderId: widget.currentUserId,
+            clientName: widget.conversation.client?.fullName ?? '',
+            vaName: widget.conversation.va?.fullName ?? '',
           ),
         );
 

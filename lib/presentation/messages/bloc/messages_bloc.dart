@@ -111,8 +111,8 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
         conversationId = await _messageRepository.getOrCreateConversation(
           clientId: clientId,
           vaId: vaId,
-          clientName: '',
-          vaName: '',
+          clientName: event.clientName,
+          vaName: event.vaName,
         );
       }
 
