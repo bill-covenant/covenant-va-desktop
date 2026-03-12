@@ -76,7 +76,9 @@ class ChatPanel extends StatelessWidget {
             ),
             child: Center(
               child: Text(
-                conversation!.client?.firstName.substring(0, 1).toUpperCase() ?? 'C',
+                (conversation!.client?.firstName.isNotEmpty == true
+                    ? conversation!.client!.firstName[0].toUpperCase()
+                    : 'C'),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 32,

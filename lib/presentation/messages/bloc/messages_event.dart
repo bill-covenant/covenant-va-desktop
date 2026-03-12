@@ -13,7 +13,11 @@ abstract class MessagesEvent extends Equatable {
 // ============================================
 
 class MessagesLoadRequested extends MessagesEvent {
-  const MessagesLoadRequested();
+  final String userId;
+  const MessagesLoadRequested({required this.userId});
+
+  @override
+  List<Object> get props => [userId];
 }
 
 class MessagesRefreshRequested extends MessagesEvent {

@@ -11,6 +11,7 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
 
   List<ConversationModel> _cachedConversations = [];
   String? _currentConversationId;
+  String _currentUserId = '';
 
   MessagesBloc({required FirebaseMessageRepository messageRepository})
       : _messageRepository = messageRepository,
@@ -28,13 +29,12 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
     MessagesLoadRequested event,
     Emitter<MessagesState> emit,
   ) async {
+    _currentUserId = event.userId;
     if (_cachedConversations.isEmpty) emit(const MessagesLoading());
 
     try {
-      await _messageRepository.signInToFirebase();
-
       await emit.forEach<List<ConversationModel>>(
-        _messageRepository.conversationsStream(),
+        _messageRepository.conversationsStream(_currentUserId),
         onData: (conversations) {
           _cachedConversations = conversations;
           return MessagesLoaded(conversations);
@@ -58,7 +58,6 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
     MessagesRefreshRequested event,
     Emitter<MessagesState> emit,
   ) async {
-    // Firestore streams handle real-time updates automatically
     if (_cachedConversations.isNotEmpty) {
       emit(MessagesLoaded(_cachedConversations));
     }
@@ -72,7 +71,8 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
     emit(ConversationMessagesLoading(event.conversationId));
 
     try {
-      await _messageRepository.markConversationRead(event.conversationId);
+      await _messageRepository.markConversationRead(
+          event.conversationId, _currentUserId);
 
       await emit.forEach<List<MessageModel>>(
         _messageRepository.messagesStream(event.conversationId),
@@ -102,12 +102,26 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
     Emitter<MessagesState> emit,
   ) async {
     try {
+      String conversationId = event.conversationId;
+
+      // If this is a new conversation placeholder, create it in Firestore first
+      if (conversationId.startsWith('new_')) {
+        final clientId = conversationId.substring(4);
+        final vaId = event.senderId;
+        conversationId = await _messageRepository.getOrCreateConversation(
+          clientId: clientId,
+          vaId: vaId,
+          clientName: '',
+          vaName: '',
+        );
+      }
+
       await _messageRepository.sendMessage(
-        conversationId: event.conversationId,
+        conversationId: conversationId,
+        senderId: event.senderId,
         content: event.content,
         senderName: '',
       );
-      // Firestore stream updates UI automatically
     } catch (error) {
       print('❌ Failed to send message: $error');
       emit(MessageSendError(
@@ -128,7 +142,6 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
         conversationId: event.conversationId,
         messageId: event.messageId,
       );
-      // Firestore stream handles UI update
     } catch (error) {
       print('❌ Failed to delete message: $error');
     }

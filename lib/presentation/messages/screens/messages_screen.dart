@@ -57,9 +57,8 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
           orElse: () => _conversations.first,
         );
       });
-    } else {
-      _loadConversations();
     }
+    // _loadConversations() is called from _loadCurrentUser() once userId is ready
   }
 
   Future<void> _loadCurrentUser() async {
@@ -68,6 +67,7 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
       setState(() {
         _currentUserId = user.id;
       });
+      _loadConversations();
     }
   }
 
@@ -107,7 +107,8 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
   }
 
   void _loadConversations() {
-    context.read<MessagesBloc>().add(const MessagesLoadRequested());
+    if (_currentUserId == null) return;
+    context.read<MessagesBloc>().add(MessagesLoadRequested(userId: _currentUserId!));
   }
 
   Future<void> _handleRefresh() async {

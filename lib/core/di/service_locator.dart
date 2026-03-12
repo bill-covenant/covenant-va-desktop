@@ -36,9 +36,7 @@ Future<void> setupServiceLocator() async {
   );
 
   getIt.registerLazySingleton<FirebaseMessageRepository>(
-    () => FirebaseMessageRepository(
-      apiProvider: getIt<ApiProvider>(),
-    ),
+    () => FirebaseMessageRepository(),
   );
 
   getIt.registerLazySingleton<UserRepository>(

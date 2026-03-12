@@ -294,13 +294,10 @@ class _AppContentState extends State<_AppContent> {
                 child: NotesScreen(),
               ),
             ),
-        '/messages': (context) {
-          context.read<MessagesBloc>().add(const MessagesLoadRequested());
-          return const MainLayout(
-            currentRoute: 'messages',
-            child: MessagesScreen(),
-          );
-        },
+        '/messages': (context) => const MainLayout(
+              currentRoute: 'messages',
+              child: MessagesScreen(),
+            ),
         '/timecard': (context) {
           return BlocProvider(
             create: (context) => getIt<TimecardBloc>(),

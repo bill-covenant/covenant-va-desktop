@@ -270,7 +270,7 @@ class _ConversationListItemState extends State<ConversationListItem> {
   }
 
   String _getInitials(String name) {
-    final parts = name.split(' ');
+    final parts = name.trim().split(' ').where((p) => p.isNotEmpty).toList();
     if (parts.length >= 2) {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     } else if (parts.isNotEmpty) {
