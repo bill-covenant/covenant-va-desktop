@@ -23,6 +23,43 @@ class ConversationModel {
     this.unreadCount = 0,
   });
 
+  factory ConversationModel.fromFirestore(dynamic doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    final lastMsgAt = data['lastMessageAt'];
+    DateTime? lastMsgAtDate;
+    if (lastMsgAt != null) {
+      try {
+        lastMsgAtDate = (lastMsgAt as dynamic).toDate() as DateTime;
+      } catch (_) {}
+    }
+    return ConversationModel(
+      id: doc.id as String,
+      clientId: data['clientId'] as String? ?? '',
+      vaId: data['vaId'] as String? ?? '',
+      lastMessage: data['lastMessage'] as String?,
+      lastMessageAt: lastMsgAtDate,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      client: data['clientName'] != null
+          ? UserInfo(
+              id: data['clientId'] as String? ?? '',
+              email: '',
+              firstName: (data['clientName'] as String).split(' ').first,
+              lastName: (data['clientName'] as String).split(' ').skip(1).join(' '),
+            )
+          : null,
+      va: data['vaName'] != null
+          ? UserInfo(
+              id: data['vaId'] as String? ?? '',
+              email: '',
+              firstName: (data['vaName'] as String).split(' ').first,
+              lastName: (data['vaName'] as String).split(' ').skip(1).join(' '),
+            )
+          : null,
+      unreadCount: 0,
+    );
+  }
+
   factory ConversationModel.fromJson(Map<String, dynamic> json) {
     return ConversationModel(
       id: json['id'] as String,

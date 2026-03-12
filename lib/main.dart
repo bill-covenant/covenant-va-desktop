@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'dart:async';
+import 'firebase_options.dart';
 import 'core/constants/app_theme.dart';
 import 'core/di/service_locator.dart';
 import 'presentation/auth/bloc/auth_bloc.dart';
@@ -29,7 +31,8 @@ import 'services/socket_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   await SocketService().initNotifications();
   await setupServiceLocator();
   

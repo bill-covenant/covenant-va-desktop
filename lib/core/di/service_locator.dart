@@ -3,11 +3,10 @@ import '../../data/providers/api_provider.dart';
 import '../../data/providers/storage_provider.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/task_repository.dart';
-import '../../data/repositories/message_repository.dart';
+import '../../data/repositories/firebase_message_repository.dart';
 import '../../data/repositories/user_repository.dart';
 import '../../data/repositories/client_repository.dart';
 import '../../data/repositories/timecard_repository.dart';
-import '../../data/repositories/stripe_repository.dart';
 import '../../data/repositories/note_repository.dart';
 import '../../presentation/auth/bloc/auth_bloc.dart';
 import '../../presentation/dashboard/bloc/dashboard_bloc.dart';
@@ -36,8 +35,8 @@ Future<void> setupServiceLocator() async {
     ),
   );
 
-  getIt.registerLazySingleton<MessageRepository>(
-    () => MessageRepository(
+  getIt.registerLazySingleton<FirebaseMessageRepository>(
+    () => FirebaseMessageRepository(
       apiProvider: getIt<ApiProvider>(),
     ),
   );
@@ -61,12 +60,6 @@ Future<void> setupServiceLocator() async {
     ),
   );
 
-  getIt.registerLazySingleton<StripeRepository>(
-    () => StripeRepository(
-      apiProvider: getIt<ApiProvider>(),
-    ),
-  );
-
   // ✅ NEW: Note Repository
   getIt.registerLazySingleton<NoteRepository>(
     () => NoteRepository(getIt<ApiProvider>()),
@@ -85,7 +78,7 @@ Future<void> setupServiceLocator() async {
   );
 
   getIt.registerFactory<MessagesBloc>(
-    () => MessagesBloc(messageRepository: getIt<MessageRepository>()),
+    () => MessagesBloc(messageRepository: getIt<FirebaseMessageRepository>()),
   );
 
   getIt.registerFactory<TimecardBloc>(

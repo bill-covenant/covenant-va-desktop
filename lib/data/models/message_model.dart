@@ -17,6 +17,28 @@ class MessageModel {
     required this.updatedAt,
   });
 
+  factory MessageModel.fromFirestore(dynamic doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    final createdAt = data['createdAt'];
+    DateTime createdAtDate = DateTime.now();
+    if (createdAt != null) {
+      try {
+        createdAtDate = (createdAt as dynamic).toDate() as DateTime;
+      } catch (_) {}
+    }
+    // Firestore messages are in a subcollection — conversationId is the parent doc id
+    final convId = doc.reference.parent.parent?.id as String? ?? '';
+    return MessageModel(
+      id: doc.id as String,
+      conversationId: convId,
+      senderId: data['senderId'] as String? ?? '',
+      content: data['content'] as String? ?? '',
+      isRead: data['isRead'] as bool? ?? false,
+      createdAt: createdAtDate,
+      updatedAt: createdAtDate,
+    );
+  }
+
   factory MessageModel.fromJson(Map<String, dynamic> json) {
     return MessageModel(
       id: json['id'] as String,
