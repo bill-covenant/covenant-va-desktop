@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:http/http.dart' as http;
 import 'socket_service.dart';
+import 'tone_service.dart';
 import '../core/constants/api_constants.dart';
 
 enum CallState { idle, calling, ringing, connected }
@@ -15,6 +16,7 @@ class CallService extends ChangeNotifier {
 
   final SocketService _socket = SocketService();
   final http.Client _httpClient = http.Client();
+  final ToneService _toneService = ToneService();
 
   // Auth token for HTTP polling
   String? _authToken;
@@ -100,6 +102,7 @@ class CallService extends ChangeNotifier {
             _remoteUserName = call['callerName'];
             _callType = call['callType'] ?? 'audio';
             _callState = CallState.ringing;
+            _toneService.playRingtone();
             notifyListeners();
           }
         }
@@ -140,6 +143,7 @@ class CallService extends ChangeNotifier {
 
             switch (type) {
               case 'call-accepted':
+                _toneService.stop();
                 _callState = CallState.connected;
                 _startDurationTimer();
                 notifyListeners();
@@ -281,10 +285,12 @@ class CallService extends ChangeNotifier {
       _remoteUserName = callerName;
       _callType = callType;
       _callState = CallState.ringing;
+      _toneService.playRingtone();
       notifyListeners();
     };
 
     _socket.onCallAccepted = () async {
+      _toneService.stop();
       _callState = CallState.connected;
       _startDurationTimer();
       notifyListeners();
@@ -356,11 +362,13 @@ class CallService extends ChangeNotifier {
 
     final vaName = 'VA';
     _socket.initiateCall(recipientId, vaName, type);
+    _toneService.playRingback();
     _startSignalPolling();
   }
 
   Future<void> acceptCall() async {
     if (_remoteUserId == null) return;
+    _toneService.stop();
     await _httpAcceptCall();
     _socket.acceptCall(_remoteUserId!);
     _startSignalPolling();
@@ -368,6 +376,7 @@ class CallService extends ChangeNotifier {
 
   void declineCall() {
     if (_remoteUserId == null) return;
+    _toneService.stop();
     _httpDeclineCall();
     _socket.declineCall(_remoteUserId!);
     _callState = CallState.idle;
@@ -377,6 +386,7 @@ class CallService extends ChangeNotifier {
   }
 
   void endCall() {
+    _toneService.stop();
     if (_remoteUserId != null) {
       _httpEndCall(_remoteUserId!);
       _socket.endCall(_remoteUserId!);
@@ -514,6 +524,7 @@ class CallService extends ChangeNotifier {
   // ═══════════════════════════════════════
 
   void _cleanup() {
+    _toneService.stop();
     _signalPollTimer?.cancel();
     _signalPollTimer = null;
 
