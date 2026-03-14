@@ -30,7 +30,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
           child: Stack(
             children: [
               // Remote video / avatar background
-              if (isVideo && isConnected)
+              if (isVideo && isConnected && widget.callService.remoteRenderer.srcObject != null)
                 Positioned.fill(
                   child: RTCVideoView(
                     widget.callService.remoteRenderer,
@@ -198,7 +198,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
               ),
 
               // Local video PIP (video calls only, when connected)
-              if (isVideo && isConnected)
+              if (isVideo && isConnected && widget.callService.localRenderer.srcObject != null)
                 Positioned(
                   top: 100,
                   right: 24,

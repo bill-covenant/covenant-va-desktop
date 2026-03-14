@@ -1,129 +1,151 @@
 import 'dart:async';
+import 'dart:ffi';
 import 'dart:math';
 import 'dart:typed_data';
-import 'package:just_audio/just_audio.dart';
+import 'package:ffi/ffi.dart';
 
-/// Generates ringtone and ringback tones for calls using synthesized audio.
+// Windows PlaySound flags
+const int SND_ASYNC = 0x0001;
+const int SND_MEMORY = 0x0004;
+const int SND_LOOP = 0x0008;
+const int SND_PURGE = 0x0040;
+
+// PlaySound function signature from winmm.dll
+typedef PlaySoundNative = Int32 Function(Pointer<Uint8> pszSound, IntPtr hmod, Uint32 fdwSound);
+typedef PlaySoundDart = int Function(Pointer<Uint8> pszSound, int hmod, int fdwSound);
+
+/// Generates and plays ringtone/ringback tones using Windows native audio.
 class ToneService {
   static final ToneService _instance = ToneService._internal();
   factory ToneService() => _instance;
   ToneService._internal();
 
-  AudioPlayer? _player;
-  Timer? _patternTimer;
+  PlaySoundDart? _playSound;
+  Pointer<Uint8>? _currentBuffer;
   bool _isPlaying = false;
 
+  PlaySoundDart _getPlaySound() {
+    if (_playSound != null) return _playSound!;
+    final winmm = DynamicLibrary.open('winmm.dll');
+    _playSound = winmm.lookupFunction<PlaySoundNative, PlaySoundDart>('PlaySoundW');
+    return _playSound!;
+  }
+
   /// Play incoming call ringtone (receiver hears this)
-  /// Two-tone ring: 440Hz + 480Hz, 1s on, 2s off
+  /// Two-tone ring: 440Hz + 480Hz, 1s on, 0.5s silence, looped
   Future<void> playRingtone() async {
     await stop();
     _isPlaying = true;
 
-    // Generate 1 second of dual-tone ring
-    final audioData = _generateDualTone(
+    final wavData = _generateDualTone(
       freq1: 440,
       freq2: 480,
       durationMs: 1000,
+      silenceMs: 2000,
       volume: 0.35,
     );
 
-    await _playPattern(audioData, onDurationMs: 1000, offDurationMs: 2000);
+    _playWavLooped(wavData);
   }
 
   /// Play ringback tone (caller hears this while waiting)
-  /// Standard US ringback: 440Hz + 480Hz, 2s on, 4s off
+  /// Standard US ringback: 440Hz + 480Hz, 2s on, 4s silence, looped
   Future<void> playRingback() async {
     await stop();
     _isPlaying = true;
 
-    // Generate 2 seconds of dual-tone ringback
-    final audioData = _generateDualTone(
+    final wavData = _generateDualTone(
       freq1: 440,
       freq2: 480,
       durationMs: 2000,
+      silenceMs: 4000,
       volume: 0.2,
     );
 
-    await _playPattern(audioData, onDurationMs: 2000, offDurationMs: 4000);
+    _playWavLooped(wavData);
   }
 
   /// Stop any playing tone
   Future<void> stop() async {
     _isPlaying = false;
-    _patternTimer?.cancel();
-    _patternTimer = null;
-
-    if (_player != null) {
-      await _player!.stop();
-      await _player!.dispose();
-      _player = null;
+    try {
+      final playSound = _getPlaySound();
+      playSound(nullptr.cast<Uint8>(), 0, SND_PURGE);
+    } catch (e) {
+      print('⚠️ ToneService: Error stopping: $e');
     }
+    _freeBuffer();
   }
 
   bool get isPlaying => _isPlaying;
 
-  Future<void> _playPattern(
-    Uint8List wavData, {
-    required int onDurationMs,
-    required int offDurationMs,
-  }) async {
-    Future<void> playOnce() async {
-      if (!_isPlaying) return;
-      try {
-        _player = AudioPlayer();
-        final source = _WavAudioSource(wavData);
-        await _player!.setAudioSource(source);
-        await _player!.play();
-      } catch (e) {
-        print('⚠️ ToneService: Error playing tone: $e');
+  void _playWavLooped(Uint8List wavData) {
+    try {
+      _freeBuffer();
+      final playSound = _getPlaySound();
+
+      // Allocate native memory and copy WAV data
+      _currentBuffer = calloc<Uint8>(wavData.length);
+      for (int i = 0; i < wavData.length; i++) {
+        _currentBuffer![i] = wavData[i];
       }
+
+      // Play from memory, async, looping
+      playSound(_currentBuffer!, 0, SND_MEMORY | SND_ASYNC | SND_LOOP);
+    } catch (e) {
+      print('⚠️ ToneService: Error playing tone: $e');
     }
-
-    // Play immediately
-    await playOnce();
-
-    // Repeat pattern
-    final totalCycle = onDurationMs + offDurationMs;
-    _patternTimer = Timer.periodic(Duration(milliseconds: totalCycle), (_) async {
-      await playOnce();
-    });
   }
 
-  /// Generate a WAV file bytes with two mixed sine wave tones
+  void _freeBuffer() {
+    if (_currentBuffer != null && _currentBuffer != nullptr.cast<Uint8>()) {
+      try {
+        calloc.free(_currentBuffer!);
+      } catch (_) {}
+      _currentBuffer = null;
+    }
+  }
+
+  /// Generate WAV with dual sine tones followed by silence
   Uint8List _generateDualTone({
     required double freq1,
     required double freq2,
     required int durationMs,
+    int silenceMs = 0,
     double volume = 0.3,
     int sampleRate = 44100,
   }) {
-    final numSamples = (sampleRate * durationMs / 1000).round();
-    final samples = Int16List(numSamples);
+    final toneSamples = (sampleRate * durationMs / 1000).round();
+    final silenceSamples = (sampleRate * silenceMs / 1000).round();
+    final totalSamples = toneSamples + silenceSamples;
+    final samples = Int16List(totalSamples);
 
-    for (int i = 0; i < numSamples; i++) {
+    final fadeInSamples = (sampleRate * 0.015).round();
+
+    for (int i = 0; i < toneSamples; i++) {
       final t = i / sampleRate;
-      // Mix two sine waves
       final sample = (sin(2 * pi * freq1 * t) + sin(2 * pi * freq2 * t)) / 2.0;
-      // Apply fade in/out to avoid clicks (20ms ramps)
-      final fadeInSamples = (sampleRate * 0.02).round();
-      final fadeOutStart = numSamples - fadeInSamples;
+
+      // Fade in/out to avoid clicks
+      final fadeOutStart = toneSamples - fadeInSamples;
       double envelope = 1.0;
       if (i < fadeInSamples) {
         envelope = i / fadeInSamples;
       } else if (i > fadeOutStart) {
-        envelope = (numSamples - i) / fadeInSamples;
+        envelope = (toneSamples - i) / fadeInSamples;
       }
+
       samples[i] = (sample * volume * envelope * 32767).round().clamp(-32768, 32767);
     }
+    // Silence samples are already 0
 
     return _createWavFile(samples, sampleRate);
   }
 
   /// Create a valid WAV file from 16-bit PCM samples
   Uint8List _createWavFile(Int16List samples, int sampleRate) {
-    final dataSize = samples.length * 2; // 16-bit = 2 bytes per sample
-    final fileSize = 44 + dataSize; // WAV header is 44 bytes
-
+    final dataSize = samples.length * 2;
+    final fileSize = 44 + dataSize;
     final buffer = ByteData(fileSize);
     int offset = 0;
 
@@ -132,8 +154,7 @@ class ToneService {
     buffer.setUint8(offset++, 0x49); // I
     buffer.setUint8(offset++, 0x46); // F
     buffer.setUint8(offset++, 0x46); // F
-    buffer.setUint32(offset, fileSize - 8, Endian.little);
-    offset += 4;
+    buffer.setUint32(offset, fileSize - 8, Endian.little); offset += 4;
     buffer.setUint8(offset++, 0x57); // W
     buffer.setUint8(offset++, 0x41); // A
     buffer.setUint8(offset++, 0x56); // V
@@ -143,57 +164,27 @@ class ToneService {
     buffer.setUint8(offset++, 0x66); // f
     buffer.setUint8(offset++, 0x6D); // m
     buffer.setUint8(offset++, 0x74); // t
-    buffer.setUint8(offset++, 0x20); // (space)
-    buffer.setUint32(offset, 16, Endian.little); // chunk size
-    offset += 4;
-    buffer.setUint16(offset, 1, Endian.little); // PCM format
-    offset += 2;
-    buffer.setUint16(offset, 1, Endian.little); // mono
-    offset += 2;
-    buffer.setUint32(offset, sampleRate, Endian.little); // sample rate
-    offset += 4;
-    buffer.setUint32(offset, sampleRate * 2, Endian.little); // byte rate
-    offset += 4;
-    buffer.setUint16(offset, 2, Endian.little); // block align
-    offset += 2;
-    buffer.setUint16(offset, 16, Endian.little); // bits per sample
-    offset += 2;
+    buffer.setUint8(offset++, 0x20); // space
+    buffer.setUint32(offset, 16, Endian.little); offset += 4;
+    buffer.setUint16(offset, 1, Endian.little); offset += 2; // PCM
+    buffer.setUint16(offset, 1, Endian.little); offset += 2; // mono
+    buffer.setUint32(offset, sampleRate, Endian.little); offset += 4;
+    buffer.setUint32(offset, sampleRate * 2, Endian.little); offset += 4; // byte rate
+    buffer.setUint16(offset, 2, Endian.little); offset += 2; // block align
+    buffer.setUint16(offset, 16, Endian.little); offset += 2; // bits per sample
 
     // data chunk
     buffer.setUint8(offset++, 0x64); // d
     buffer.setUint8(offset++, 0x61); // a
     buffer.setUint8(offset++, 0x74); // t
     buffer.setUint8(offset++, 0x61); // a
-    buffer.setUint32(offset, dataSize, Endian.little);
-    offset += 4;
+    buffer.setUint32(offset, dataSize, Endian.little); offset += 4;
 
-    // PCM data
     for (int i = 0; i < samples.length; i++) {
       buffer.setInt16(offset, samples[i], Endian.little);
       offset += 2;
     }
 
     return buffer.buffer.asUint8List();
-  }
-}
-
-/// Custom AudioSource that plays from in-memory WAV bytes
-class _WavAudioSource extends StreamAudioSource {
-  final Uint8List _wavData;
-
-  _WavAudioSource(this._wavData);
-
-  @override
-  Future<StreamAudioResponse> request([int? start, int? end]) async {
-    final effectiveStart = start ?? 0;
-    final effectiveEnd = end ?? _wavData.length;
-
-    return StreamAudioResponse(
-      sourceLength: _wavData.length,
-      contentLength: effectiveEnd - effectiveStart,
-      offset: effectiveStart,
-      stream: Stream.value(_wavData.sublist(effectiveStart, effectiveEnd)),
-      contentType: 'audio/wav',
-    );
   }
 }

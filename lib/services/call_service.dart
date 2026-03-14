@@ -63,8 +63,12 @@ class CallService extends ChangeNotifier {
   }
 
   Future<void> initialize() async {
-    await localRenderer.initialize();
-    await remoteRenderer.initialize();
+    try {
+      await localRenderer.initialize();
+      await remoteRenderer.initialize();
+    } catch (e) {
+      print('⚠️ Failed to initialize video renderers: $e');
+    }
     _setupSocketListeners();
     _startCallPolling();
     print('📞 CallService initialized with HTTP polling');
@@ -423,15 +427,35 @@ class CallService extends ChangeNotifier {
   // ═══════════════════════════════════════
 
   Future<void> _getLocalStream() async {
-    final constraints = {
-      'audio': true,
-      'video': _callType == 'video'
-          ? {'width': 1280, 'height': 720, 'facingMode': 'user'}
-          : false,
-    };
+    try {
+      final constraints = {
+        'audio': true,
+        'video': _callType == 'video'
+            ? {'width': 1280, 'height': 720, 'facingMode': 'user'}
+            : false,
+      };
 
-    _localStream = await navigator.mediaDevices.getUserMedia(constraints);
-    localRenderer.srcObject = _localStream;
+      _localStream = await navigator.mediaDevices.getUserMedia(constraints);
+      localRenderer.srcObject = _localStream;
+    } catch (e) {
+      print('⚠️ getUserMedia failed: $e');
+      // Fallback: try audio-only if video failed
+      if (_callType == 'video') {
+        print('⚠️ Retrying with audio only...');
+        try {
+          _localStream = await navigator.mediaDevices.getUserMedia({
+            'audio': true,
+            'video': false,
+          });
+          localRenderer.srcObject = _localStream;
+        } catch (e2) {
+          print('❌ Audio-only also failed: $e2');
+          rethrow;
+        }
+      } else {
+        rethrow;
+      }
+    }
   }
 
   Future<RTCPeerConnection> _createPeerConnection() async {
@@ -481,6 +505,9 @@ class CallService extends ChangeNotifier {
 
   Future<void> _createAndSendOffer() async {
     try {
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (_callState == CallState.idle) return;
+
       await _getLocalStream();
       final pc = await _createPeerConnection();
       final offer = await pc.createOffer();
@@ -491,12 +518,19 @@ class CallService extends ChangeNotifier {
       _socket.sendWebRTCOffer(_remoteUserId!, offerMap);
     } catch (e) {
       print('Error creating offer: $e');
-      endCall();
+      _cleanup();
+      _callState = CallState.idle;
+      notifyListeners();
     }
   }
 
   Future<void> _handleReceiveOffer(Map<String, dynamic> offer) async {
+    if (_callState == CallState.idle) return;
     try {
+      // Small delay to let UI settle before accessing media devices
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (_callState == CallState.idle) return;
+
       await _getLocalStream();
       final pc = await _createPeerConnection();
       await pc.setRemoteDescription(
@@ -515,7 +549,10 @@ class CallService extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       print('Error handling offer: $e');
-      endCall();
+      // Don't call endCall() here to avoid potential recursive crash
+      _cleanup();
+      _callState = CallState.idle;
+      notifyListeners();
     }
   }
 
@@ -547,6 +584,7 @@ class CallService extends ChangeNotifier {
   }
 
   void _startDurationTimer() {
+    _durationTimer?.cancel();
     _callDuration = 0;
     _durationTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       _callDuration++;
