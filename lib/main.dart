@@ -28,6 +28,8 @@ import 'presentation/timecard/screens/timecard_screen.dart';
 import 'data/repositories/notification_repository.dart';
 import 'data/providers/api_provider.dart';
 import 'services/socket_service.dart';
+import 'services/call_service.dart';
+import 'presentation/call/widgets/call_overlay.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -78,6 +80,7 @@ class _AppContentState extends State<_AppContent> {
   bool _hasLoadedNotifications = false;
   bool _splashComplete = false;
   final SocketService _socketService = SocketService();
+  final CallService _callService = CallService();
   OverlayEntry? _overlayEntry;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
@@ -201,17 +204,24 @@ class _AppContentState extends State<_AppContent> {
     authBloc.stream.listen((authState) {
       if (authState is AuthAuthenticated && !_hasLoadedNotifications) {
         _hasLoadedNotifications = true;
-        
+
         _socketService.onNotification = _showNotificationBanner;
-        
+
         context.read<NotificationBloc>()
           ..add(LoadNotifications())
           ..add(LoadUnreadCount());
-        
+
         final userId = authState.user.id;
         _socketService.connect(userId);
-        
+
+        // Initialize CallService with auth token
         final apiProvider = getIt<ApiProvider>();
+        final token = apiProvider.authToken;
+        if (token != null) {
+          _callService.setAuthToken(token);
+        }
+        _callService.initialize();
+
         apiProvider.warmUp([
           '/dashboard/va',
           '/tasks/my-tasks',
@@ -262,6 +272,12 @@ class _AppContentState extends State<_AppContent> {
       title: 'CVA Desktop',
       theme: AppTheme.lightTheme,
       debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        return CallOverlay(
+          callService: _callService,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       initialRoute: '/splash',
       routes: {
         '/splash': (context) => const SplashScreen(),

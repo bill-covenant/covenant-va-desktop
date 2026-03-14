@@ -5,11 +5,15 @@ import '../../../data/models/conversation_model.dart';
 class ChatHeader extends StatelessWidget {
   final ConversationModel conversation;
   final String currentUserId;
+  final VoidCallback? onAudioCall;
+  final VoidCallback? onVideoCall;
 
   const ChatHeader({
     super.key,
     required this.conversation,
     required this.currentUserId,
+    this.onAudioCall,
+    this.onVideoCall,
   });
 
   @override
@@ -139,6 +143,7 @@ class ChatHeader extends StatelessWidget {
                   const Color(0xFF059669),
                 ],
                 shadowColor: const Color(0xFF10B981),
+                onTap: onAudioCall,
               ),
               const SizedBox(width: 10),
               _build3DActionButton(
@@ -148,6 +153,7 @@ class ChatHeader extends StatelessWidget {
                   const Color(0xFF7C3AED),
                 ],
                 shadowColor: const Color(0xFF7C3AED),
+                onTap: onVideoCall,
               ),
               const SizedBox(width: 10),
               _build3DActionButton(
@@ -169,6 +175,7 @@ class ChatHeader extends StatelessWidget {
     required IconData icon,
     required List<Color> gradientColors,
     required Color shadowColor,
+    VoidCallback? onTap,
   }) {
     return Container(
       width: 42,
@@ -227,7 +234,7 @@ class ChatHeader extends StatelessWidget {
           Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: () {},
+              onTap: onTap ?? () {},
               borderRadius: BorderRadius.circular(14),
               child: Center(
                 child: Icon(

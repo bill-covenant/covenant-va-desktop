@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../data/models/conversation_model.dart';
+import '../../../services/call_service.dart';
 import 'chat_header.dart';
 import 'chat_messages_area.dart';
 import 'chat_input.dart';
@@ -7,11 +8,13 @@ import 'chat_input.dart';
 class ChatPanel extends StatelessWidget {
   final ConversationModel? conversation;
   final String currentUserId;
+  final CallService? callService;
 
   const ChatPanel({
     super.key,
     required this.conversation,
     required this.currentUserId,
+    this.callService,
   });
 
   @override
@@ -29,6 +32,16 @@ class ChatPanel extends StatelessWidget {
         ChatHeader(
           conversation: conversation!,
           currentUserId: currentUserId,
+          onAudioCall: callService != null ? () {
+            final otherUserId = conversation!.getOtherUserId(currentUserId);
+            final otherUserName = conversation!.getOtherParticipantName(currentUserId);
+            callService!.startCall(otherUserId, otherUserName, 'audio');
+          } : null,
+          onVideoCall: callService != null ? () {
+            final otherUserId = conversation!.getOtherUserId(currentUserId);
+            final otherUserName = conversation!.getOtherParticipantName(currentUserId);
+            callService!.startCall(otherUserId, otherUserName, 'video');
+          } : null,
         ),
 
         // Messages area (will be empty for new conversations)

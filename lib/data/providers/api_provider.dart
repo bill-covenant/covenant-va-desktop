@@ -24,6 +24,8 @@ class ApiProvider {
   // Deduplicate in-flight requests
   final Map<String, Future<Map<String, dynamic>>> _pendingRequests = {};
 
+  String? get authToken => _token;
+
   void setToken(String token) {
     _token = token;
   }

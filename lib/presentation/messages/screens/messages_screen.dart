@@ -8,6 +8,7 @@ import '../widgets/chat_panel.dart';
 import '../widgets/messages_error_state.dart';
 import '../../../data/providers/storage_provider.dart';
 import '../../../data/models/conversation_model.dart';
+import '../../../services/call_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
@@ -412,6 +413,7 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
           child: ChatPanel(
             conversation: _selectedConversation,
             currentUserId: _currentUserId!,
+            callService: CallService(),
           ),
         ),
       ],

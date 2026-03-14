@@ -9,10 +9,10 @@ class SocketService {
   SocketService._internal();
 
   IO.Socket? _socket;
-  
+
   // Callback for showing in-app notifications
   Function(String title, String body)? onNotification;
-  
+
   // Callback for task updates
   Function()? onTaskUpdate;
 
@@ -20,13 +20,26 @@ class SocketService {
   final _newMessageController = StreamController<MessageModel>.broadcast();
   Stream<MessageModel> get onNewMessage => _newMessageController.stream;
 
+  // ═══════════════════════════════════════
+  // Call signaling callbacks (set by CallService)
+  // ═══════════════════════════════════════
+  Function(String callerId, String callerName, String callType)? onIncomingCall;
+  Function()? onCallAccepted;
+  Function()? onCallDeclined;
+  Function()? onCallEnded;
+  Function(String reason)? onCallUnavailable;
+  Function(Map<String, dynamic> offer)? onWebRTCOffer;
+  Function(Map<String, dynamic> answer)? onWebRTCAnswer;
+  Function(Map<String, dynamic> candidate)? onICECandidate;
+
   Future<void> initNotifications() async {
     print('📱 Notification system ready');
   }
 
   void connect(String vaId) {
     print('🔌 Attempting to connect to Socket.io with VA ID: $vaId');
-    
+    _authenticatedUserId = vaId;
+
     if (_socket != null && _socket!.connected) {
       print('✅ Already connected to Socket.io');
       return;
@@ -85,6 +98,65 @@ class SocketService {
       print('💬 ========== NEW MESSAGE RECEIVED ==========');
       print('💬 Raw data: $data');
       _handleNewMessage(data);
+    });
+
+    // ═══════════════════════════════════════
+    // Call signaling socket events (fallback for HTTP polling)
+    // ═══════════════════════════════════════
+
+    _socket!.on('call-incoming', (data) {
+      print('📞 ========== INCOMING CALL (Socket) ==========');
+      final callerId = data['callerId']?.toString() ?? '';
+      final callerName = data['callerName']?.toString() ?? '';
+      final callType = data['callType']?.toString() ?? 'audio';
+      onIncomingCall?.call(callerId, callerName, callType);
+    });
+
+    _socket!.on('call-accepted', (data) {
+      print('✅ Call accepted (Socket)');
+      onCallAccepted?.call();
+    });
+
+    _socket!.on('call-declined', (data) {
+      print('❌ Call declined (Socket)');
+      onCallDeclined?.call();
+    });
+
+    _socket!.on('call-ended', (data) {
+      print('📴 Call ended (Socket)');
+      onCallEnded?.call();
+    });
+
+    _socket!.on('call-unavailable', (data) {
+      print('📵 Call unavailable (Socket)');
+      final reason = data['reason']?.toString() ?? 'User unavailable';
+      onCallUnavailable?.call(reason);
+    });
+
+    _socket!.on('call-ended-by-disconnect', (data) {
+      print('📴 Call ended by disconnect (Socket)');
+      onCallEnded?.call();
+    });
+
+    _socket!.on('webrtc-offer', (data) {
+      print('📨 WebRTC offer received (Socket)');
+      if (data['offer'] != null) {
+        onWebRTCOffer?.call(Map<String, dynamic>.from(data['offer']));
+      }
+    });
+
+    _socket!.on('webrtc-answer', (data) {
+      print('📨 WebRTC answer received (Socket)');
+      if (data['answer'] != null) {
+        onWebRTCAnswer?.call(Map<String, dynamic>.from(data['answer']));
+      }
+    });
+
+    _socket!.on('webrtc-ice-candidate', (data) {
+      print('📨 ICE candidate received (Socket)');
+      if (data['candidate'] != null) {
+        onICECandidate?.call(Map<String, dynamic>.from(data['candidate']));
+      }
     });
 
     _socket!.onError((error) {
@@ -181,6 +253,79 @@ class SocketService {
       body: 'If you see this, notifications are working!',
     );
   }
+
+  // ═══════════════════════════════════════
+  // Call signaling emit methods
+  // ═══════════════════════════════════════
+
+  void initiateCall(String recipientId, String callerName, String callType) {
+    if (_socket == null || !_socket!.connected) {
+      print('⚠️ Socket not connected, skipping initiateCall emit');
+      return;
+    }
+    _socket!.emit('call-initiate', {
+      'callerId': _authenticatedUserId ?? '',
+      'callerName': callerName,
+      'recipientId': recipientId,
+      'callType': callType,
+    });
+    print('📞 Emitted call-initiate to $recipientId');
+  }
+
+  void acceptCall(String callerId) {
+    if (_socket == null || !_socket!.connected) return;
+    _socket!.emit('call-accept', {
+      'callerId': callerId,
+      'recipientId': _authenticatedUserId ?? '',
+    });
+    print('✅ Emitted call-accept for caller $callerId');
+  }
+
+  void declineCall(String callerId) {
+    if (_socket == null || !_socket!.connected) return;
+    _socket!.emit('call-decline', {
+      'callerId': callerId,
+      'recipientId': _authenticatedUserId ?? '',
+    });
+    print('❌ Emitted call-decline for caller $callerId');
+  }
+
+  void endCall(String remoteUserId) {
+    if (_socket == null || !_socket!.connected) return;
+    _socket!.emit('call-end', {
+      'remoteUserId': remoteUserId,
+    });
+    print('📴 Emitted call-end for $remoteUserId');
+  }
+
+  void sendWebRTCOffer(String recipientId, Map<String, dynamic> offer) {
+    if (_socket == null || !_socket!.connected) return;
+    _socket!.emit('webrtc-offer', {
+      'recipientId': recipientId,
+      'offer': offer,
+    });
+  }
+
+  void sendWebRTCAnswer(String callerId, Map<String, dynamic> answer) {
+    if (_socket == null || !_socket!.connected) return;
+    _socket!.emit('webrtc-answer', {
+      'callerId': callerId,
+      'answer': answer,
+    });
+  }
+
+  void sendICECandidate(String remoteUserId, Map<String, dynamic> candidate) {
+    if (_socket == null || !_socket!.connected) return;
+    _socket!.emit('webrtc-ice-candidate', {
+      'remoteUserId': remoteUserId,
+      'candidate': candidate,
+    });
+  }
+
+  // ═══════════════════════════════════════
+
+  // Track the authenticated user ID for socket emit payloads
+  String? _authenticatedUserId;
 
   void disconnect() {
     if (_socket != null) {
