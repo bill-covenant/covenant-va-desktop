@@ -283,8 +283,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                       // Device settings
                       _buildControlButton(
                         icon: Icons.settings_rounded,
-                        isActive: false,
-                        onTap: () => _showDeviceSelector(context),
+                        isActive: widget.callService.showDeviceSelector,
+                        onTap: () => widget.callService.toggleDeviceSelector(),
                       ),
 
                       const SizedBox(width: 20),
@@ -318,6 +318,100 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   ),
                 ),
               ),
+
+              // Device selector panel (inline overlay, no Navigator needed)
+              if (widget.callService.showDeviceSelector)
+                Positioned.fill(
+                  child: GestureDetector(
+                    onTap: () => widget.callService.hideDeviceSelector(),
+                    child: Container(
+                      color: Colors.black54,
+                      alignment: Alignment.center,
+                      child: GestureDetector(
+                        onTap: () {},
+                        child: Container(
+                          width: 380,
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E1E2E),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white.withOpacity(0.1)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.5),
+                                blurRadius: 30,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.settings_rounded, color: Color(0xFF7C3AED), size: 20),
+                                  const SizedBox(width: 8),
+                                  const Expanded(
+                                    child: Text('Audio & Video Settings',
+                                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () => widget.callService.hideDeviceSelector(),
+                                    child: Icon(Icons.close, color: Colors.white.withOpacity(0.5), size: 18),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              _buildDeviceDropdown(
+                                icon: Icons.mic_rounded,
+                                iconColor: const Color(0xFF3B82F6),
+                                label: 'Microphone',
+                                devices: widget.callService.audioInputs,
+                                selectedId: widget.callService.selectedAudioInput,
+                                onChanged: (id) => widget.callService.switchAudioInput(id),
+                              ),
+                              const SizedBox(height: 16),
+                              _buildDeviceDropdown(
+                                icon: Icons.volume_up_rounded,
+                                iconColor: const Color(0xFF22C55E),
+                                label: 'Speaker',
+                                devices: widget.callService.audioOutputs,
+                                selectedId: widget.callService.selectedAudioOutput,
+                                onChanged: (id) => widget.callService.switchAudioOutput(id),
+                              ),
+                              if (widget.callService.callType == 'video') ...[
+                                const SizedBox(height: 16),
+                                _buildDeviceDropdown(
+                                  icon: Icons.videocam_rounded,
+                                  iconColor: const Color(0xFF7C3AED),
+                                  label: 'Camera',
+                                  devices: widget.callService.videoInputs,
+                                  selectedId: widget.callService.selectedVideoInput,
+                                  onChanged: (id) => widget.callService.switchVideoInput(id),
+                                ),
+                              ],
+                              const SizedBox(height: 20),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: () => widget.callService.hideDeviceSelector(),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF7C3AED),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                  child: const Text('Done', style: TextStyle(fontWeight: FontWeight.w600)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         );
@@ -350,79 +444,6 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     );
   }
 
-  void _showDeviceSelector(BuildContext context) {
-    widget.callService.refreshDevices();
-    showDialog(
-      context: context,
-      builder: (ctx) => ListenableBuilder(
-        listenable: widget.callService,
-        builder: (context, _) {
-          return AlertDialog(
-            backgroundColor: const Color(0xFF1E1E2E),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Row(
-              children: [
-                Icon(Icons.settings_rounded, color: Color(0xFF7C3AED), size: 20),
-                SizedBox(width: 8),
-                Text('Audio & Video Settings',
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            content: SizedBox(
-              width: 340,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildDeviceDropdown(
-                    icon: Icons.mic_rounded,
-                    iconColor: const Color(0xFF3B82F6),
-                    label: 'Microphone',
-                    devices: widget.callService.audioInputs,
-                    selectedId: widget.callService.selectedAudioInput,
-                    onChanged: (id) => widget.callService.switchAudioInput(id),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildDeviceDropdown(
-                    icon: Icons.volume_up_rounded,
-                    iconColor: const Color(0xFF22C55E),
-                    label: 'Speaker',
-                    devices: widget.callService.audioOutputs,
-                    selectedId: widget.callService.selectedAudioOutput,
-                    onChanged: (id) => widget.callService.switchAudioOutput(id),
-                  ),
-                  if (widget.callService.callType == 'video') ...[
-                    const SizedBox(height: 16),
-                    _buildDeviceDropdown(
-                      icon: Icons.videocam_rounded,
-                      iconColor: const Color(0xFF7C3AED),
-                      label: 'Camera',
-                      devices: widget.callService.videoInputs,
-                      selectedId: widget.callService.selectedVideoInput,
-                      onChanged: (id) => widget.callService.switchVideoInput(id),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFF7C3AED),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                child: const Text('Done', style: TextStyle(fontWeight: FontWeight.w600)),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
   Widget _buildDeviceDropdown({
     required IconData icon,
     required Color iconColor,
@@ -431,6 +452,18 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     required String? selectedId,
     required Function(String) onChanged,
   }) {
+    // Find selected device label
+    String selectedLabel = 'Default';
+    if (selectedId != null && devices.isNotEmpty) {
+      final match = devices.where((d) => d.deviceId == selectedId);
+      if (match.isNotEmpty) {
+        selectedLabel = match.first.label.isNotEmpty
+            ? match.first.label
+            : '$label ${devices.indexOf(match.first) + 1}';
+      }
+    }
+    if (devices.isEmpty) selectedLabel = 'No devices found';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -442,38 +475,72 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
           ],
         ),
         const SizedBox(height: 6),
+        // List of device options (no dropdown overlay needed)
         Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.08),
+            color: Colors.white.withOpacity(0.05),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: Colors.white.withOpacity(0.1)),
           ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              isExpanded: true,
-              dropdownColor: const Color(0xFF2A2A3E),
-              value: selectedId,
-              hint: Text(
-                devices.isEmpty ? 'No devices found' : 'Default',
-                style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13),
-              ),
-              icon: Icon(Icons.expand_more, color: Colors.white.withOpacity(0.5), size: 18),
-              items: devices.map<DropdownMenuItem<String>>((device) {
-                return DropdownMenuItem<String>(
-                  value: device.deviceId,
-                  child: Text(
-                    device.label.isNotEmpty ? device.label : '$label ${devices.indexOf(device) + 1}',
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                );
-              }).toList(),
-              onChanged: devices.isEmpty ? null : (value) {
-                if (value != null) onChanged(value);
-              },
-            ),
+          child: Column(
+            children: devices.isEmpty
+                ? [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      child: Text(
+                        'No devices found',
+                        style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 13),
+                      ),
+                    ),
+                  ]
+                : devices.asMap().entries.map((entry) {
+                    final i = entry.key;
+                    final device = entry.value;
+                    final isSelected = device.deviceId == selectedId ||
+                        (selectedId == null && i == 0);
+                    final deviceLabel = device.label.isNotEmpty
+                        ? device.label
+                        : '$label ${i + 1}';
+
+                    return GestureDetector(
+                      onTap: () => onChanged(device.deviceId),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isSelected ? Colors.white.withOpacity(0.08) : Colors.transparent,
+                          borderRadius: i == 0 && i == devices.length - 1
+                              ? BorderRadius.circular(10)
+                              : i == 0
+                                  ? const BorderRadius.vertical(top: Radius.circular(10))
+                                  : i == devices.length - 1
+                                      ? const BorderRadius.vertical(bottom: Radius.circular(10))
+                                      : BorderRadius.zero,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isSelected ? Icons.check_circle : Icons.circle_outlined,
+                              size: 16,
+                              color: isSelected ? iconColor : Colors.white24,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                deviceLabel,
+                                style: TextStyle(
+                                  color: isSelected ? Colors.white : Colors.white70,
+                                  fontSize: 13,
+                                  fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
           ),
         ),
       ],

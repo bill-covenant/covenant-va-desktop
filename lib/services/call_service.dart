@@ -39,6 +39,7 @@ class CallService extends ChangeNotifier {
   MediaStream? _localStream;
   MediaStream? _remoteStream;
   bool _isNegotiating = false; // Guard against duplicate offer/answer
+  bool _showDeviceSelector = false;
   final RTCVideoRenderer localRenderer = RTCVideoRenderer();
   final RTCVideoRenderer remoteRenderer = RTCVideoRenderer();
 
@@ -68,6 +69,18 @@ class CallService extends ChangeNotifier {
   String? get selectedAudioInput => _selectedAudioInput;
   String? get selectedAudioOutput => _selectedAudioOutput;
   String? get selectedVideoInput => _selectedVideoInput;
+  bool get showDeviceSelector => _showDeviceSelector;
+
+  void toggleDeviceSelector() {
+    _showDeviceSelector = !_showDeviceSelector;
+    if (_showDeviceSelector) refreshDevices();
+    notifyListeners();
+  }
+
+  void hideDeviceSelector() {
+    _showDeviceSelector = false;
+    notifyListeners();
+  }
   String get formattedDuration {
     final mins = _callDuration ~/ 60;
     final secs = _callDuration % 60;
