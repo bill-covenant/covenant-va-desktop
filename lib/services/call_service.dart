@@ -26,6 +26,7 @@ class CallService extends ChangeNotifier {
   String _callType = 'video';
   String? _remoteUserId;
   String? _remoteUserName;
+  bool _isCaller = false; // true if VA initiated the call
   bool _isMuted = false;
   bool _isCameraOff = false;
   int _callDuration = 0;
@@ -37,11 +38,20 @@ class CallService extends ChangeNotifier {
   RTCPeerConnection? _peerConnection;
   MediaStream? _localStream;
   MediaStream? _remoteStream;
+  bool _isNegotiating = false; // Guard against duplicate offer/answer
   final RTCVideoRenderer localRenderer = RTCVideoRenderer();
   final RTCVideoRenderer remoteRenderer = RTCVideoRenderer();
 
   // Global key for showing dialogs from anywhere
   GlobalKey<NavigatorState>? navigatorKey;
+
+  // Device management
+  List<MediaDeviceInfo> _audioInputs = [];
+  List<MediaDeviceInfo> _audioOutputs = [];
+  List<MediaDeviceInfo> _videoInputs = [];
+  String? _selectedAudioInput;
+  String? _selectedAudioOutput;
+  String? _selectedVideoInput;
 
   // Getters
   CallState get callState => _callState;
@@ -51,6 +61,13 @@ class CallService extends ChangeNotifier {
   bool get isMuted => _isMuted;
   bool get isCameraOff => _isCameraOff;
   int get callDuration => _callDuration;
+  bool get hasLocalVideo => _localStream?.getVideoTracks().isNotEmpty == true;
+  List<MediaDeviceInfo> get audioInputs => _audioInputs;
+  List<MediaDeviceInfo> get audioOutputs => _audioOutputs;
+  List<MediaDeviceInfo> get videoInputs => _videoInputs;
+  String? get selectedAudioInput => _selectedAudioInput;
+  String? get selectedAudioOutput => _selectedAudioOutput;
+  String? get selectedVideoInput => _selectedVideoInput;
   String get formattedDuration {
     final mins = _callDuration ~/ 60;
     final secs = _callDuration % 60;
@@ -71,7 +88,92 @@ class CallService extends ChangeNotifier {
     }
     _setupSocketListeners();
     _startCallPolling();
+    await refreshDevices();
     print('📞 CallService initialized with HTTP polling');
+  }
+
+  Future<void> refreshDevices() async {
+    try {
+      final devices = await navigator.mediaDevices.enumerateDevices();
+      _audioInputs = devices.where((d) => d.kind == 'audioinput').toList();
+      _audioOutputs = devices.where((d) => d.kind == 'audiooutput').toList();
+      _videoInputs = devices.where((d) => d.kind == 'videoinput').toList();
+      print('📞 Devices: ${_audioInputs.length} mics, ${_audioOutputs.length} speakers, ${_videoInputs.length} cameras');
+      notifyListeners();
+    } catch (e) {
+      print('⚠️ Failed to enumerate devices: $e');
+    }
+  }
+
+  Future<void> switchAudioInput(String deviceId) async {
+    _selectedAudioInput = deviceId;
+    if (_localStream != null && _peerConnection != null) {
+      try {
+        final newStream = await navigator.mediaDevices.getUserMedia({
+          'audio': {'deviceId': deviceId},
+          'video': false,
+        });
+        final newTrack = newStream.getAudioTracks()[0];
+        final senders = await _peerConnection!.getSenders();
+        final audioSender = senders.firstWhere(
+          (s) => s.track?.kind == 'audio',
+          orElse: () => senders.first,
+        );
+        final oldTrack = _localStream!.getAudioTracks().isNotEmpty
+            ? _localStream!.getAudioTracks()[0]
+            : null;
+        await audioSender.replaceTrack(newTrack);
+        oldTrack?.stop();
+        _localStream!.getAudioTracks().forEach((t) => _localStream!.removeTrack(t));
+        _localStream!.addTrack(newTrack);
+        print('📞 Switched mic to: $deviceId');
+      } catch (e) {
+        print('❌ Failed to switch mic: $e');
+      }
+    }
+    notifyListeners();
+  }
+
+  Future<void> switchAudioOutput(String deviceId) async {
+    _selectedAudioOutput = deviceId;
+    // flutter_webrtc on desktop: set sink ID on the renderer
+    try {
+      await remoteRenderer.audioOutput(deviceId);
+      print('📞 Switched speaker to: $deviceId');
+    } catch (e) {
+      print('⚠️ Failed to switch speaker: $e');
+    }
+    notifyListeners();
+  }
+
+  Future<void> switchVideoInput(String deviceId) async {
+    _selectedVideoInput = deviceId;
+    if (_localStream != null && _peerConnection != null) {
+      try {
+        final newStream = await navigator.mediaDevices.getUserMedia({
+          'audio': false,
+          'video': {'deviceId': deviceId, 'width': 1280, 'height': 720},
+        });
+        final newTrack = newStream.getVideoTracks()[0];
+        final senders = await _peerConnection!.getSenders();
+        final videoSender = senders.firstWhere(
+          (s) => s.track?.kind == 'video',
+          orElse: () => senders.first,
+        );
+        final oldTrack = _localStream!.getVideoTracks().isNotEmpty
+            ? _localStream!.getVideoTracks()[0]
+            : null;
+        await videoSender.replaceTrack(newTrack);
+        oldTrack?.stop();
+        _localStream!.getVideoTracks().forEach((t) => _localStream!.removeTrack(t));
+        _localStream!.addTrack(newTrack);
+        localRenderer.srcObject = _localStream;
+        print('📞 Switched camera to: $deviceId');
+      } catch (e) {
+        print('❌ Failed to switch camera: $e');
+      }
+    }
+    notifyListeners();
   }
 
   // ═══════════════════════════════════════
@@ -105,6 +207,7 @@ class CallService extends ChangeNotifier {
             _remoteUserId = call['callerId'];
             _remoteUserName = call['callerName'];
             _callType = call['callType'] ?? 'audio';
+            _isCaller = false;
             _callState = CallState.ringing;
             _toneService.playRingtone();
             notifyListeners();
@@ -147,6 +250,10 @@ class CallService extends ChangeNotifier {
 
             switch (type) {
               case 'call-accepted':
+                if (!_isCaller) {
+                  print('📞 Ignoring call-accepted signal (VA is the accepter)');
+                  break;
+                }
                 _toneService.stop();
                 _callState = CallState.connected;
                 _startDurationTimer();
@@ -288,12 +395,17 @@ class CallService extends ChangeNotifier {
       _remoteUserId = callerId;
       _remoteUserName = callerName;
       _callType = callType;
+      _isCaller = false;
       _callState = CallState.ringing;
       _toneService.playRingtone();
       notifyListeners();
     };
 
     _socket.onCallAccepted = () async {
+      if (!_isCaller) {
+        print('📞 Ignoring call-accepted echo (VA is the accepter, not caller)');
+        return;
+      }
       _toneService.stop();
       _callState = CallState.connected;
       _startDurationTimer();
@@ -358,6 +470,7 @@ class CallService extends ChangeNotifier {
     _remoteUserId = recipientId;
     _remoteUserName = recipientName;
     _callType = type;
+    _isCaller = true;
     _callState = CallState.calling;
     _isMuted = false;
     _isCameraOff = false;
@@ -428,15 +541,23 @@ class CallService extends ChangeNotifier {
 
   Future<void> _getLocalStream() async {
     try {
+      final audioConstraint = _selectedAudioInput != null
+          ? {'deviceId': _selectedAudioInput}
+          : true;
+      final videoConstraint = _callType == 'video'
+          ? (_selectedVideoInput != null
+              ? {'deviceId': _selectedVideoInput, 'width': 1280, 'height': 720}
+              : {'width': 1280, 'height': 720, 'facingMode': 'user'})
+          : false;
+
       final constraints = {
-        'audio': true,
-        'video': _callType == 'video'
-            ? {'width': 1280, 'height': 720, 'facingMode': 'user'}
-            : false,
+        'audio': audioConstraint,
+        'video': videoConstraint,
       };
 
       _localStream = await navigator.mediaDevices.getUserMedia(constraints);
       localRenderer.srcObject = _localStream;
+      print('📞 Local stream: ${_localStream!.getAudioTracks().length} audio, ${_localStream!.getVideoTracks().length} video tracks');
     } catch (e) {
       print('⚠️ getUserMedia failed: $e');
       // Fallback: try audio-only if video failed
@@ -478,11 +599,39 @@ class CallService extends ChangeNotifier {
     };
 
     pc.onTrack = (event) {
+      print('🎥 onTrack fired: kind=${event.track.kind}, streams=${event.streams.length}');
       if (event.streams.isNotEmpty) {
         _remoteStream = event.streams[0];
         remoteRenderer.srcObject = _remoteStream;
+        // Ensure audio tracks are enabled
+        for (final track in _remoteStream!.getAudioTracks()) {
+          track.enabled = true;
+          print('🔊 Remote audio track enabled: ${track.id}');
+        }
+        print('🎥 Remote stream set with ${_remoteStream!.getTracks().length} tracks');
+        // Set audio output device if selected
+        if (_selectedAudioOutput != null) {
+          remoteRenderer.audioOutput(_selectedAudioOutput!).catchError((e) {
+            print('⚠️ Could not set audio output: $e');
+          });
+        }
+        notifyListeners();
+      } else {
+        print('🎥 No streams in event, track kind: ${event.track.kind}');
         notifyListeners();
       }
+    };
+
+    // Also listen via onAddStream for broader compatibility
+    pc.onAddStream = (stream) {
+      print('🎥 onAddStream fired with ${stream.getTracks().length} tracks');
+      _remoteStream = stream;
+      remoteRenderer.srcObject = stream;
+      for (final track in stream.getAudioTracks()) {
+        track.enabled = true;
+        print('🔊 onAddStream: audio track enabled: ${track.id}');
+      }
+      notifyListeners();
     };
 
     pc.onIceConnectionState = (state) {
@@ -504,9 +653,14 @@ class CallService extends ChangeNotifier {
   }
 
   Future<void> _createAndSendOffer() async {
+    if (_isNegotiating) {
+      print('⚠️ Already negotiating, skipping duplicate offer');
+      return;
+    }
+    _isNegotiating = true;
     try {
       await Future.delayed(const Duration(milliseconds: 300));
-      if (_callState == CallState.idle) return;
+      if (_callState == CallState.idle) { _isNegotiating = false; return; }
 
       await _getLocalStream();
       final pc = await _createPeerConnection();
@@ -518,6 +672,7 @@ class CallService extends ChangeNotifier {
       _socket.sendWebRTCOffer(_remoteUserId!, offerMap);
     } catch (e) {
       print('Error creating offer: $e');
+      _isNegotiating = false;
       _cleanup();
       _callState = CallState.idle;
       notifyListeners();
@@ -526,10 +681,15 @@ class CallService extends ChangeNotifier {
 
   Future<void> _handleReceiveOffer(Map<String, dynamic> offer) async {
     if (_callState == CallState.idle) return;
+    if (_isNegotiating) {
+      print('⚠️ Already negotiating, skipping duplicate offer handling');
+      return;
+    }
+    _isNegotiating = true;
     try {
       // Small delay to let UI settle before accessing media devices
       await Future.delayed(const Duration(milliseconds: 300));
-      if (_callState == CallState.idle) return;
+      if (_callState == CallState.idle) { _isNegotiating = false; return; }
 
       await _getLocalStream();
       final pc = await _createPeerConnection();
@@ -562,6 +722,8 @@ class CallService extends ChangeNotifier {
 
   void _cleanup() {
     _toneService.stop();
+    _isNegotiating = false;
+    _isCaller = false;
     _signalPollTimer?.cancel();
     _signalPollTimer = null;
 

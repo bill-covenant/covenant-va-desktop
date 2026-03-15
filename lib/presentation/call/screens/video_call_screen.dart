@@ -30,15 +30,19 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
           child: Stack(
             children: [
               // Remote video / avatar background
-              if (isVideo && isConnected && widget.callService.remoteRenderer.srcObject != null)
+              if (isVideo && isConnected)
                 Positioned.fill(
-                  child: RTCVideoView(
-                    widget.callService.remoteRenderer,
-                    objectFit:
-                        RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                  ),
+                  child: widget.callService.remoteRenderer.srcObject != null
+                      ? RTCVideoView(
+                          widget.callService.remoteRenderer,
+                          objectFit:
+                              RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                        )
+                      : const Center(
+                          child: CircularProgressIndicator(color: Colors.white54),
+                        ),
                 )
-              else
+              else if (!isVideo || !isConnected)
                 Positioned.fill(
                   child: Container(
                     decoration: const BoxDecoration(
@@ -197,8 +201,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                 ),
               ),
 
-              // Local video PIP (video calls only, when connected)
-              if (isVideo && isConnected && widget.callService.localRenderer.srcObject != null)
+              // Local video PIP (video calls only, when connected, and has video)
+              if (isVideo && isConnected && widget.callService.hasLocalVideo)
                 Positioned(
                   top: 100,
                   right: 24,
@@ -220,12 +224,16 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                       ],
                     ),
                     clipBehavior: Clip.antiAlias,
-                    child: RTCVideoView(
-                      widget.callService.localRenderer,
-                      mirror: true,
-                      objectFit:
-                          RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                    ),
+                    child: widget.callService.localRenderer.srcObject != null
+                        ? RTCVideoView(
+                            widget.callService.localRenderer,
+                            mirror: true,
+                            objectFit:
+                                RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                          )
+                        : const Center(
+                            child: Icon(Icons.videocam_off, color: Colors.white38, size: 24),
+                          ),
                   ),
                 ),
 
@@ -271,6 +279,15 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                         ),
                         const SizedBox(width: 20),
                       ],
+
+                      // Device settings
+                      _buildControlButton(
+                        icon: Icons.settings_rounded,
+                        isActive: false,
+                        onTap: () => _showDeviceSelector(context),
+                      ),
+
+                      const SizedBox(width: 20),
 
                       // End call
                       GestureDetector(
@@ -330,6 +347,136 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         ),
         child: Icon(icon, color: Colors.white, size: 24),
       ),
+    );
+  }
+
+  void _showDeviceSelector(BuildContext context) {
+    widget.callService.refreshDevices();
+    showDialog(
+      context: context,
+      builder: (ctx) => ListenableBuilder(
+        listenable: widget.callService,
+        builder: (context, _) {
+          return AlertDialog(
+            backgroundColor: const Color(0xFF1E1E2E),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.settings_rounded, color: Color(0xFF7C3AED), size: 20),
+                SizedBox(width: 8),
+                Text('Audio & Video Settings',
+                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            content: SizedBox(
+              width: 340,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildDeviceDropdown(
+                    icon: Icons.mic_rounded,
+                    iconColor: const Color(0xFF3B82F6),
+                    label: 'Microphone',
+                    devices: widget.callService.audioInputs,
+                    selectedId: widget.callService.selectedAudioInput,
+                    onChanged: (id) => widget.callService.switchAudioInput(id),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildDeviceDropdown(
+                    icon: Icons.volume_up_rounded,
+                    iconColor: const Color(0xFF22C55E),
+                    label: 'Speaker',
+                    devices: widget.callService.audioOutputs,
+                    selectedId: widget.callService.selectedAudioOutput,
+                    onChanged: (id) => widget.callService.switchAudioOutput(id),
+                  ),
+                  if (widget.callService.callType == 'video') ...[
+                    const SizedBox(height: 16),
+                    _buildDeviceDropdown(
+                      icon: Icons.videocam_rounded,
+                      iconColor: const Color(0xFF7C3AED),
+                      label: 'Camera',
+                      devices: widget.callService.videoInputs,
+                      selectedId: widget.callService.selectedVideoInput,
+                      onChanged: (id) => widget.callService.switchVideoInput(id),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: TextButton.styleFrom(
+                  backgroundColor: const Color(0xFF7C3AED),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: const Text('Done', style: TextStyle(fontWeight: FontWeight.w600)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildDeviceDropdown({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required List<dynamic> devices,
+    required String? selectedId,
+    required Function(String) onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 16, color: iconColor),
+            const SizedBox(width: 8),
+            Text(label, style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500)),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              isExpanded: true,
+              dropdownColor: const Color(0xFF2A2A3E),
+              value: selectedId,
+              hint: Text(
+                devices.isEmpty ? 'No devices found' : 'Default',
+                style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13),
+              ),
+              icon: Icon(Icons.expand_more, color: Colors.white.withOpacity(0.5), size: 18),
+              items: devices.map<DropdownMenuItem<String>>((device) {
+                return DropdownMenuItem<String>(
+                  value: device.deviceId,
+                  child: Text(
+                    device.label.isNotEmpty ? device.label : '$label ${devices.indexOf(device) + 1}',
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                );
+              }).toList(),
+              onChanged: devices.isEmpty ? null : (value) {
+                if (value != null) onChanged(value);
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 
