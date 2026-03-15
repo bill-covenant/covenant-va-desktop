@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../data/models/task_model.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class TaskDetailModal extends StatelessWidget {
   final TaskModel task;
@@ -18,7 +19,7 @@ class TaskDetailModal extends StatelessWidget {
       backgroundColor: Colors.transparent,
       elevation: 0,
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 480, maxHeight: 560),
+        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 680),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -74,6 +75,10 @@ class TaskDetailModal extends StatelessWidget {
                       _buildBadges(),
                       const SizedBox(height: 20),
                       _buildDescription(),
+                      if (task.attachments.isNotEmpty) ...[
+                        const SizedBox(height: 20),
+                        _buildAttachments(),
+                      ],
                       const SizedBox(height: 20),
                       _buildMetadata(),
                     ],
@@ -362,6 +367,195 @@ class TaskDetailModal extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  Widget _buildAttachments() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            _build3DSectionLabel(Icons.attach_file, 'Attachments'),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF7C3AED), Color(0xFF6366F1)],
+                ),
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF7C3AED).withOpacity(0.3),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Text(
+                '${task.attachments.length}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color(0xFFF9FAFB),
+                Colors.white.withOpacity(0.9),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.withOpacity(0.12)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+              BoxShadow(
+                color: Colors.white.withOpacity(0.9),
+                blurRadius: 2,
+                offset: const Offset(-1, -1),
+              ),
+            ],
+          ),
+          child: Column(
+            children: task.attachments.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final att = entry.value;
+              final isLast = idx == task.attachments.length - 1;
+
+              return Column(
+                children: [
+                  InkWell(
+                    onTap: () async {
+                      final uri = Uri.parse(att.fileUrl);
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      }
+                    },
+                    borderRadius: BorderRadius.vertical(
+                      top: idx == 0 ? const Radius.circular(16) : Radius.zero,
+                      bottom: isLast ? const Radius.circular(16) : Radius.zero,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  _getFileColor(att).withOpacity(0.15),
+                                  _getFileColor(att).withOpacity(0.05),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(11),
+                              border: Border.all(color: _getFileColor(att).withOpacity(0.2)),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _getFileColor(att).withOpacity(0.15),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              _getFileIcon(att),
+                              size: 18,
+                              color: _getFileColor(att),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  att.fileName,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF374151),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${att.formattedSize}${att.uploaderName != null ? ' \u00b7 ${att.uploaderName}' : ''}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF9CA3AF),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.all(7),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  const Color(0xFF3B82F6).withOpacity(0.12),
+                                  const Color(0xFF3B82F6).withOpacity(0.04),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0xFF3B82F6).withOpacity(0.15)),
+                            ),
+                            child: const Icon(
+                              Icons.open_in_new,
+                              size: 14,
+                              color: Color(0xFF3B82F6),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (!isLast)
+                    Divider(height: 1, color: Colors.grey.withOpacity(0.08), indent: 14, endIndent: 14),
+                ],
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  IconData _getFileIcon(TaskAttachment att) {
+    if (att.isImage) return Icons.image;
+    if (att.isPdf) return Icons.picture_as_pdf;
+    if (att.isSpreadsheet) return Icons.table_chart;
+    if (att.mimeType.contains('word') || att.mimeType.contains('document')) return Icons.description;
+    return Icons.insert_drive_file;
+  }
+
+  Color _getFileColor(TaskAttachment att) {
+    if (att.isImage) return const Color(0xFF3B82F6);
+    if (att.isPdf) return const Color(0xFFEF4444);
+    if (att.isSpreadsheet) return const Color(0xFF10B981);
+    if (att.mimeType.contains('word') || att.mimeType.contains('document')) return const Color(0xFF6366F1);
+    return const Color(0xFF6B7280);
   }
 
   Widget _buildMetadata() {
