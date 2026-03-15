@@ -35,6 +35,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   child: widget.callService.remoteRenderer.srcObject != null
                       ? RTCVideoView(
                           widget.callService.remoteRenderer,
+                          key: ValueKey('remote_full_${widget.callService.remoteStreamKey}'),
                           objectFit:
                               RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                         )
@@ -201,8 +202,11 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                 ),
               ),
 
-              // Local video PIP (video calls only, when connected, and has video)
-              if (isVideo && isConnected && widget.callService.hasLocalVideo)
+              // Local video PIP (only show when local camera is active and not turned off)
+              if (isVideo && isConnected &&
+                  widget.callService.hasLocalVideo &&
+                  !widget.callService.isCameraOff &&
+                  widget.callService.localRenderer.srcObject != null)
                 Positioned(
                   top: 100,
                   right: 24,
@@ -224,16 +228,12 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                       ],
                     ),
                     clipBehavior: Clip.antiAlias,
-                    child: widget.callService.localRenderer.srcObject != null
-                        ? RTCVideoView(
-                            widget.callService.localRenderer,
-                            mirror: true,
-                            objectFit:
-                                RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                          )
-                        : const Center(
-                            child: Icon(Icons.videocam_off, color: Colors.white38, size: 24),
-                          ),
+                    child: RTCVideoView(
+                      widget.callService.localRenderer,
+                      mirror: true,
+                      objectFit:
+                          RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                    ),
                   ),
                 ),
 

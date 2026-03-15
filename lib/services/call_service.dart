@@ -40,6 +40,7 @@ class CallService extends ChangeNotifier {
   MediaStream? _remoteStream;
   bool _isNegotiating = false; // Guard against duplicate offer/answer
   bool _showDeviceSelector = false;
+  int _remoteStreamKey = 0; // Incremented when remote stream changes, used as widget key
   final RTCVideoRenderer localRenderer = RTCVideoRenderer();
   final RTCVideoRenderer remoteRenderer = RTCVideoRenderer();
 
@@ -63,6 +64,7 @@ class CallService extends ChangeNotifier {
   bool get isCameraOff => _isCameraOff;
   int get callDuration => _callDuration;
   bool get hasLocalVideo => _localStream?.getVideoTracks().isNotEmpty == true;
+  int get remoteStreamKey => _remoteStreamKey;
   List<MediaDeviceInfo> get audioInputs => _audioInputs;
   List<MediaDeviceInfo> get audioOutputs => _audioOutputs;
   List<MediaDeviceInfo> get videoInputs => _videoInputs;
@@ -128,18 +130,23 @@ class CallService extends ChangeNotifier {
         });
         final newTrack = newStream.getAudioTracks()[0];
         final senders = await _peerConnection!.getSenders();
-        final audioSender = senders.firstWhere(
-          (s) => s.track?.kind == 'audio',
-          orElse: () => senders.first,
-        );
-        final oldTrack = _localStream!.getAudioTracks().isNotEmpty
-            ? _localStream!.getAudioTracks()[0]
-            : null;
-        await audioSender.replaceTrack(newTrack);
-        oldTrack?.stop();
-        _localStream!.getAudioTracks().forEach((t) => _localStream!.removeTrack(t));
-        _localStream!.addTrack(newTrack);
-        print('📞 Switched mic to: $deviceId');
+        RTCRtpSender? audioSender;
+        for (final s in senders) {
+          if (s.track?.kind == 'audio') {
+            audioSender = s;
+            break;
+          }
+        }
+        if (audioSender != null) {
+          final oldTrack = _localStream!.getAudioTracks().isNotEmpty
+              ? _localStream!.getAudioTracks()[0]
+              : null;
+          await audioSender.replaceTrack(newTrack);
+          oldTrack?.stop();
+          _localStream!.getAudioTracks().forEach((t) => _localStream!.removeTrack(t));
+          _localStream!.addTrack(newTrack);
+          print('📞 Switched mic to: $deviceId');
+        }
       } catch (e) {
         print('❌ Failed to switch mic: $e');
       }
@@ -169,19 +176,24 @@ class CallService extends ChangeNotifier {
         });
         final newTrack = newStream.getVideoTracks()[0];
         final senders = await _peerConnection!.getSenders();
-        final videoSender = senders.firstWhere(
-          (s) => s.track?.kind == 'video',
-          orElse: () => senders.first,
-        );
-        final oldTrack = _localStream!.getVideoTracks().isNotEmpty
-            ? _localStream!.getVideoTracks()[0]
-            : null;
-        await videoSender.replaceTrack(newTrack);
-        oldTrack?.stop();
-        _localStream!.getVideoTracks().forEach((t) => _localStream!.removeTrack(t));
-        _localStream!.addTrack(newTrack);
-        localRenderer.srcObject = _localStream;
-        print('📞 Switched camera to: $deviceId');
+        RTCRtpSender? videoSender;
+        for (final s in senders) {
+          if (s.track?.kind == 'video') {
+            videoSender = s;
+            break;
+          }
+        }
+        if (videoSender != null) {
+          final oldTrack = _localStream!.getVideoTracks().isNotEmpty
+              ? _localStream!.getVideoTracks()[0]
+              : null;
+          await videoSender.replaceTrack(newTrack);
+          oldTrack?.stop();
+          _localStream!.getVideoTracks().forEach((t) => _localStream!.removeTrack(t));
+          _localStream!.addTrack(newTrack);
+          localRenderer.srcObject = _localStream;
+          print('📞 Switched camera to: $deviceId');
+        }
       } catch (e) {
         print('❌ Failed to switch camera: $e');
       }
@@ -616,12 +628,17 @@ class CallService extends ChangeNotifier {
       if (event.streams.isNotEmpty) {
         _remoteStream = event.streams[0];
         remoteRenderer.srcObject = _remoteStream;
+        _remoteStreamKey++;
         // Ensure audio tracks are enabled
         for (final track in _remoteStream!.getAudioTracks()) {
           track.enabled = true;
           print('🔊 Remote audio track enabled: ${track.id}');
         }
-        print('🎥 Remote stream set with ${_remoteStream!.getTracks().length} tracks');
+        for (final track in _remoteStream!.getVideoTracks()) {
+          track.enabled = true;
+          print('🎥 Remote video track enabled: ${track.id}');
+        }
+        print('🎥 Remote stream set with ${_remoteStream!.getTracks().length} tracks (key=$_remoteStreamKey)');
         // Set audio output device if selected
         if (_selectedAudioOutput != null) {
           remoteRenderer.audioOutput(_selectedAudioOutput!).catchError((e) {
@@ -640,9 +657,14 @@ class CallService extends ChangeNotifier {
       print('🎥 onAddStream fired with ${stream.getTracks().length} tracks');
       _remoteStream = stream;
       remoteRenderer.srcObject = stream;
+      _remoteStreamKey++;
       for (final track in stream.getAudioTracks()) {
         track.enabled = true;
         print('🔊 onAddStream: audio track enabled: ${track.id}');
+      }
+      for (final track in stream.getVideoTracks()) {
+        track.enabled = true;
+        print('🎥 onAddStream: video track enabled: ${track.id}');
       }
       notifyListeners();
     };
@@ -718,6 +740,7 @@ class CallService extends ChangeNotifier {
       _socket.sendWebRTCAnswer(_remoteUserId!, answerMap);
 
       _callState = CallState.connected;
+      _isNegotiating = false;
       _startDurationTimer();
       notifyListeners();
     } catch (e) {

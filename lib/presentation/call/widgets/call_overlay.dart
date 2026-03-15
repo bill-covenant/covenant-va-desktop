@@ -45,7 +45,7 @@ class _CallOverlayState extends State<CallOverlay> {
         return Stack(
           children: [
             // The normal app content (always visible)
-            child,
+            widget.child,
 
             // Incoming call overlay (always full-screen)
             if (state == CallState.ringing)
@@ -333,6 +333,7 @@ class RTCVideoViewWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return RTCVideoView(
       callService.remoteRenderer,
+      key: ValueKey('remote_${callService.remoteStreamKey}'),
       objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
     );
   }
