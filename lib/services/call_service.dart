@@ -286,6 +286,11 @@ class CallService extends ChangeNotifier {
                 notifyListeners();
                 break;
               case 'call-ended':
+                // Ignore stale call-ended from previous calls
+                if (_callState == CallState.calling) {
+                  print('⚠️ Ignoring stale call-ended signal (still in calling state)');
+                  break;
+                }
                 _cleanup();
                 _callState = CallState.idle;
                 notifyListeners();
@@ -297,10 +302,15 @@ class CallService extends ChangeNotifier {
                 break;
               case 'webrtc-answer':
                 if (signalData['answer'] != null && _peerConnection != null) {
-                  final answer = Map<String, dynamic>.from(signalData['answer']);
-                  await _peerConnection!.setRemoteDescription(
-                    RTCSessionDescription(answer['sdp'], answer['type']),
-                  );
+                  // Only set remote description if we're expecting an answer
+                  if (_peerConnection!.signalingState == RTCSignalingState.RTCSignalingStateHaveLocalOffer) {
+                    final answer = Map<String, dynamic>.from(signalData['answer']);
+                    await _peerConnection!.setRemoteDescription(
+                      RTCSessionDescription(answer['sdp'], answer['type']),
+                    );
+                  } else {
+                    print('⚠️ Ignoring duplicate answer (state: ${_peerConnection!.signalingState})');
+                  }
                 }
                 break;
               case 'webrtc-ice-candidate':
@@ -429,6 +439,7 @@ class CallService extends ChangeNotifier {
       _toneService.stop();
       _callState = CallState.connected;
       _startDurationTimer();
+      _startSignalPolling(); // Start polling now that call is accepted
       notifyListeners();
       await _createAndSendOffer();
     };
@@ -456,10 +467,13 @@ class CallService extends ChangeNotifier {
     };
 
     _socket.onWebRTCAnswer = (answer) async {
-      if (_peerConnection != null) {
+      if (_peerConnection != null &&
+          _peerConnection!.signalingState == RTCSignalingState.RTCSignalingStateHaveLocalOffer) {
         await _peerConnection!.setRemoteDescription(
           RTCSessionDescription(answer['sdp'], answer['type']),
         );
+      } else {
+        print('⚠️ Ignoring duplicate answer via socket');
       }
     };
 
@@ -500,7 +514,8 @@ class CallService extends ChangeNotifier {
     final vaName = 'VA';
     _socket.initiateCall(recipientId, vaName, type);
     _toneService.playRingback();
-    _startSignalPolling();
+    // Don't start signal polling yet — wait for call-accepted via socket
+    // This avoids picking up stale signals from previous calls
   }
 
   Future<void> acceptCall() async {
