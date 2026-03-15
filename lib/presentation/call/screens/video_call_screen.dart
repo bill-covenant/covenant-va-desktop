@@ -35,7 +35,6 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   child: widget.callService.remoteRenderer.srcObject != null
                       ? RTCVideoView(
                           widget.callService.remoteRenderer,
-                          key: ValueKey('remote_full_${widget.callService.remoteStreamKey}'),
                           objectFit:
                               RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                         )
@@ -202,11 +201,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                 ),
               ),
 
-              // Local video PIP (only show when local camera is active and not turned off)
-              if (isVideo && isConnected &&
-                  widget.callService.hasLocalVideo &&
-                  !widget.callService.isCameraOff &&
-                  widget.callService.localRenderer.srcObject != null)
+              // Local video PIP — hidden by default, only shows when VA toggles camera on
+              if (false)
                 Positioned(
                   top: 100,
                   right: 24,

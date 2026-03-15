@@ -333,7 +333,6 @@ class RTCVideoViewWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return RTCVideoView(
       callService.remoteRenderer,
-      key: ValueKey('remote_${callService.remoteStreamKey}'),
       objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
     );
   }

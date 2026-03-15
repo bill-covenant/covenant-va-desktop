@@ -63,7 +63,11 @@ class CallService extends ChangeNotifier {
   bool get isMuted => _isMuted;
   bool get isCameraOff => _isCameraOff;
   int get callDuration => _callDuration;
-  bool get hasLocalVideo => _localStream?.getVideoTracks().isNotEmpty == true;
+  bool get hasLocalVideo {
+    if (_localStream == null) return false;
+    final vt = _localStream!.getVideoTracks();
+    return vt.isNotEmpty && vt[0].enabled;
+  }
   int get remoteStreamKey => _remoteStreamKey;
   List<MediaDeviceInfo> get audioInputs => _audioInputs;
   List<MediaDeviceInfo> get audioOutputs => _audioOutputs;
@@ -138,13 +142,9 @@ class CallService extends ChangeNotifier {
           }
         }
         if (audioSender != null) {
-          final oldTrack = _localStream!.getAudioTracks().isNotEmpty
-              ? _localStream!.getAudioTracks()[0]
-              : null;
+          final oldTrack = audioSender.track;
           await audioSender.replaceTrack(newTrack);
           oldTrack?.stop();
-          _localStream!.getAudioTracks().forEach((t) => _localStream!.removeTrack(t));
-          _localStream!.addTrack(newTrack);
           print('📞 Switched mic to: $deviceId');
         }
       } catch (e) {
@@ -184,14 +184,9 @@ class CallService extends ChangeNotifier {
           }
         }
         if (videoSender != null) {
-          final oldTrack = _localStream!.getVideoTracks().isNotEmpty
-              ? _localStream!.getVideoTracks()[0]
-              : null;
+          final oldTrack = videoSender.track;
           await videoSender.replaceTrack(newTrack);
           oldTrack?.stop();
-          _localStream!.getVideoTracks().forEach((t) => _localStream!.removeTrack(t));
-          _localStream!.addTrack(newTrack);
-          localRenderer.srcObject = _localStream;
           print('📞 Switched camera to: $deviceId');
         }
       } catch (e) {
@@ -740,7 +735,7 @@ class CallService extends ChangeNotifier {
       _socket.sendWebRTCAnswer(_remoteUserId!, answerMap);
 
       _callState = CallState.connected;
-      _isNegotiating = false;
+      // Keep _isNegotiating = true to block duplicate offers from HTTP polling
       _startDurationTimer();
       notifyListeners();
     } catch (e) {
