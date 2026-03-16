@@ -57,6 +57,9 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: ThemeProvider(),
+      builder: (context, _) {
     final isDark = ThemeProvider().isDarkMode;
     return Scaffold(
       body: Container(
@@ -90,6 +93,8 @@ class _MainLayoutState extends State<MainLayout> {
           ),
         ),
       ),
+    );
+      },
     );
   }
 

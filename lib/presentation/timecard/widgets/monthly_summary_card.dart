@@ -14,18 +14,24 @@ class MonthlySummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final _isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF7C3AED), Color(0xFF9333EA)],
+        gradient: LinearGradient(
+          colors: _isDark
+              ? [const Color(0xFF1A1D2E), const Color(0xFF232738)]
+              : [const Color(0xFF7C3AED), const Color(0xFF9333EA)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
+        border: _isDark ? Border.all(color: Colors.white.withOpacity(0.08)) : null,
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF7C3AED).withOpacity(0.3),
+            color: _isDark
+                ? Colors.black.withOpacity(0.4)
+                : const Color(0xFF7C3AED).withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -81,7 +87,7 @@ class MonthlySummaryCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _buildStatItem(
+                child: _buildStatItem(context,
                   icon: Icons.access_time_rounded,
                   label: 'Total Hours',
                   value: '${summary.totalHours}',
@@ -90,7 +96,7 @@ class MonthlySummaryCard extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: _buildStatItem(
+                child: _buildStatItem(context,
                   icon: Icons.calendar_today,
                   label: 'Days Logged',
                   value: '${summary.daysLogged}',
@@ -105,7 +111,7 @@ class MonthlySummaryCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _buildStatItem(
+                child: _buildStatItem(context,
                   icon: Icons.trending_up,
                   label: 'Avg per Day',
                   value: '${summary.avgPerDay}',
@@ -114,7 +120,7 @@ class MonthlySummaryCard extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: _buildStatItem(
+                child: _buildStatItem(context,
                   icon: Icons.attach_money,
                   label: 'Estimated',
                   value: '\$${summary.estimatedEarnings.toStringAsFixed(0)}',
@@ -177,19 +183,24 @@ class MonthlySummaryCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatItem({
+  Widget _buildStatItem(BuildContext context, {
     required IconData icon,
     required String label,
     required String value,
     required String suffix,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
+        color: isDark
+            ? Colors.white.withOpacity(0.06)
+            : Colors.white.withOpacity(0.15),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: isDark
+              ? Colors.white.withOpacity(0.1)
+              : Colors.white.withOpacity(0.2),
         ),
       ),
       child: Column(
