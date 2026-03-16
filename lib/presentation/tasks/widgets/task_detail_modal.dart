@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/task_model.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -24,11 +25,9 @@ class TaskDetailModal extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Colors.white,
-              Colors.white.withOpacity(0.97),
-              pColor.withOpacity(0.02),
-            ],
+            colors: ThemeProvider().isDarkMode
+                ? [const Color(0xFF1A1D2E), const Color(0xFF1E2130), const Color(0xFF1A1D2E)]
+                : [Colors.white, Colors.white.withOpacity(0.97), pColor.withOpacity(0.02)],
           ),
           borderRadius: BorderRadius.circular(28),
           border: Border.all(color: Colors.white.withOpacity(0.7), width: 1.5),
@@ -329,10 +328,9 @@ class TaskDetailModal extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                const Color(0xFFF9FAFB),
-                Colors.white.withOpacity(0.9),
-              ],
+              colors: ThemeProvider().isDarkMode
+                  ? [const Color(0xFF232738), const Color(0xFF1E2130)]
+                  : [const Color(0xFFF9FAFB), Colors.white.withOpacity(0.9)],
             ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: Colors.grey.withOpacity(0.12)),
@@ -356,8 +354,8 @@ class TaskDetailModal extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               color: task.description?.isNotEmpty == true
-                  ? const Color(0xFF374151)
-                  : const Color(0xFF9CA3AF),
+                  ? (ThemeProvider().isDarkMode ? Colors.white : const Color(0xFF374151))
+                  : (ThemeProvider().isDarkMode ? Colors.white54 : const Color(0xFF9CA3AF)),
               height: 1.5,
               fontStyle: task.description?.isNotEmpty == true
                   ? FontStyle.normal
@@ -409,10 +407,9 @@ class TaskDetailModal extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                const Color(0xFFF9FAFB),
-                Colors.white.withOpacity(0.9),
-              ],
+              colors: ThemeProvider().isDarkMode
+                  ? [const Color(0xFF232738), const Color(0xFF1E2130)]
+                  : [const Color(0xFFF9FAFB), Colors.white.withOpacity(0.9)],
             ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: Colors.grey.withOpacity(0.12)),
@@ -570,10 +567,9 @@ class TaskDetailModal extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                const Color(0xFFF9FAFB),
-                Colors.white.withOpacity(0.9),
-              ],
+              colors: ThemeProvider().isDarkMode
+                  ? [const Color(0xFF232738), const Color(0xFF1E2130)]
+                  : [const Color(0xFFF9FAFB), Colors.white.withOpacity(0.9)],
             ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: Colors.grey.withOpacity(0.12)),
@@ -660,7 +656,7 @@ class TaskDetailModal extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w800,
-            color: const Color(0xFF374151),
+            color: ThemeProvider().isDarkMode ? Colors.white : const Color(0xFF374151),
             letterSpacing: -0.2,
             shadows: [
               Shadow(
@@ -725,7 +721,7 @@ class TaskDetailModal extends StatelessWidget {
                 value,
                 style: TextStyle(
                   fontSize: 13,
-                  color: const Color(0xFF111827),
+                  color: ThemeProvider().isDarkMode ? Colors.white : const Color(0xFF111827),
                   fontWeight: FontWeight.w700,
                   shadows: [
                     Shadow(
@@ -750,13 +746,12 @@ class TaskDetailModal extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            Colors.grey.withOpacity(0.03),
-            Colors.grey.withOpacity(0.06),
-          ],
+          colors: ThemeProvider().isDarkMode
+              ? [const Color(0xFF1E2130), const Color(0xFF1A1D2E)]
+              : [Colors.grey.withOpacity(0.03), Colors.grey.withOpacity(0.06)],
         ),
         border: Border(
-          top: BorderSide(color: Colors.grey.withOpacity(0.08), width: 1),
+          top: BorderSide(color: ThemeProvider().isDarkMode ? Colors.white.withOpacity(0.06) : Colors.grey.withOpacity(0.08), width: 1),
         ),
       ),
       child: Row(

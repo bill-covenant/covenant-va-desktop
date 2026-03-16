@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import '../../../../core/theme/theme_provider.dart';
 import '../../../../data/models/user_model.dart';
 import '../../../../data/repositories/user_repository.dart';
 import '../../../../core/di/service_locator.dart';
@@ -87,14 +88,16 @@ class ProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = ThemeProvider().isDarkMode;
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: dark ? const Color(0xFF1A1D2E) : Colors.white,
         borderRadius: BorderRadius.circular(24),
+        border: dark ? Border.all(color: Colors.white.withOpacity(0.08)) : null,
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF7C3AED).withOpacity(0.2),
+            color: dark ? Colors.black.withOpacity(0.3) : const Color(0xFF7C3AED).withOpacity(0.2),
             blurRadius: 30,
             offset: const Offset(0, 10),
           ),
@@ -198,8 +201,8 @@ class ProfileCard extends StatelessWidget {
       children: [
         Text(
           user.fullName,
-          style: const TextStyle(
-            color: Color(0xFF1F2937),
+          style: TextStyle(
+            color: ThemeProvider().isDarkMode ? Colors.white : const Color(0xFF1F2937),
             fontSize: 28,
             fontWeight: FontWeight.w900,
           ),
@@ -207,8 +210,8 @@ class ProfileCard extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           user.email,
-          style: const TextStyle(
-            color: Color(0xFF6B7280),
+          style: TextStyle(
+            color: ThemeProvider().isDarkMode ? Colors.white70 : const Color(0xFF6B7280),
             fontSize: 16,
             fontWeight: FontWeight.w500,
           ),

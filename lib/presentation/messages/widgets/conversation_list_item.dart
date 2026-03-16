@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/conversation_model.dart';
 import 'package:intl/intl.dart';
 
@@ -99,7 +100,7 @@ class _ConversationListItemState extends State<ConversationListItem> {
                               style: TextStyle(
                                 color: widget.isSelected
                                     ? const Color(0xFF5B21B6)
-                                    : const Color(0xFF1E1B4B),
+                                    : ThemeProvider().isDarkMode ? Colors.white : const Color(0xFF1E1B4B),
                                 fontSize: 14.5,
                                 fontWeight:
                                     hasUnread ? FontWeight.w700 : FontWeight.w600,
@@ -130,8 +131,8 @@ class _ConversationListItemState extends State<ConversationListItem> {
                                   'No messages yet',
                               style: TextStyle(
                                 color: hasUnread
-                                    ? const Color(0xFF6D28D9)
-                                    : const Color(0xFF8B7FA8),
+                                    ? (ThemeProvider().isDarkMode ? const Color(0xFFB4A3CC) : const Color(0xFF6D28D9))
+                                    : (ThemeProvider().isDarkMode ? Colors.white54 : const Color(0xFF8B7FA8)),
                                 fontSize: 13,
                                 fontWeight:
                                     hasUnread ? FontWeight.w600 : FontWeight.w400,

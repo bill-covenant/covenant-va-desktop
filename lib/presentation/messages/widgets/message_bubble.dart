@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/message_model.dart';
 import '../bloc/messages_bloc.dart';
 import '../bloc/messages_event.dart';
@@ -169,7 +170,9 @@ class _MessageBubbleState extends State<MessageBubble> {
                             : null,
                         color: widget.isMe
                             ? null
-                            : Colors.white.withOpacity(0.95),
+                            : ThemeProvider().isDarkMode
+                                ? const Color(0xFF1A1D2E)
+                                : Colors.white.withOpacity(0.95),
                         borderRadius: _bubbleRadius,
                         border: widget.isMe
                             ? null
@@ -207,7 +210,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                         style: TextStyle(
                           color: widget.isMe
                               ? Colors.white
-                              : const Color(0xFF2D2252),
+                              : ThemeProvider().isDarkMode ? Colors.white : const Color(0xFF2D2252),
                           fontSize: 14.5,
                           height: 1.45,
                           fontWeight: FontWeight.w400,

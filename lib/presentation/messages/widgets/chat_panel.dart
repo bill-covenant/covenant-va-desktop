@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/conversation_model.dart';
 import '../../../services/call_service.dart';
 import 'chat_header.dart';
@@ -105,19 +106,19 @@ class ChatPanel extends StatelessWidget {
           
           Text(
             clientName,
-            style: const TextStyle(
-              color: Colors.black87,
+            style: TextStyle(
+              color: ThemeProvider().isDarkMode ? Colors.white : Colors.black87,
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
           ),
-          
+
           const SizedBox(height: 8),
-          
+
           Text(
             'Start a conversation',
             style: TextStyle(
-              color: Colors.black.withOpacity(0.5),
+              color: ThemeProvider().isDarkMode ? Colors.white54 : Colors.black.withOpacity(0.5),
               fontSize: 15,
             ),
           ),
@@ -127,7 +128,7 @@ class ChatPanel extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F7),
+              color: ThemeProvider().isDarkMode ? Colors.white.withOpacity(0.06) : const Color(0xFFF5F5F7),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -232,23 +233,23 @@ class ChatPanel extends StatelessWidget {
           const SizedBox(height: 32),
           
           // Title with bold weight
-          const Text(
+          Text(
             'No Conversation Selected',
             style: TextStyle(
-              color: Colors.black87,
+              color: ThemeProvider().isDarkMode ? Colors.white : Colors.black87,
               fontSize: 24,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.5,
             ),
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           // Subtitle
           Text(
             'Choose a conversation from the list to start chatting',
             style: TextStyle(
-              color: Colors.black.withOpacity(0.5),
+              color: ThemeProvider().isDarkMode ? Colors.white54 : Colors.black.withOpacity(0.5),
               fontSize: 15,
               fontWeight: FontWeight.w500,
               letterSpacing: 0,

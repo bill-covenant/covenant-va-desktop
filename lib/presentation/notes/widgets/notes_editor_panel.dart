@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/note_model.dart';
 
 class NotesEditorPanel extends StatefulWidget {
@@ -70,14 +71,15 @@ class _NotesEditorPanelState extends State<NotesEditorPanel> {
       );
     }
 
+    final dark = ThemeProvider().isDarkMode;
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFFDFDFD),
+        color: dark ? const Color(0xFF1A1D2E) : const Color(0xFFFDFDFD),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.15)),
+        border: Border.all(color: dark ? Colors.white.withOpacity(0.08) : Colors.white.withOpacity(0.15)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 30, offset: const Offset(0, 8)),
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2)),
+          BoxShadow(color: Colors.black.withOpacity(dark ? 0.3 : 0.12), blurRadius: 30, offset: const Offset(0, 8)),
+          BoxShadow(color: Colors.black.withOpacity(dark ? 0.15 : 0.04), blurRadius: 8, offset: const Offset(0, 2)),
         ],
       ),
       child: Column(
@@ -86,16 +88,18 @@ class _NotesEditorPanelState extends State<NotesEditorPanel> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFFF9FAFB), Color(0xFFF3F4F6)],
+                colors: dark
+                    ? [const Color(0xFF232738), const Color(0xFF1E2130)]
+                    : [const Color(0xFFF9FAFB), const Color(0xFFF3F4F6)],
               ),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(20),
                 topRight: Radius.circular(20),
               ),
-              border: Border(bottom: BorderSide(color: Colors.grey.withOpacity(0.12))),
+              border: Border(bottom: BorderSide(color: dark ? Colors.white.withOpacity(0.06) : Colors.grey.withOpacity(0.12))),
             ),
             child: Row(
               children: [
@@ -151,8 +155,8 @@ class _NotesEditorPanelState extends State<NotesEditorPanel> {
             child: TextField(
               controller: widget.titleController,
               onChanged: (_) => widget.onContentChanged(),
-              style: const TextStyle(
-                color: Color(0xFF1F2937),
+              style: TextStyle(
+                color: dark ? Colors.white : const Color(0xFF1F2937),
                 fontSize: 26,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.5,
@@ -180,8 +184,8 @@ class _NotesEditorPanelState extends State<NotesEditorPanel> {
                 maxLines: null,
                 expands: true,
                 textAlignVertical: TextAlignVertical.top,
-                style: const TextStyle(
-                  color: Color(0xFF4B5563),
+                style: TextStyle(
+                  color: dark ? Colors.white70 : const Color(0xFF4B5563),
                   fontSize: 15,
                   height: 1.7,
                   letterSpacing: 0.1,

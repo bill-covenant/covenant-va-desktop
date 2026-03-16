@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'dart:async';
 import 'firebase_options.dart';
 import 'core/constants/app_theme.dart';
+import 'core/theme/theme_provider.dart';
 import 'core/di/service_locator.dart';
 import 'presentation/auth/bloc/auth_bloc.dart';
 import 'presentation/auth/bloc/auth_event.dart';
@@ -267,10 +268,16 @@ class _AppContentState extends State<_AppContent> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = ThemeProvider();
+    return ListenableBuilder(
+      listenable: themeProvider,
+      builder: (context, _) {
     return MaterialApp(
       navigatorKey: _navigatorKey,
       title: 'CVA Desktop',
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
         return CallOverlay(
@@ -329,6 +336,8 @@ class _AppContentState extends State<_AppContent> {
               currentRoute: 'profile',
               child: ProfileScreen(),
             ),
+      },
+    );
       },
     );
   }

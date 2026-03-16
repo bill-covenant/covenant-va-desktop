@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/conversation_model.dart';
 
 class ChatHeader extends StatelessWidget {
@@ -27,7 +28,7 @@ class ChatHeader extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.65),
+            color: ThemeProvider().isDarkMode ? const Color(0xFF1A1D2E).withOpacity(0.85) : Colors.white.withOpacity(0.65),
             border: Border(
               bottom: BorderSide(
                 color: const Color(0xFF7C3AED).withOpacity(0.06),
@@ -94,8 +95,8 @@ class ChatHeader extends StatelessWidget {
                   children: [
                     Text(
                       otherUserName,
-                      style: const TextStyle(
-                        color: Color(0xFF1E1B4B),
+                      style: TextStyle(
+                        color: ThemeProvider().isDarkMode ? Colors.white : const Color(0xFF1E1B4B),
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         letterSpacing: -0.3,

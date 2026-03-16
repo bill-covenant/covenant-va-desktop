@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/conversation_model.dart';
 import '../../../data/models/message_model.dart';
 import '../bloc/messages_bloc.dart';
@@ -178,17 +179,14 @@ class _ChatMessagesAreaState extends State<ChatMessagesArea>
         // ── Layer 1: Gradient background ──
         Positioned.fill(
           child: Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFFE8DEFF), // Soft lavender
-                  Color(0xFFDDD0FC), // Light purple
-                  Color(0xFFE0D2FB), // Mid lavender
-                  Color(0xFFEDD8FC), // Hint of pink-lavender
-                ],
-                stops: [0.0, 0.35, 0.65, 1.0],
+                colors: ThemeProvider().isDarkMode
+                    ? [const Color(0xFF0F1117), const Color(0xFF151822), const Color(0xFF1A1D2E), const Color(0xFF151822)]
+                    : [const Color(0xFFE8DEFF), const Color(0xFFDDD0FC), const Color(0xFFE0D2FB), const Color(0xFFEDD8FC)],
+                stops: const [0.0, 0.35, 0.65, 1.0],
               ),
             ),
           ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../data/repositories/user_repository.dart';
 
@@ -70,14 +71,18 @@ class _PaymentSettingsCardState extends State<PaymentSettingsCard> {
 
   @override
   Widget build(BuildContext context) {
+    final dark = ThemeProvider().isDarkMode;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: dark ? const Color(0xFF1A1D2E) : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 20, offset: const Offset(0, 6)),
-          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
-        ],
+        border: dark ? Border.all(color: Colors.white.withOpacity(0.08)) : null,
+        boxShadow: dark
+            ? [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 4))]
+            : [
+                BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 20, offset: const Offset(0, 6)),
+                BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,7 +105,7 @@ class _PaymentSettingsCardState extends State<PaymentSettingsCard> {
                   child: const Center(child: Icon(Icons.account_balance_wallet, color: Colors.white, size: 20)),
                 ),
                 const SizedBox(width: 12),
-                const Text('Payout Settings', style: TextStyle(color: Color(0xFF1F2937), fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.3)),
+                Text('Payout Settings', style: TextStyle(color: ThemeProvider().isDarkMode ? Colors.white : const Color(0xFF1F2937), fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.3)),
                 const Spacer(),
                 _buildStatusBadge(),
               ],

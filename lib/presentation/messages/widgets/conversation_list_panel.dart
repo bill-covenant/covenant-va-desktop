@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/conversation_model.dart';
 import '../../../data/models/client_model.dart';
 import '../../../data/repositories/client_repository.dart';
@@ -311,18 +312,17 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final dark = ThemeProvider().isDarkMode;
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFE8DEFF), // Lavender top
-            Color(0xFFDDD0FC), // Purple mid
-            Color(0xFFE3D6FB), // Lavender-pink bottom
-          ],
-          stops: [0.0, 0.5, 1.0],
+          colors: dark
+              ? [const Color(0xFF1A1D2E), const Color(0xFF1E2030), const Color(0xFF1A1D2E)]
+              : [const Color(0xFFE8DEFF), const Color(0xFFDDD0FC), const Color(0xFFE3D6FB)],
+          stops: const [0.0, 0.5, 1.0],
         ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(

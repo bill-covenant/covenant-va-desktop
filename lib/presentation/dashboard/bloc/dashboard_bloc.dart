@@ -124,6 +124,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
 
       emit(DashboardLoaded(
         stats: stats,
+        allTasks: allTasks,
         todayTasks: todayTasks,
         upcomingTasks: combinedUpcoming.take(5).toList(),
         todayHoursWorked: todayHours,

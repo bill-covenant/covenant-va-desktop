@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/theme_provider.dart';
 
 class NotesHeader extends StatefulWidget {
   final TextEditingController searchController;
@@ -88,18 +89,18 @@ class _NotesHeaderState extends State<NotesHeader> {
             width: 220,
             height: 44,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: ThemeProvider().isDarkMode ? const Color(0xFF1A1D2E) : Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withOpacity(0.2)),
+              border: Border.all(color: ThemeProvider().isDarkMode ? Colors.white.withOpacity(0.08) : Colors.white.withOpacity(0.2)),
               boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 4)),
-                BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 2, offset: const Offset(0, 1)),
+                BoxShadow(color: Colors.black.withOpacity(ThemeProvider().isDarkMode ? 0.2 : 0.08), blurRadius: 12, offset: const Offset(0, 4)),
+                BoxShadow(color: Colors.black.withOpacity(ThemeProvider().isDarkMode ? 0.1 : 0.04), blurRadius: 2, offset: const Offset(0, 1)),
               ],
             ),
             child: TextField(
               controller: widget.searchController,
               onChanged: widget.onSearchChanged,
-              style: const TextStyle(color: Color(0xFF374151), fontSize: 14),
+              style: TextStyle(color: ThemeProvider().isDarkMode ? Colors.white : const Color(0xFF374151), fontSize: 14),
               cursorColor: const Color(0xFF8B5CF6),
               decoration: InputDecoration(
                 hintText: 'Search notes...',

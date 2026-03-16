@@ -20,6 +20,7 @@ class DashboardLoading extends DashboardState {
 
 class DashboardLoaded extends DashboardState {
   final TaskStatsModel stats;
+  final List<TaskModel> allTasks;
   final List<TaskModel> todayTasks;
   final List<TaskModel> upcomingTasks;
   final double todayHoursWorked;
@@ -28,6 +29,7 @@ class DashboardLoaded extends DashboardState {
 
   const DashboardLoaded({
     required this.stats,
+    this.allTasks = const [],
     required this.todayTasks,
     required this.upcomingTasks,
     this.todayHoursWorked = 0.0,
@@ -36,10 +38,11 @@ class DashboardLoaded extends DashboardState {
   });
 
   @override
-  List<Object?> get props => [stats, todayTasks, upcomingTasks, todayHoursWorked, todayEntriesCount, recentEntries];
+  List<Object?> get props => [stats, allTasks, todayTasks, upcomingTasks, todayHoursWorked, todayEntriesCount, recentEntries];
 
   DashboardLoaded copyWith({
     TaskStatsModel? stats,
+    List<TaskModel>? allTasks,
     List<TaskModel>? todayTasks,
     List<TaskModel>? upcomingTasks,
     double? todayHoursWorked,
@@ -48,6 +51,7 @@ class DashboardLoaded extends DashboardState {
   }) {
     return DashboardLoaded(
       stats: stats ?? this.stats,
+      allTasks: allTasks ?? this.allTasks,
       todayTasks: todayTasks ?? this.todayTasks,
       upcomingTasks: upcomingTasks ?? this.upcomingTasks,
       todayHoursWorked: todayHoursWorked ?? this.todayHoursWorked,

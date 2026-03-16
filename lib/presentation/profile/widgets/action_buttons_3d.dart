@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/theme_provider.dart';
 
 class ActionButtons3D extends StatefulWidget {
   final VoidCallback onChangePassword;
@@ -37,8 +38,9 @@ class _ActionButtons3DState extends State<ActionButtons3D> {
             0, _isPressed ? 2 : (_isHovered ? -2 : 0), 0,
           ),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: ThemeProvider().isDarkMode ? const Color(0xFF1A1D2E) : Colors.white,
             borderRadius: BorderRadius.circular(20),
+            border: ThemeProvider().isDarkMode ? Border.all(color: Colors.white.withOpacity(0.08)) : null,
             boxShadow: _isPressed
                 ? [
                     BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 2)),
@@ -66,10 +68,10 @@ class _ActionButtons3DState extends State<ActionButtons3D> {
                   child: const Center(child: Icon(Icons.lock_rounded, color: Colors.white, size: 20)),
                 ),
                 const SizedBox(width: 14),
-                const Text(
+                Text(
                   'Change Password',
                   style: TextStyle(
-                    color: Color(0xFF1F2937),
+                    color: ThemeProvider().isDarkMode ? Colors.white : const Color(0xFF1F2937),
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.2,

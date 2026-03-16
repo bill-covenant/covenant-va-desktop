@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/theme_provider.dart';
 
 class StatsGrid extends StatelessWidget {
   final Map<String, dynamic> stats;
@@ -54,15 +55,16 @@ class StatsGrid extends StatelessWidget {
     IconData icon,
     Color color,
   ) {
+    final dark = ThemeProvider().isDarkMode;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        // White background for better contrast
-        color: Colors.white,
+        color: dark ? const Color(0xFF1A1D2E) : Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: dark ? Border.all(color: Colors.white.withOpacity(0.08)) : null,
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.2),
+            color: dark ? Colors.black.withOpacity(0.3) : color.withOpacity(0.2),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -91,8 +93,8 @@ class StatsGrid extends StatelessWidget {
               ),
               Text(
                 value,
-                style: const TextStyle(
-                  color: Color(0xFF1F2937), // Dark text
+                style: TextStyle(
+                  color: dark ? Colors.white : const Color(0xFF1F2937),
                   fontSize: 32,
                   fontWeight: FontWeight.w900,
                 ),
@@ -102,8 +104,8 @@ class StatsGrid extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             title,
-            style: const TextStyle(
-              color: Color(0xFF6B7280), // Medium gray
+            style: TextStyle(
+              color: dark ? Colors.white70 : const Color(0xFF6B7280),
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),

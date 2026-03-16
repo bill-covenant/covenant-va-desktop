@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/theme_provider.dart';
 
 class TaskFilterBar extends StatelessWidget {
   final String statusFilter;
@@ -167,7 +168,7 @@ class TaskFilterBar extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.9), // ✅ More opaque background
+            color: ThemeProvider().isDarkMode ? const Color(0xFF1A1D2E) : Colors.white.withOpacity(0.9),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: Colors.white,
@@ -190,14 +191,14 @@ class TaskFilterBar extends StatelessWidget {
             value: value,
             isExpanded: true,
             underline: const SizedBox(),
-            dropdownColor: Colors.white,
+            dropdownColor: ThemeProvider().isDarkMode ? const Color(0xFF1A1D2E) : Colors.white,
             icon: Icon(
               Icons.keyboard_arrow_down,
-              color: color, // ✅ Colored icon for contrast
+              color: color,
               size: 24,
             ),
             style: TextStyle(
-              color: const Color(0xFF1F2937), // ✅ Dark text for contrast
+              color: ThemeProvider().isDarkMode ? Colors.white : const Color(0xFF1F2937),
               fontSize: 14,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.3,
@@ -217,7 +218,7 @@ class TaskFilterBar extends StatelessWidget {
   Widget _build3DSearchBar() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white, // ✅ Solid white background
+        color: ThemeProvider().isDarkMode ? const Color(0xFF1A1D2E) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: Colors.white,
@@ -243,8 +244,8 @@ class TaskFilterBar extends StatelessWidget {
       ),
       child: TextField(
         onChanged: onSearchChanged,
-        style: const TextStyle(
-          color: Color(0xFF111827), // ✅ Dark text
+        style: TextStyle(
+          color: ThemeProvider().isDarkMode ? Colors.white : const Color(0xFF111827),
           fontSize: 14,
           fontWeight: FontWeight.w500,
         ),
