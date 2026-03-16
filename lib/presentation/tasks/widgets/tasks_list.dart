@@ -41,39 +41,45 @@ class TasksList extends StatelessWidget {
   Widget build(BuildContext context) {
     final sorted = _sortedTasks;
 
-    return BlocProvider(
-      create: (context) => getIt<DashboardBloc>(),
-      child: Container(
-        decoration: BoxDecoration(
-          color: ThemeProvider().isDarkMode ? const Color(0xFF1A1D2E) : Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: ThemeProvider().isDarkMode
-              ? [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 4))]
-              : [
-                  BoxShadow(color: const Color(0xFF7C3AED).withOpacity(0.08), blurRadius: 40, offset: const Offset(0, 16), spreadRadius: -8),
-                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, 4)),
-                  BoxShadow(color: Colors.white.withOpacity(0.9), blurRadius: 1, offset: const Offset(0, -1)),
+    return ListenableBuilder(
+      listenable: ThemeProvider(),
+      builder: (context, _) {
+        final isDark = ThemeProvider().isDarkMode;
+        return BlocProvider(
+          create: (context) => getIt<DashboardBloc>(),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1A1D2E) : Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: isDark
+                  ? [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 4))]
+                  : [
+                      BoxShadow(color: const Color(0xFF7C3AED).withOpacity(0.08), blurRadius: 40, offset: const Offset(0, 16), spreadRadius: -8),
+                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, 4)),
+                      BoxShadow(color: Colors.white.withOpacity(0.9), blurRadius: 1, offset: const Offset(0, -1)),
+                    ],
+              border: Border.all(color: isDark ? Colors.white.withOpacity(0.08) : Colors.grey.withOpacity(0.08), width: 1),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Column(
+                children: [
+                  _buildHeader(sorted.length),
+                  _buildColumnHeaders(),
+                  ...List.generate(sorted.length, (i) {
+                    return _TaskRow(
+                      task: sorted[i],
+                      index: i + 1,
+                      isLast: i == sorted.length - 1,
+                      onStatusChanged: onTaskUpdated,
+                    );
+                  }),
                 ],
-          border: Border.all(color: ThemeProvider().isDarkMode ? Colors.white.withOpacity(0.08) : Colors.grey.withOpacity(0.08), width: 1),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Column(
-            children: [
-              _buildHeader(sorted.length),
-              _buildColumnHeaders(),
-              ...List.generate(sorted.length, (i) {
-                return _TaskRow(
-                  task: sorted[i],
-                  index: i + 1,
-                  isLast: i == sorted.length - 1,
-                  onStatusChanged: onTaskUpdated,
-                );
-              }),
-            ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

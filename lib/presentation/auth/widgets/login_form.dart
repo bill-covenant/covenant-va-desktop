@@ -71,6 +71,7 @@ class _LoginFormState extends State<LoginForm> {
             child: TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
               style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -137,6 +138,8 @@ class _LoginFormState extends State<LoginForm> {
             child: TextFormField(
               controller: _passwordController,
               obscureText: _obscurePassword,
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) => _handleLogin(),
               style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,

@@ -7,6 +7,7 @@ import 'package:covenant_va_desktop/presentation/profile/widgets/stats_grid.dart
 import 'package:covenant_va_desktop/presentation/profile/widgets/payment_settings_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/repositories/user_repository.dart';
 import '../../../data/providers/storage_provider.dart';
@@ -178,18 +179,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildHeader(),
-        Expanded(
-          child: (_isLoading && _isInitialLoad)
-              ? _buildLoadingState()
-              : _error != null && _user == null
-                  ? _buildErrorState()
-                  : _buildContent(),
-        ),
-      ],
+    return ListenableBuilder(
+      listenable: ThemeProvider(),
+      builder: (context, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: (_isLoading && _isInitialLoad)
+                  ? _buildLoadingState()
+                  : _error != null && _user == null
+                      ? _buildErrorState()
+                      : _buildContent(),
+            ),
+          ],
+        );
+      },
     );
   }
 

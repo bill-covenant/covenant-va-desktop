@@ -108,7 +108,6 @@ class ProfileCard extends StatelessWidget {
           _buildAvatar(context),
           const SizedBox(width: 32),
           Expanded(child: _buildInfo()),
-          _buildEditButton(),
         ],
       ),
     );

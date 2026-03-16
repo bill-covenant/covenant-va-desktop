@@ -68,8 +68,8 @@ class UpdateService {
       if (latest < current) return false;
     }
 
-    // Same version, check build number
-    return latestBuild > currentBuildNumber;
+    // Same version string = no update needed
+    return false;
   }
 
   static Future<void> openDownloadLink(String url) async {

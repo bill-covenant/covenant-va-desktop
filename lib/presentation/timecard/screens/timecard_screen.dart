@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../bloc/timecard_bloc.dart';
 import '../bloc/timecard_event.dart';
 import '../bloc/timecard_state.dart';
@@ -264,6 +265,9 @@ class _TimecardScreenState extends State<TimecardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: ThemeProvider(),
+      builder: (context, _) {
     return BlocConsumer<TimecardBloc, TimecardState>(
       listener: (context, state) {
         if (state is HoursLoggedSuccess) {
@@ -305,6 +309,8 @@ class _TimecardScreenState extends State<TimecardScreen> {
             ),
           ],
         );
+      },
+    );
       },
     );
   }

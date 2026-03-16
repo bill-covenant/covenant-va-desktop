@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../bloc/dashboard_bloc.dart';
 import '../bloc/dashboard_state.dart';
 import '../bloc/dashboard_event.dart';
@@ -30,16 +31,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<DashboardBloc, DashboardState>(
-      listener: (context, state) {
-        if (state is DashboardLoaded) {
-          _cachedState = state;
-          _lastFetchTime = DateTime.now();
-        }
+    return ListenableBuilder(
+      listenable: ThemeProvider(),
+      builder: (context, _) {
+        return BlocListener<DashboardBloc, DashboardState>(
+          listener: (context, state) {
+            if (state is DashboardLoaded) {
+              _cachedState = state;
+              _lastFetchTime = DateTime.now();
+            }
+          },
+          child: DashboardContent(
+            cachedState: _cachedState,
+          ),
+        );
       },
-      child: DashboardContent(
-        cachedState: _cachedState, // ✅ Pass cached state
-      ),
     );
   }
 }

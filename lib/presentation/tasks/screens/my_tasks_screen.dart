@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/task_model.dart';
 import '../../../data/repositories/task_repository.dart';
 import '../../../core/di/service_locator.dart';
@@ -133,25 +134,30 @@ class _MyTasksScreenState extends State<MyTasksScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const TasksHeader(),
-        Expanded(
-          child: Stack(
-            children: [
-              _buildContent(),
-              Positioned(
-                right: 16,
-                bottom: 16,
-                child: RefreshFAB(
-                  onRefresh: () => _loadAllTasks(showLoading: false),
-                ),
+    return ListenableBuilder(
+      listenable: ThemeProvider(),
+      builder: (context, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const TasksHeader(),
+            Expanded(
+              child: Stack(
+                children: [
+                  _buildContent(),
+                  Positioned(
+                    right: 16,
+                    bottom: 16,
+                    child: RefreshFAB(
+                      onRefresh: () => _loadAllTasks(showLoading: false),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-      ],
+            ),
+          ],
+        );
+      },
     );
   }
 

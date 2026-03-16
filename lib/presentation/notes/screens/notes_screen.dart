@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../bloc/notes_bloc.dart';
 import '../bloc/notes_event.dart';
 import '../bloc/notes_state.dart';
@@ -102,31 +103,36 @@ class _NotesScreenState extends State<NotesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        NotesHeader(
-          searchController: _searchController,
-          onSearchChanged: (v) => setState(() => _searchQuery = v.toLowerCase()),
-          onNewNote: _createNewNote,
-        ),
-        Expanded(
-          child: BlocConsumer<NotesBloc, NotesState>(
-            listener: _onStateChanged,
-            builder: (context, state) {
-              if (state is NotesLoading) {
-                return const Center(child: CircularProgressIndicator(color: Colors.white));
-              }
-              if (state is NotesError) {
-                return _buildError(state.message);
-              }
-              if (state is NotesLoaded) {
-                return _buildContent(state);
-              }
-              return const SizedBox();
-            },
-          ),
-        ),
-      ],
+    return ListenableBuilder(
+      listenable: ThemeProvider(),
+      builder: (context, _) {
+        return Column(
+          children: [
+            NotesHeader(
+              searchController: _searchController,
+              onSearchChanged: (v) => setState(() => _searchQuery = v.toLowerCase()),
+              onNewNote: _createNewNote,
+            ),
+            Expanded(
+              child: BlocConsumer<NotesBloc, NotesState>(
+                listener: _onStateChanged,
+                builder: (context, state) {
+                  if (state is NotesLoading) {
+                    return const Center(child: CircularProgressIndicator(color: Colors.white));
+                  }
+                  if (state is NotesError) {
+                    return _buildError(state.message);
+                  }
+                  if (state is NotesLoaded) {
+                    return _buildContent(state);
+                  }
+                  return const SizedBox();
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

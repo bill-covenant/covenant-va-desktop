@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../bloc/messages_bloc.dart';
 import '../bloc/messages_event.dart';
 import '../bloc/messages_state.dart';
@@ -165,6 +166,9 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: ThemeProvider(),
+      builder: (context, _) {
     return Material(
       color: Colors.transparent,
       child: Column(
@@ -172,14 +176,13 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
           _buildHeader(),
           Expanded(
             child: Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFFF8F7FC),
-                    Color(0xFFFCFAFF),
-                  ],
+                  colors: Theme.of(context).brightness == Brightness.dark
+                      ? [const Color(0xFF0F1117), const Color(0xFF151822)]
+                      : [const Color(0xFFF8F7FC), const Color(0xFFFCFAFF)],
                 ),
               ),
               child: BlocConsumer<MessagesBloc, MessagesState>(
@@ -223,6 +226,8 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
           ),
         ],
       ),
+    );
+      },
     );
   }
 
