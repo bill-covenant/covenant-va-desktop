@@ -26,6 +26,7 @@ class DashboardLoaded extends DashboardState {
   final double todayHoursWorked;
   final int todayEntriesCount;
   final List<TimeEntry> recentEntries;
+  final DateTime? activeClockIn;
 
   const DashboardLoaded({
     required this.stats,
@@ -35,10 +36,11 @@ class DashboardLoaded extends DashboardState {
     this.todayHoursWorked = 0.0,
     this.todayEntriesCount = 0,
     this.recentEntries = const [],
+    this.activeClockIn,
   });
 
   @override
-  List<Object?> get props => [stats, allTasks, todayTasks, upcomingTasks, todayHoursWorked, todayEntriesCount, recentEntries];
+  List<Object?> get props => [stats, allTasks, todayTasks, upcomingTasks, todayHoursWorked, todayEntriesCount, recentEntries, activeClockIn];
 
   DashboardLoaded copyWith({
     TaskStatsModel? stats,
@@ -48,6 +50,8 @@ class DashboardLoaded extends DashboardState {
     double? todayHoursWorked,
     int? todayEntriesCount,
     List<TimeEntry>? recentEntries,
+    DateTime? activeClockIn,
+    bool clearActiveClockIn = false,
   }) {
     return DashboardLoaded(
       stats: stats ?? this.stats,
@@ -57,6 +61,7 @@ class DashboardLoaded extends DashboardState {
       todayHoursWorked: todayHoursWorked ?? this.todayHoursWorked,
       todayEntriesCount: todayEntriesCount ?? this.todayEntriesCount,
       recentEntries: recentEntries ?? this.recentEntries,
+      activeClockIn: clearActiveClockIn ? null : (activeClockIn ?? this.activeClockIn),
     );
   }
 }

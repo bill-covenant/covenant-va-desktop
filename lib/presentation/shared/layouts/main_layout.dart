@@ -1,9 +1,12 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:covenant_va_desktop/presentation/shared/widgets/cross_hatch_pattern.dart';
 import 'package:covenant_va_desktop/services/update_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../services/socket_service.dart';
 import '../../../services/update_service.dart';
@@ -33,6 +36,12 @@ class _MainLayoutState extends State<MainLayout> {
   bool _isDownloading = false;
   double _downloadProgress = 0;
 
+  // Badge counts
+  int _messagesBadge = 0;
+  int _tasksBadge = 0;
+  int _timecardBadge = 0;
+  Timer? _badgeTimer;
+
   static const String _apiBaseUrl = String.fromEnvironment(
     'API_URL',
     defaultValue: 'http://localhost:5000/api',
@@ -45,6 +54,9 @@ class _MainLayoutState extends State<MainLayout> {
 
     print('🔔 MainLayout: Setting up notification callback');
     SocketService().onNotification = _showNotificationBanner;
+
+    _fetchBadgeCounts();
+    _badgeTimer = Timer.periodic(const Duration(minutes: 1), (_) => _fetchBadgeCounts());
   }
 
   void _showNotificationBanner(String title, String body) {
@@ -59,8 +71,102 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   void dispose() {
+    _badgeTimer?.cancel();
     LayoutNotificationOverlay.dismiss();
     super.dispose();
+  }
+
+  Future<void> _fetchBadgeCounts() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      if (token == null) return;
+
+      final headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+
+      // Messages: unread count
+      try {
+        final res = await http.get(
+          Uri.parse('$_apiBaseUrl/messages/unread-count'),
+          headers: headers,
+        );
+        if (res.statusCode == 200 && mounted) {
+          final data = json.decode(res.body);
+          setState(() => _messagesBadge = (data['unreadCount'] as int? ?? 0));
+        }
+      } catch (_) {}
+
+      // Tasks: total count vs last seen
+      try {
+        final res = await http.get(
+          Uri.parse('$_apiBaseUrl/tasks'),
+          headers: headers,
+        );
+        if (res.statusCode == 200 && mounted) {
+          final data = json.decode(res.body);
+          final tasks = (data['tasks'] as List?) ?? [];
+          final total = tasks.length;
+          final lastSeen = prefs.getInt('badge_lastSeen_tasks') ?? 0;
+          setState(() => _tasksBadge = (total - lastSeen).clamp(0, 999));
+        }
+      } catch (_) {}
+
+      // Timecard: approved entries vs last seen
+      try {
+        final res = await http.get(
+          Uri.parse('$_apiBaseUrl/timecard/entries'),
+          headers: headers,
+        );
+        if (res.statusCode == 200 && mounted) {
+          final data = json.decode(res.body);
+          final entries = (data['entries'] as List?) ?? [];
+          final approvedCount = entries.where((e) => e['status'] == 'APPROVED').length;
+          final lastSeen = prefs.getInt('badge_lastSeen_timecard') ?? 0;
+          setState(() => _timecardBadge = (approvedCount - lastSeen).clamp(0, 999));
+        }
+      } catch (_) {}
+    } catch (_) {}
+  }
+
+  Future<void> _clearBadge(String route) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ${token ?? ''}',
+    };
+
+    if (route == 'messages') {
+      if (mounted) setState(() => _messagesBadge = 0);
+    }
+
+    if (route == 'tasks') {
+      if (mounted) setState(() => _tasksBadge = 0);
+      try {
+        final res = await http.get(Uri.parse('$_apiBaseUrl/tasks'), headers: headers);
+        if (res.statusCode == 200) {
+          final data = json.decode(res.body);
+          final total = ((data['tasks'] as List?) ?? []).length;
+          await prefs.setInt('badge_lastSeen_tasks', total);
+        }
+      } catch (_) {}
+    }
+
+    if (route == 'timecard') {
+      if (mounted) setState(() => _timecardBadge = 0);
+      try {
+        final res = await http.get(Uri.parse('$_apiBaseUrl/timecard/entries'), headers: headers);
+        if (res.statusCode == 200) {
+          final data = json.decode(res.body);
+          final entries = (data['entries'] as List?) ?? [];
+          final approvedCount = entries.where((e) => e['status'] == 'APPROVED').length;
+          await prefs.setInt('badge_lastSeen_timecard', approvedCount);
+        }
+      } catch (_) {}
+    }
   }
 
   @override
@@ -153,6 +259,7 @@ class _MainLayoutState extends State<MainLayout> {
                     label: 'My Tasks',
                     route: 'tasks',
                     isSelected: _selectedRoute == 'tasks',
+                    badge: _tasksBadge > 0 ? _tasksBadge : null,
                     onTap: () => _navigateTo('tasks'),
                   ),
                   const SizedBox(height: 8),
@@ -169,6 +276,7 @@ class _MainLayoutState extends State<MainLayout> {
                     label: 'Messages',
                     route: 'messages',
                     isSelected: _selectedRoute == 'messages',
+                    badge: _messagesBadge > 0 ? _messagesBadge : null,
                     onTap: () => _navigateTo('messages'),
                   ),
                   const SizedBox(height: 8),
@@ -177,6 +285,7 @@ class _MainLayoutState extends State<MainLayout> {
                     label: 'Timecard',
                     route: 'timecard',
                     isSelected: _selectedRoute == 'timecard',
+                    badge: _timecardBadge > 0 ? _timecardBadge : null,
                     onTap: () => _navigateTo('timecard'),
                   ),
                   const SizedBox(height: 8),
@@ -206,7 +315,10 @@ class _MainLayoutState extends State<MainLayout> {
   Widget _buildUpdateButton() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      child: Material(
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+        Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
@@ -231,6 +343,26 @@ class _MainLayoutState extends State<MainLayout> {
                     : _buildCheckForUpdates(),
           ),
         ),
+      ),
+      // Badge dot when update is available
+      if (_updateInfo != null)
+        Positioned(
+          top: -4,
+          right: -4,
+          child: Container(
+            width: 18,
+            height: 18,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(colors: [Color(0xFFEF4444), Color(0xFFDC2626)]),
+              shape: BoxShape.circle,
+              boxShadow: [BoxShadow(color: Color(0xFFEF4444), blurRadius: 6, spreadRadius: 0)],
+            ),
+            child: const Center(
+              child: Text('1', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ),
+      ],
       ),
     );
   }
@@ -507,9 +639,8 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   void _navigateTo(String route) {
-    setState(() {
-      _selectedRoute = route;
-    });
+    setState(() => _selectedRoute = route);
+    _clearBadge(route);
     Navigator.pushReplacementNamed(context, '/$route');
   }
 }

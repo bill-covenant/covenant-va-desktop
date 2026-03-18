@@ -57,8 +57,14 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
 
       // Fetch everything in parallel
       late List<TimeEntry> monthEntries;
+      DateTime? activeClockIn;
       try {
-        monthEntries = await _timecardRepository.getTimeEntries(month: currentMonth);
+        final clockAndEntries = await Future.wait([
+          _timecardRepository.getActiveClock(),
+          _timecardRepository.getTimeEntries(month: currentMonth),
+        ]);
+        activeClockIn = clockAndEntries[0] as DateTime?;
+        monthEntries = clockAndEntries[1] as List<TimeEntry>;
       } catch (_) {
         monthEntries = [];
       }
@@ -130,6 +136,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         todayHoursWorked: todayHours,
         todayEntriesCount: todayCount,
         recentEntries: recentEntries,
+        activeClockIn: activeClockIn,
       ));
     } catch (e) {
       emit(DashboardError(message: e.toString()));

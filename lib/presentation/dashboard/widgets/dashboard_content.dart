@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -127,28 +128,6 @@ class DashboardContent extends StatelessWidget {
             },
           ),
           const Spacer(),
-          // Search bar
-          Container(
-            width: 260,
-            height: 42,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withOpacity(0.15)),
-            ),
-            child: Row(
-              children: [
-                const SizedBox(width: 14),
-                Icon(Icons.search, color: Colors.white.withOpacity(0.5), size: 20),
-                const SizedBox(width: 10),
-                Text(
-                  'Search Something',
-                  style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 13, fontWeight: FontWeight.w500),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
           // Profile avatar
           FutureBuilder<String>(
             future: _getVAName(),
@@ -294,55 +273,11 @@ class DashboardContent extends StatelessWidget {
   }
 
   Widget _buildTimerCard(DashboardLoaded state) {
-    final hrs = state.todayHoursWorked;
-    final h = hrs.floor();
-    final m = ((hrs - h) * 60).floor();
-    final s = (((hrs - h) * 60 - m) * 60).floor();
-    final timeStr = '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: _cardDecoration(),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(7),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)]),
-                  borderRadius: BorderRadius.circular(9),
-                  boxShadow: [BoxShadow(color: const Color(0xFF8B5CF6).withOpacity(0.3), blurRadius: 6, offset: const Offset(0, 2))],
-                ),
-                child: const Icon(Icons.timer, color: Colors.white, size: 16),
-              ),
-              const SizedBox(width: 8),
-              Text('Timer', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: DashboardContent._textPrimary())),
-            ],
-          ),
-          const Spacer(),
-          Text(
-            timeStr,
-            style: TextStyle(
-              fontSize: 34, fontWeight: FontWeight.w900, color: _textPrimary(),
-              letterSpacing: 2, fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text('Hours worked today', style: TextStyle(fontSize: 11, color: _textSecondary(), fontWeight: FontWeight.w500)),
-          const Spacer(),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildPillBadge('${state.todayEntriesCount} entries', const Color(0xFFF3E8FF), const Color(0xFF7C3AED)),
-              const SizedBox(width: 6),
-              _buildPillBadge('${state.todayTasks.length} tasks', const Color(0xFFDBEAFE), const Color(0xFF3B82F6)),
-            ],
-          ),
-        ],
-      ),
+    return _LiveTimerCard(
+      activeClockIn: state.activeClockIn,
+      todayHoursWorked: state.todayHoursWorked,
+      todayEntriesCount: state.todayEntriesCount,
+      todayTasksCount: state.todayTasks.length,
     );
   }
 
@@ -363,23 +298,22 @@ class DashboardContent extends StatelessWidget {
 
     return Column(
       children: [
-        // Row 1: Calendar + Messages side by side (matched height)
+        // Row 1: Calendar + Recent Activity side by side (matched height)
         IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(child: _buildCalendarCard()),
               const SizedBox(width: 20),
-              Expanded(child: _MessagesPreview()),
+              Expanded(child: RecentActivityCard(recentEntries: state.recentEntries, todayTasks: state.todayTasks)),
             ],
           ),
         ),
         const SizedBox(height: 20),
         // Row 2: Recent Tasks full width
         _buildRecentTasksSection(sorted),
-        if (state.recentEntries.isNotEmpty) ...[
-          const SizedBox(height: 20),
-          RecentActivityCard(recentEntries: state.recentEntries, todayTasks: state.todayTasks),
+        if (false) ...[
+          // Recent Activity moved to row 1
         ],
       ],
     );
@@ -609,10 +543,13 @@ class DashboardContent extends StatelessWidget {
   static Color _textSecondary() => _isDark() ? Colors.white70 : const Color(0xFF6B7280);
   static Color _textTertiary() => _isDark() ? Colors.white54 : const Color(0xFF9CA3AF);
 
-  BoxDecoration _cardDecoration() {
-    final dark = _isDark();
+  BoxDecoration _cardDecoration() => DashboardContent._cardDecorationStatic();
+
+  static BoxDecoration _cardDecorationStatic() {
+    final dark = ThemeProvider().isDarkMode;
+    final cardBg = dark ? const Color(0xFF1A1D2E) : Colors.white;
     return BoxDecoration(
-      color: _cardBg(),
+      color: cardBg,
       borderRadius: BorderRadius.circular(24),
       border: dark ? Border.all(color: Colors.white.withOpacity(0.08)) : null,
       boxShadow: dark
@@ -624,7 +561,9 @@ class DashboardContent extends StatelessWidget {
     );
   }
 
-  Widget _buildPillBadge(String text, Color bg, Color fg) {
+  Widget _buildPillBadge(String text, Color bg, Color fg) => DashboardContent._buildPillBadgeStatic(text, bg, fg);
+
+  static Widget _buildPillBadgeStatic(String text, Color bg, Color fg) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
@@ -1059,6 +998,161 @@ class _CompactClientsPreviewState extends State<_CompactClientsPreview> {
           ),
         const Spacer(),
       ],
+    );
+  }
+}
+
+// ═══════════════════════════════════════
+// LIVE TIMER CARD — ticks every second when clocked in
+// ═══════════════════════════════════════
+class _LiveTimerCard extends StatefulWidget {
+  final DateTime? activeClockIn;
+  final double todayHoursWorked;
+  final int todayEntriesCount;
+  final int todayTasksCount;
+
+  const _LiveTimerCard({
+    required this.activeClockIn,
+    required this.todayHoursWorked,
+    required this.todayEntriesCount,
+    required this.todayTasksCount,
+  });
+
+  @override
+  State<_LiveTimerCard> createState() => _LiveTimerCardState();
+}
+
+class _LiveTimerCardState extends State<_LiveTimerCard> {
+  Timer? _timer;
+  Duration _elapsed = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimerIfNeeded();
+  }
+
+  @override
+  void didUpdateWidget(covariant _LiveTimerCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.activeClockIn != oldWidget.activeClockIn) {
+      _timer?.cancel();
+      _startTimerIfNeeded();
+    }
+  }
+
+  void _startTimerIfNeeded() {
+    if (widget.activeClockIn != null) {
+      _updateElapsed();
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateElapsed());
+    } else {
+      _elapsed = Duration.zero;
+    }
+  }
+
+  void _updateElapsed() {
+    if (widget.activeClockIn != null && mounted) {
+      setState(() {
+        _elapsed = DateTime.now().difference(widget.activeClockIn!);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  String _formatDuration(Duration d) {
+    final h = d.inHours.toString().padLeft(2, '0');
+    final m = (d.inMinutes % 60).toString().padLeft(2, '0');
+    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return '$h:$m:$s';
+  }
+
+  String _formatStaticHours(double hrs) {
+    final h = hrs.floor();
+    final m = ((hrs - h) * 60).floor();
+    final s = (((hrs - h) * 60 - m) * 60).floor();
+    return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = ThemeProvider().isDarkMode;
+    final isLive = widget.activeClockIn != null;
+    final timeStr = isLive ? _formatDuration(_elapsed) : _formatStaticHours(widget.todayHoursWorked);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: DashboardContent._cardDecorationStatic(),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: isLive
+                      ? [const Color(0xFF10B981), const Color(0xFF059669)]
+                      : [const Color(0xFF8B5CF6), const Color(0xFF7C3AED)]),
+                  borderRadius: BorderRadius.circular(9),
+                  boxShadow: [BoxShadow(
+                    color: (isLive ? const Color(0xFF10B981) : const Color(0xFF8B5CF6)).withOpacity(0.3),
+                    blurRadius: 6, offset: const Offset(0, 2),
+                  )],
+                ),
+                child: Icon(isLive ? Icons.play_arrow_rounded : Icons.timer, color: Colors.white, size: 16),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isLive ? 'Live' : 'Timer',
+                style: TextStyle(
+                  fontSize: 15, fontWeight: FontWeight.w800,
+                  color: isLive ? const Color(0xFF10B981) : (isDark ? Colors.white : Colors.black87),
+                ),
+              ),
+              if (isLive) ...[
+                const SizedBox(width: 6),
+                Container(
+                  width: 8, height: 8,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981),
+                    shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(color: const Color(0xFF10B981).withOpacity(0.6), blurRadius: 6)],
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const Spacer(),
+          Text(
+            timeStr,
+            style: TextStyle(
+              fontSize: 34, fontWeight: FontWeight.w900,
+              color: isLive ? const Color(0xFF10B981) : (isDark ? Colors.white : Colors.black87),
+              letterSpacing: 2,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            isLive ? 'Currently clocked in' : 'Hours worked today',
+            style: TextStyle(fontSize: 11, color: isDark ? Colors.white54 : Colors.black45, fontWeight: FontWeight.w500),
+          ),
+          const Spacer(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              DashboardContent._buildPillBadgeStatic('${widget.todayEntriesCount} entries', const Color(0xFFF3E8FF), const Color(0xFF7C3AED)),
+              const SizedBox(width: 6),
+              DashboardContent._buildPillBadgeStatic('${widget.todayTasksCount} tasks', const Color(0xFFDBEAFE), const Color(0xFF3B82F6)),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

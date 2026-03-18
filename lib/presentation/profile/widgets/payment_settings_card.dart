@@ -56,7 +56,7 @@ class _PaymentSettingsCardState extends State<PaymentSettingsCard> {
       if (mounted) {
         setState(() { _wiseEmail = email; _isEditing = false; _isSaving = false; });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Wise email saved successfully'), backgroundColor: Color(0xFF10B981)),
+          const SnackBar(content: Text('Wise tag saved successfully'), backgroundColor: Color(0xFF10B981)),
         );
       }
     } catch (e) {
@@ -125,13 +125,14 @@ class _PaymentSettingsCardState extends State<PaymentSettingsCard> {
   Widget _buildStatusBadge() {
     if (_isLoading) return const SizedBox.shrink();
     final bool hasWise = _wiseEmail != null && _wiseEmail!.isNotEmpty;
+    final dark = ThemeProvider().isDarkMode;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: hasWise ? const Color(0xFF10B981).withOpacity(0.08) : const Color(0xFFF3F4F6),
+        color: hasWise ? const Color(0xFF10B981).withOpacity(dark ? 0.15 : 0.08) : (dark ? Colors.white.withOpacity(0.08) : const Color(0xFFF3F4F6)),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: hasWise ? const Color(0xFF10B981).withOpacity(0.2) : const Color(0xFFE5E7EB)),
+        border: Border.all(color: hasWise ? const Color(0xFF10B981).withOpacity(0.2) : (dark ? Colors.white.withOpacity(0.12) : const Color(0xFFE5E7EB))),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -155,20 +156,21 @@ class _PaymentSettingsCardState extends State<PaymentSettingsCard> {
 
   Widget _buildContent() {
     final bool hasWise = _wiseEmail != null && _wiseEmail!.isNotEmpty;
-    if (_isEditing || !hasWise) return _buildEditState();
-    return _buildViewState();
+    final dark = ThemeProvider().isDarkMode;
+    if (_isEditing || !hasWise) return _buildEditState(dark);
+    return _buildViewState(dark);
   }
 
-  Widget _buildViewState() {
+  Widget _buildViewState(bool dark) {
     return Column(
       children: [
         // Wise info row
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: const Color(0xFF10B981).withOpacity(0.05),
+            color: dark ? const Color(0xFF10B981).withOpacity(0.1) : const Color(0xFF10B981).withOpacity(0.05),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFF10B981).withOpacity(0.12)),
+            border: Border.all(color: const Color(0xFF10B981).withOpacity(dark ? 0.2 : 0.12)),
           ),
           child: Row(
             children: [
@@ -189,9 +191,9 @@ class _PaymentSettingsCardState extends State<PaymentSettingsCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Wise Email', style: TextStyle(color: const Color(0xFF10B981).withOpacity(0.7), fontWeight: FontWeight.w700, fontSize: 11, letterSpacing: 0.5)),
+                    Text('Wise Tag', style: TextStyle(color: const Color(0xFF10B981).withOpacity(0.7), fontWeight: FontWeight.w700, fontSize: 11, letterSpacing: 0.5)),
                     const SizedBox(height: 3),
-                    Text(_wiseEmail!, style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w800, fontSize: 15)),
+                    Text(_wiseEmail!, style: TextStyle(color: dark ? Colors.white : const Color(0xFF1F2937), fontWeight: FontWeight.w800, fontSize: 15)),
                   ],
                 ),
               ),
@@ -207,12 +209,16 @@ class _PaymentSettingsCardState extends State<PaymentSettingsCard> {
         // Info text
         Container(
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: const Color(0xFFF9FAFB), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFFE5E7EB))),
+          decoration: BoxDecoration(
+            color: dark ? Colors.white.withOpacity(0.05) : const Color(0xFFF9FAFB),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: dark ? Colors.white.withOpacity(0.1) : const Color(0xFFE5E7EB)),
+          ),
           child: Row(
             children: [
-              Icon(Icons.info_outline, color: const Color(0xFF9CA3AF), size: 16),
+              Icon(Icons.info_outline, color: dark ? Colors.white54 : const Color(0xFF9CA3AF), size: 16),
               const SizedBox(width: 10),
-              Expanded(child: Text('Payouts are sent to this email via Wise.', style: TextStyle(color: const Color(0xFF6B7280), fontSize: 12, fontWeight: FontWeight.w500))),
+              Expanded(child: Text('Payouts are sent to this Wise tag.', style: TextStyle(color: dark ? Colors.white60 : const Color(0xFF6B7280), fontSize: 12, fontWeight: FontWeight.w500))),
             ],
           ),
         ),
@@ -225,17 +231,17 @@ class _PaymentSettingsCardState extends State<PaymentSettingsCard> {
             child: Container(
               width: double.infinity, height: 48,
               decoration: BoxDecoration(
-                color: const Color(0xFFF3F4F6),
+                color: dark ? Colors.white.withOpacity(0.08) : const Color(0xFFF3F4F6),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
+                border: Border.all(color: dark ? Colors.white.withOpacity(0.12) : const Color(0xFFE5E7EB)),
               ),
               child: Center(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.edit, color: const Color(0xFF6B7280), size: 18),
+                    Icon(Icons.edit, color: dark ? Colors.white70 : const Color(0xFF6B7280), size: 18),
                     const SizedBox(width: 8),
-                    const Text('Update Wise Email', style: TextStyle(color: Color(0xFF374151), fontWeight: FontWeight.w700, fontSize: 13)),
+                    Text('Update Wise Tag', style: TextStyle(color: dark ? Colors.white : const Color(0xFF374151), fontWeight: FontWeight.w700, fontSize: 13)),
                   ],
                 ),
               ),
@@ -246,16 +252,16 @@ class _PaymentSettingsCardState extends State<PaymentSettingsCard> {
     );
   }
 
-  Widget _buildEditState() {
+  Widget _buildEditState(bool dark) {
     return Column(
       children: [
         // Instruction
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xFF10B981).withOpacity(0.05),
+            color: dark ? const Color(0xFF10B981).withOpacity(0.1) : const Color(0xFF10B981).withOpacity(0.05),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFF10B981).withOpacity(0.12)),
+            border: Border.all(color: const Color(0xFF10B981).withOpacity(dark ? 0.2 : 0.12)),
           ),
           child: Row(
             children: [
@@ -273,25 +279,29 @@ class _PaymentSettingsCardState extends State<PaymentSettingsCard> {
               ),
               const SizedBox(width: 14),
               Expanded(
-                child: Text('Enter the email linked to your Wise account. Payouts will be sent here.',
-                    style: TextStyle(color: const Color(0xFF6B7280), fontSize: 12, fontWeight: FontWeight.w500)),
+                child: Text('Enter your Wise tag (e.g. @yourname). Payouts will be sent here.',
+                    style: TextStyle(color: dark ? Colors.white60 : const Color(0xFF6B7280), fontSize: 12, fontWeight: FontWeight.w500)),
               ),
             ],
           ),
         ),
         const SizedBox(height: 18),
-        // Email input
+        // Wise Tag input
         TextField(
           controller: _emailController,
-          style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w700, fontSize: 14),
+          style: TextStyle(color: dark ? Colors.white : const Color(0xFF1F2937), fontWeight: FontWeight.w700, fontSize: 14),
           decoration: InputDecoration(
-            hintText: 'your-wise-email@example.com',
+            hintText: 'yourwisetag',
             hintStyle: TextStyle(color: Colors.grey.withOpacity(0.4), fontWeight: FontWeight.w600),
-            prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF7C3AED), size: 20),
+            prefixIcon: Container(
+              width: 48,
+              alignment: Alignment.center,
+              child: const Text('@', style: TextStyle(color: Color(0xFF7C3AED), fontWeight: FontWeight.w900, fontSize: 18)),
+            ),
             filled: true,
-            fillColor: const Color(0xFFF9FAFB),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+            fillColor: dark ? Colors.white.withOpacity(0.06) : const Color(0xFFF9FAFB),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: dark ? Colors.white.withOpacity(0.12) : const Color(0xFFE5E7EB))),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: dark ? Colors.white.withOpacity(0.12) : const Color(0xFFE5E7EB))),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF7C3AED), width: 2)),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),
@@ -308,8 +318,12 @@ class _PaymentSettingsCardState extends State<PaymentSettingsCard> {
                     onTap: () => setState(() { _isEditing = false; _emailController.text = _wiseEmail ?? ''; }),
                     child: Container(
                       height: 48,
-                      decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFE5E7EB))),
-                      child: const Center(child: Text('Cancel', style: TextStyle(color: Color(0xFF374151), fontWeight: FontWeight.w700, fontSize: 13))),
+                      decoration: BoxDecoration(
+                        color: dark ? Colors.white.withOpacity(0.08) : const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: dark ? Colors.white.withOpacity(0.12) : const Color(0xFFE5E7EB)),
+                      ),
+                      child: Center(child: Text('Cancel', style: TextStyle(color: dark ? Colors.white : const Color(0xFF374151), fontWeight: FontWeight.w700, fontSize: 13))),
                     ),
                   ),
                 ),
