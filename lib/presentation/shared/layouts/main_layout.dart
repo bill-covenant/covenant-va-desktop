@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../services/socket_service.dart';
 import '../../../services/update_service.dart';
+import '../../../core/constants/api_constants.dart';
 import '../widgets/layout/layout_sidebar_header.dart';
 import '../widgets/layout/layout_sidebar_nav_item.dart';
 import '../widgets/layout/layout_sidebar_footer.dart';
@@ -42,10 +43,7 @@ class _MainLayoutState extends State<MainLayout> {
   int _timecardBadge = 0;
   Timer? _badgeTimer;
 
-  static const String _apiBaseUrl = String.fromEnvironment(
-    'API_URL',
-    defaultValue: 'http://localhost:5000/api',
-  );
+  static final String _apiBaseUrl = ApiConstants.baseUrl;
 
   @override
   void initState() {
