@@ -8,6 +8,7 @@ import '../../../data/models/task_model.dart';
 import '../../../data/repositories/client_repository.dart';
 import '../../../data/repositories/message_repository.dart';
 import '../../../data/providers/api_provider.dart';
+import 'announcements_section.dart';
 import '../../../core/di/service_locator.dart';
 import '../bloc/dashboard_bloc.dart';
 import '../bloc/dashboard_event.dart';
@@ -76,6 +77,7 @@ class DashboardContent extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const AnnouncementsSection(),
                   _buildTopRow(state),
                   const SizedBox(height: 24),
                   _buildBottomRow(state),

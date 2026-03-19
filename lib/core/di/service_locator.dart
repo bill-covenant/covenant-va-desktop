@@ -8,6 +8,7 @@ import '../../data/repositories/user_repository.dart';
 import '../../data/repositories/client_repository.dart';
 import '../../data/repositories/timecard_repository.dart';
 import '../../data/repositories/note_repository.dart';
+import '../../data/repositories/announcement_repository.dart';
 import '../../presentation/auth/bloc/auth_bloc.dart';
 import '../../presentation/dashboard/bloc/dashboard_bloc.dart';
 import '../../presentation/messages/bloc/messages_bloc.dart';
@@ -61,6 +62,10 @@ Future<void> setupServiceLocator() async {
   // ✅ NEW: Note Repository
   getIt.registerLazySingleton<NoteRepository>(
     () => NoteRepository(getIt<ApiProvider>()),
+  );
+
+  getIt.registerLazySingleton<AnnouncementRepository>(
+    () => AnnouncementRepository(getIt<ApiProvider>()),
   );
 
   // BLoCs
