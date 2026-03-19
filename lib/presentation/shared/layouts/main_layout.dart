@@ -288,6 +288,14 @@ class _MainLayoutState extends State<MainLayout> {
                   ),
                   const SizedBox(height: 8),
                   LayoutSidebarNavItem(
+                    icon: Icons.campaign_rounded,
+                    label: 'Announcements',
+                    route: 'announcements',
+                    isSelected: _selectedRoute == 'announcements',
+                    onTap: () => _navigateTo('announcements'),
+                  ),
+                  const SizedBox(height: 8),
+                  LayoutSidebarNavItem(
                     icon: Icons.person,
                     label: 'Profile',
                     route: 'profile',

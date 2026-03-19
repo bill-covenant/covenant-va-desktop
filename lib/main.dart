@@ -20,6 +20,7 @@ import 'presentation/messages/bloc/messages_event.dart';
 import 'presentation/notes/screens/notes_screen.dart';
 import 'presentation/notes/bloc/notes_bloc.dart';
 import 'presentation/profile/screens/profile_screen.dart';
+import 'presentation/announcements/screens/announcements_screen.dart';
 import 'presentation/shared/layouts/main_layout.dart';
 import 'presentation/notifications/bloc/notification_bloc.dart';
 import 'presentation/notifications/bloc/notification_event.dart';
@@ -335,6 +336,10 @@ class _AppContentState extends State<_AppContent> {
         '/profile': (context) => const MainLayout(
               currentRoute: 'profile',
               child: ProfileScreen(),
+            ),
+        '/announcements': (context) => const MainLayout(
+              currentRoute: 'announcements',
+              child: AnnouncementsScreen(),
             ),
       },
     );
