@@ -7,6 +7,7 @@ import 'package:covenant_va_desktop/presentation/profile/widgets/stats_grid.dart
 import 'package:covenant_va_desktop/presentation/profile/widgets/payment_settings_card.dart';
 import 'package:covenant_va_desktop/presentation/profile/widgets/extended_profile_card.dart';
 import 'package:covenant_va_desktop/presentation/profile/widgets/device_specs_card.dart';
+import 'package:covenant_va_desktop/presentation/profile/widgets/skills_experience_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/theme/theme_provider.dart';
@@ -328,29 +329,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ProfileCard(
-            user: _user!,
-            onEdit: _handleEditProfile,
-            onAvatarUpload: () => _loadUserData(showLoading: false),
-          ),
-          const SizedBox(height: 24),
-
-          // Payment Settings + Change Password side by side
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Expanded(child: PaymentSettingsCard()),
-              const SizedBox(width: 24),
-              Expanded(
-                child: ActionButtons3D(
-                  onChangePassword: _handleChangePassword,
-                  onLogout: _handleLogout,
+          // Profile header with Payout + Actions inline
+          Container(
+            decoration: BoxDecoration(
+              color: ThemeProvider().isDarkMode ? const Color(0xFF1A1D2E) : Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: ThemeProvider().isDarkMode ? Border.all(color: Colors.white.withOpacity(0.08)) : null,
+              boxShadow: [
+                BoxShadow(
+                  color: ThemeProvider().isDarkMode ? Colors.black.withOpacity(0.3) : const Color(0xFF7C3AED).withOpacity(0.2),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
                 ),
-              ),
-            ],
+              ],
+            ),
+            child: Column(
+              children: [
+                // User info row
+                ProfileCard(
+                  user: _user!,
+                  onEdit: _handleEditProfile,
+                  onAvatarUpload: () => _loadUserData(showLoading: false),
+                ),
+                Divider(height: 1, color: ThemeProvider().isDarkMode ? Colors.white.withOpacity(0.08) : const Color(0xFFE5E7EB)),
+                // Payout + Change Password row
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Expanded(child: PaymentSettingsCard()),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ActionButtons3D(
+                          onChangePassword: _handleChangePassword,
+                          onLogout: _handleLogout,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 24),
           ExtendedProfileCard(
+            user: _user!,
+            onUpdated: () => _loadUserData(showLoading: false),
+          ),
+          const SizedBox(height: 24),
+          SkillsExperienceCard(
             user: _user!,
             onUpdated: () => _loadUserData(showLoading: false),
           ),

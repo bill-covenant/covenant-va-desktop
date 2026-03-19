@@ -128,78 +128,102 @@ class _ExtendedProfileCardState extends State<ExtendedProfileCard> {
 
     return Column(
       children: [
-        _buildSection(
-          dark: dark,
-          icon: Icons.phone_rounded,
-          iconColor: const Color(0xFF3B82F6),
-          title: 'Contact Information',
-          onSave: () => _saveSection({
-            'secondaryEmail': _secondaryEmailCtrl.text,
-            'whatsapp': _whatsappCtrl.text,
-          }),
+        // Row 1: Contact + Demographics side by side
+        IntrinsicHeight(
+          child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildTextField(dark, 'Secondary Email', _secondaryEmailCtrl, Icons.email_outlined),
-            const SizedBox(height: 14),
-            _buildTextField(dark, 'WhatsApp Number', _whatsappCtrl, Icons.chat_rounded),
+            Expanded(
+              child: _buildSection(
+                dark: dark,
+                icon: Icons.phone_rounded,
+                iconColor: const Color(0xFF3B82F6),
+                title: 'Contact Info',
+                onSave: () => _saveSection({
+                  'secondaryEmail': _secondaryEmailCtrl.text,
+                  'whatsapp': _whatsappCtrl.text,
+                }),
+                children: [
+                  _buildReadOnlyField(dark, 'Primary Email', widget.user.email, Icons.email_rounded),
+                  const SizedBox(height: 10),
+                  _buildTextField(dark, 'Secondary Email', _secondaryEmailCtrl, Icons.email_outlined),
+                  const SizedBox(height: 10),
+                  _buildTextField(dark, 'WhatsApp Number', _whatsappCtrl, Icons.chat_rounded),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildSection(
+                dark: dark,
+                icon: Icons.person_outline_rounded,
+                iconColor: const Color(0xFF8B5CF6),
+                title: 'Demographics',
+                onSave: () => _saveSection({
+                  'dateOfBirth': _dateOfBirth,
+                  'gender': _gender,
+                  'nationality': _nationalityCtrl.text,
+                }),
+                children: [
+                  _buildDateField(dark),
+                  const SizedBox(height: 10),
+                  _buildGenderField(dark),
+                  const SizedBox(height: 10),
+                  _buildTextField(dark, 'Nationality', _nationalityCtrl, Icons.flag_rounded),
+                ],
+              ),
+            ),
           ],
-        ),
-        const SizedBox(height: 20),
-        _buildSection(
-          dark: dark,
-          icon: Icons.person_outline_rounded,
-          iconColor: const Color(0xFF8B5CF6),
-          title: 'Demographics',
-          onSave: () => _saveSection({
-            'dateOfBirth': _dateOfBirth,
-            'gender': _gender,
-            'nationality': _nationalityCtrl.text,
-          }),
+        )),
+        const SizedBox(height: 16),
+        // Row 2: Emergency + Professional side by side
+        IntrinsicHeight(
+          child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildDateField(dark),
-            const SizedBox(height: 14),
-            _buildGenderField(dark),
-            const SizedBox(height: 14),
-            _buildTextField(dark, 'Nationality', _nationalityCtrl, Icons.flag_rounded),
+            Expanded(
+              child: _buildSection(
+                dark: dark,
+                icon: Icons.emergency_rounded,
+                iconColor: const Color(0xFFEF4444),
+                title: 'Emergency Contact',
+                onSave: () => _saveSection({
+                  'emergencyContactName': _emergNameCtrl.text,
+                  'emergencyContactPhone': _emergPhoneCtrl.text,
+                  'emergencyContactRelationship': _emergRelCtrl.text,
+                }),
+                children: [
+                  _buildTextField(dark, 'Contact Name', _emergNameCtrl, Icons.person_rounded),
+                  const SizedBox(height: 10),
+                  _buildTextField(dark, 'Contact Phone', _emergPhoneCtrl, Icons.phone_rounded),
+                  const SizedBox(height: 10),
+                  _buildTextField(dark, 'Relationship', _emergRelCtrl, Icons.people_rounded),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildSection(
+                dark: dark,
+                icon: Icons.work_rounded,
+                iconColor: const Color(0xFF10B981),
+                title: 'Professional Details',
+                onSave: () => _saveSection({
+                  'bio': _bioCtrl.text,
+                  'skills': _skills,
+                  'languages': _languages,
+                }),
+                children: [
+                  _buildTextField(dark, 'Bio / About', _bioCtrl, Icons.info_outline_rounded, maxLines: 2),
+                  const SizedBox(height: 10),
+                  _buildChipInput(dark, 'Skills', _skills, _skillInputCtrl),
+                  const SizedBox(height: 10),
+                  _buildChipInput(dark, 'Languages', _languages, _langInputCtrl),
+                ],
+              ),
+            ),
           ],
-        ),
-        const SizedBox(height: 20),
-        _buildSection(
-          dark: dark,
-          icon: Icons.emergency_rounded,
-          iconColor: const Color(0xFFEF4444),
-          title: 'Emergency Contact',
-          onSave: () => _saveSection({
-            'emergencyContactName': _emergNameCtrl.text,
-            'emergencyContactPhone': _emergPhoneCtrl.text,
-            'emergencyContactRelationship': _emergRelCtrl.text,
-          }),
-          children: [
-            _buildTextField(dark, 'Contact Name', _emergNameCtrl, Icons.person_rounded),
-            const SizedBox(height: 14),
-            _buildTextField(dark, 'Contact Phone', _emergPhoneCtrl, Icons.phone_rounded),
-            const SizedBox(height: 14),
-            _buildTextField(dark, 'Relationship', _emergRelCtrl, Icons.people_rounded),
-          ],
-        ),
-        const SizedBox(height: 20),
-        _buildSection(
-          dark: dark,
-          icon: Icons.work_rounded,
-          iconColor: const Color(0xFF10B981),
-          title: 'Professional Details',
-          onSave: () => _saveSection({
-            'bio': _bioCtrl.text,
-            'skills': _skills,
-            'languages': _languages,
-          }),
-          children: [
-            _buildTextField(dark, 'Bio / About', _bioCtrl, Icons.info_outline_rounded, maxLines: 3),
-            const SizedBox(height: 14),
-            _buildChipInput(dark, 'Skills', _skills, _skillInputCtrl),
-            const SizedBox(height: 14),
-            _buildChipInput(dark, 'Languages', _languages, _langInputCtrl),
-          ],
-        ),
+        )),
       ],
     );
   }
@@ -240,7 +264,7 @@ class _ExtendedProfileCardState extends State<ExtendedProfileCard> {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -285,11 +309,35 @@ class _ExtendedProfileCardState extends State<ExtendedProfileCard> {
                       ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 14),
             ...children,
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildReadOnlyField(bool dark, String label, String value, IconData icon) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: dark ? Colors.white.withOpacity(0.5) : const Color(0xFF6B7280))),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: dark ? Colors.white.withOpacity(0.04) : const Color(0xFFEEF2FF),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 18, color: dark ? Colors.white.withOpacity(0.3) : const Color(0xFF6366F1)),
+              const SizedBox(width: 12),
+              Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: dark ? Colors.white.withOpacity(0.7) : const Color(0xFF4B5563))),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -390,41 +438,45 @@ class _ExtendedProfileCardState extends State<ExtendedProfileCard> {
       children: [
         Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: dark ? Colors.white.withOpacity(0.5) : const Color(0xFF6B7280))),
         const SizedBox(height: 6),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            ...items.map((item) => Chip(
-              label: Text(item, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: dark ? Colors.white : const Color(0xFF374151))),
-              deleteIcon: const Icon(Icons.close, size: 14),
-              onDeleted: () => setState(() => items.remove(item)),
-              backgroundColor: dark ? Colors.white.withOpacity(0.08) : const Color(0xFFE5E7EB),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              side: BorderSide.none,
-            )),
-            SizedBox(
-              width: 140,
-              child: TextField(
-                controller: ctrl,
-                style: TextStyle(fontSize: 13, color: dark ? Colors.white : const Color(0xFF1F2937)),
-                decoration: InputDecoration(
-                  hintText: 'Add $label...',
-                  hintStyle: TextStyle(fontSize: 12, color: dark ? Colors.white.withOpacity(0.2) : const Color(0xFFD1D5DB)),
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                ),
-                onSubmitted: (val) {
-                  if (val.trim().isNotEmpty) {
-                    setState(() {
-                      items.add(val.trim());
-                      ctrl.clear();
-                    });
-                  }
-                },
-              ),
-            ),
-          ],
+        TextField(
+          controller: ctrl,
+          style: TextStyle(fontSize: 14, color: dark ? Colors.white : const Color(0xFF1F2937)),
+          decoration: InputDecoration(
+            prefixIcon: items.isEmpty
+                ? Icon(Icons.add_rounded, size: 18, color: dark ? Colors.white.withOpacity(0.3) : const Color(0xFF9CA3AF))
+                : Padding(
+                    padding: const EdgeInsets.only(left: 10, right: 4),
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: items.map((item) => Chip(
+                        label: Text(item, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: dark ? Colors.white : const Color(0xFF374151))),
+                        deleteIcon: const Icon(Icons.close, size: 14),
+                        onDeleted: () => setState(() => items.remove(item)),
+                        backgroundColor: dark ? Colors.white.withOpacity(0.1) : const Color(0xFFE5E7EB),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        side: BorderSide.none,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      )).toList(),
+                    ),
+                  ),
+            prefixIconConstraints: items.isEmpty ? null : const BoxConstraints(maxWidth: 300),
+            filled: true,
+            fillColor: dark ? Colors.white.withOpacity(0.06) : const Color(0xFFF3F4F6),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            hintText: items.isEmpty ? 'Type and press Enter to add...' : 'Add more...',
+            hintStyle: TextStyle(color: dark ? Colors.white.withOpacity(0.2) : const Color(0xFFD1D5DB)),
+          ),
+          onSubmitted: (val) {
+            if (val.trim().isNotEmpty) {
+              setState(() {
+                items.add(val.trim());
+                ctrl.clear();
+              });
+            }
+          },
         ),
       ],
     );

@@ -74,22 +74,16 @@ class _PaymentSettingsCardState extends State<PaymentSettingsCard> {
     final dark = ThemeProvider().isDarkMode;
     return Container(
       decoration: BoxDecoration(
-        color: dark ? const Color(0xFF1A1D2E) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: dark ? Border.all(color: Colors.white.withOpacity(0.08)) : null,
-        boxShadow: dark
-            ? [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 4))]
-            : [
-                BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 20, offset: const Offset(0, 6)),
-                BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
-              ],
+        color: dark ? Colors.white.withOpacity(0.04) : const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: dark ? Colors.white.withOpacity(0.08) : const Color(0xFFE5E7EB)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 22, 24, 0),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
             child: Row(
               children: [
                 Container(
@@ -114,7 +108,7 @@ class _PaymentSettingsCardState extends State<PaymentSettingsCard> {
           const SizedBox(height: 16),
           Divider(height: 1, color: Colors.grey.withOpacity(0.12)),
           Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(16),
             child: _isLoading ? _buildLoadingState() : _buildContent(),
           ),
         ],

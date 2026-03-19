@@ -5,7 +5,8 @@ class UserModel {
   final String lastName;
   final String role;
   final String status;
-  final String? wiseEmail; // ← NEW
+  final String? wiseEmail;
+  final DateTime? createdAt;
   final UserProfile? profile;
 
   UserModel({
@@ -16,6 +17,7 @@ class UserModel {
     required this.role,
     required this.status,
     this.wiseEmail,
+    this.createdAt,
     this.profile,
   });
 
@@ -27,7 +29,8 @@ class UserModel {
       lastName: json['lastName'] as String,
       role: json['role'] as String,
       status: json['status'] as String,
-      wiseEmail: json['wiseEmail'] as String?, // ← NEW
+      wiseEmail: json['wiseEmail'] as String?,
+      createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt'].toString()) : null,
       profile: json['profile'] != null
           ? UserProfile.fromJson(json['profile'] as Map<String, dynamic>)
           : null,

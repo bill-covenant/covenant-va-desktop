@@ -135,7 +135,7 @@ class _DeviceSpecsCardState extends State<DeviceSpecsCard> {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -177,17 +177,17 @@ class _DeviceSpecsCardState extends State<DeviceSpecsCard> {
               _field(dark, 'Laptop Model', _laptopCtrl, Icons.laptop_rounded),
               _field(dark, 'Processor', _processorCtrl, Icons.memory_rounded),
             ]),
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
             _buildRow(dark, [
               _field(dark, 'RAM', _ramCtrl, Icons.storage_rounded),
               _field(dark, 'Storage', _storageCtrl, Icons.sd_storage_rounded),
             ]),
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
             _buildRow(dark, [
               _field(dark, 'Operating System', _osCtrl, Icons.desktop_windows_rounded),
               _field(dark, 'Internet Speed', _internetCtrl, Icons.wifi_rounded),
             ]),
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
             _buildRow(dark, [
               _field(dark, 'Monitor', _monitorCtrl, Icons.monitor_rounded),
               _field(dark, 'Headset', _headsetCtrl, Icons.headset_rounded),
@@ -200,8 +200,11 @@ class _DeviceSpecsCardState extends State<DeviceSpecsCard> {
 
   Widget _buildRow(bool dark, List<Widget> children) {
     return Row(
-      children: children.map((c) => Expanded(child: c)).toList()
-        ..insert(1, const SizedBox(width: 14)),
+      children: [
+        Expanded(child: children[0]),
+        const SizedBox(width: 14),
+        Expanded(child: children[1]),
+      ],
     );
   }
 

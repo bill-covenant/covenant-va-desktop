@@ -88,21 +88,8 @@ class ProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = ThemeProvider().isDarkMode;
-    return Container(
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: dark ? const Color(0xFF1A1D2E) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: dark ? Border.all(color: Colors.white.withOpacity(0.08)) : null,
-        boxShadow: [
-          BoxShadow(
-            color: dark ? Colors.black.withOpacity(0.3) : const Color(0xFF7C3AED).withOpacity(0.2),
-            blurRadius: 30,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
+    return Padding(
+      padding: const EdgeInsets.all(24),
       child: Row(
         children: [
           _buildAvatar(context),
