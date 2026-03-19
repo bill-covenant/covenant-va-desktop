@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/note_model.dart';
 
 class NotesListPanel extends StatelessWidget {

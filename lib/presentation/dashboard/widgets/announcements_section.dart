@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/announcement_model.dart';
 import '../../../data/repositories/announcement_repository.dart';
@@ -13,12 +14,21 @@ class AnnouncementsSection extends StatefulWidget {
 
 class _AnnouncementsSectionState extends State<AnnouncementsSection> {
   List<AnnouncementModel> _announcements = [];
-  final Set<String> _dismissed = {};
+  Set<String> _dismissed = {};
   bool _loaded = false;
+
+  static const _dismissedKey = 'dismissed_announcements';
 
   @override
   void initState() {
     super.initState();
+    _loadDismissedAndFetch();
+  }
+
+  Future<void> _loadDismissedAndFetch() async {
+    final prefs = await SharedPreferences.getInstance();
+    final dismissed = prefs.getStringList(_dismissedKey) ?? [];
+    _dismissed = dismissed.toSet();
     _fetchAnnouncements();
   }
 
@@ -37,8 +47,10 @@ class _AnnouncementsSectionState extends State<AnnouncementsSection> {
     }
   }
 
-  void _dismiss(String id) {
+  Future<void> _dismiss(String id) async {
     setState(() => _dismissed.add(id));
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_dismissedKey, _dismissed.toList());
   }
 
   @override

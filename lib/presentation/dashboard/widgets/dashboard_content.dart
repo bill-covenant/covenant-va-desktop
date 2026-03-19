@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -71,7 +72,14 @@ class DashboardContent extends StatelessWidget {
             onRefresh: () async {
               context.read<DashboardBloc>().add(const DashboardRefreshRequested());
             },
-            child: SingleChildScrollView(
+            child: ScrollConfiguration(
+              behavior: ScrollConfiguration.of(context).copyWith(
+                dragDevices: {
+                  PointerDeviceKind.touch,
+                  PointerDeviceKind.mouse,
+                },
+              ),
+              child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(32, 16, 32, 32),
               child: Column(
@@ -83,7 +91,7 @@ class DashboardContent extends StatelessWidget {
                   _buildBottomRow(state),
                 ],
               ),
-            ),
+            )),
           ),
         ),
       ],
@@ -547,6 +555,7 @@ class DashboardContent extends StatelessWidget {
 
   BoxDecoration _cardDecoration() => DashboardContent._cardDecorationStatic();
 
+
   static BoxDecoration _cardDecorationStatic() {
     final dark = ThemeProvider().isDarkMode;
     final cardBg = dark ? const Color(0xFF1A1D2E) : Colors.white;
@@ -562,6 +571,7 @@ class DashboardContent extends StatelessWidget {
             ],
     );
   }
+
 
   Widget _buildPillBadge(String text, Color bg, Color fg) => DashboardContent._buildPillBadgeStatic(text, bg, fg);
 

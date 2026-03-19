@@ -11,12 +11,14 @@ class ProfileCard extends StatelessWidget {
   final UserModel user;
   final VoidCallback onEdit;
   final VoidCallback onAvatarUpload;
+  final List<Widget>? actions;
 
   const ProfileCard({
     super.key,
     required this.user,
     required this.onEdit,
     required this.onAvatarUpload,
+    this.actions,
   });
 
   Future<void> _handleUploadAvatar(BuildContext context) async {
@@ -95,6 +97,16 @@ class ProfileCard extends StatelessWidget {
           _buildAvatar(context),
           const SizedBox(width: 32),
           Expanded(child: _buildInfo()),
+          if (actions != null) ...[
+            const SizedBox(width: 24),
+            SizedBox(
+              width: 400,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: actions!,
+              ),
+            ),
+          ],
         ],
       ),
     );
