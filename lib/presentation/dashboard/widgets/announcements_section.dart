@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/announcement_model.dart';
 import '../../../data/repositories/announcement_repository.dart';
 
@@ -32,7 +33,6 @@ class _AnnouncementsSectionState extends State<AnnouncementsSection> {
         });
       }
     } catch (e) {
-      // Silently fail — announcements are non-critical
       if (mounted) setState(() => _loaded = true);
     }
   }
@@ -57,25 +57,27 @@ class _AnnouncementsSectionState extends State<AnnouncementsSection> {
   }
 
   Widget _buildAnnouncementCard(AnnouncementModel announcement) {
+    final dark = ThemeProvider().isDarkMode;
     final colors = _priorityColors(announcement.priority);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [colors.bgStart, colors.bgEnd],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: dark ? Colors.white.withOpacity(0.08) : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.border, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: colors.border.withOpacity(0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(
+          color: dark ? colors.accent.withOpacity(0.3) : colors.accent.withOpacity(0.2),
+          width: 1.5,
+        ),
+        boxShadow: dark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -85,10 +87,10 @@ class _AnnouncementsSectionState extends State<AnnouncementsSection> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: colors.iconBg,
+                color: colors.accent.withOpacity(dark ? 0.15 : 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(colors.icon, color: Colors.white, size: 18),
+              child: Icon(colors.icon, color: colors.accent, size: 18),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -100,7 +102,7 @@ class _AnnouncementsSectionState extends State<AnnouncementsSection> {
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
-                      color: colors.title,
+                      color: dark ? Colors.white : const Color(0xFF1F2937),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -108,7 +110,7 @@ class _AnnouncementsSectionState extends State<AnnouncementsSection> {
                     announcement.content,
                     style: TextStyle(
                       fontSize: 13,
-                      color: colors.text,
+                      color: dark ? Colors.white.withOpacity(0.7) : const Color(0xFF4B5563),
                       height: 1.4,
                     ),
                     maxLines: 3,
@@ -120,7 +122,7 @@ class _AnnouncementsSectionState extends State<AnnouncementsSection> {
                       _formatDate(announcement.publishedAt!),
                       style: TextStyle(
                         fontSize: 11,
-                        color: colors.text.withOpacity(0.6),
+                        color: dark ? Colors.white.withOpacity(0.35) : const Color(0xFF9CA3AF),
                       ),
                     ),
                   ],
@@ -133,7 +135,7 @@ class _AnnouncementsSectionState extends State<AnnouncementsSection> {
               child: Icon(
                 Icons.close,
                 size: 16,
-                color: colors.text.withOpacity(0.4),
+                color: dark ? Colors.white.withOpacity(0.4) : const Color(0xFF9CA3AF),
               ),
             ),
           ],
@@ -147,68 +149,22 @@ class _AnnouncementsSectionState extends State<AnnouncementsSection> {
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
-  _PriorityColors _priorityColors(String priority) {
+  _PriorityStyle _priorityColors(String priority) {
     switch (priority) {
       case 'URGENT':
-        return _PriorityColors(
-          bgStart: const Color(0xFFFEF2F2),
-          bgEnd: const Color(0xFFFEE2E2),
-          border: const Color(0xFFFCA5A5),
-          iconBg: const Color(0xFFEF4444),
-          icon: Icons.warning_rounded,
-          title: const Color(0xFF991B1B),
-          text: const Color(0xFFDC2626),
-        );
+        return _PriorityStyle(accent: const Color(0xFFEF4444), icon: Icons.warning_rounded);
       case 'HIGH':
-        return _PriorityColors(
-          bgStart: const Color(0xFFFFFBEB),
-          bgEnd: const Color(0xFFFEF3C7),
-          border: const Color(0xFFFCD34D),
-          iconBg: const Color(0xFFF59E0B),
-          icon: Icons.notifications_active_rounded,
-          title: const Color(0xFF92400E),
-          text: const Color(0xFFD97706),
-        );
+        return _PriorityStyle(accent: const Color(0xFFF59E0B), icon: Icons.notifications_active_rounded);
       case 'LOW':
-        return _PriorityColors(
-          bgStart: const Color(0xFFF9FAFB),
-          bgEnd: const Color(0xFFF3F4F6),
-          border: const Color(0xFFD1D5DB),
-          iconBg: const Color(0xFF6B7280),
-          icon: Icons.info_outline_rounded,
-          title: const Color(0xFF374151),
-          text: const Color(0xFF6B7280),
-        );
-      default: // MEDIUM
-        return _PriorityColors(
-          bgStart: const Color(0xFFEFF6FF),
-          bgEnd: const Color(0xFFDBEAFE),
-          border: const Color(0xFF93C5FD),
-          iconBg: const Color(0xFF3B82F6),
-          icon: Icons.campaign_rounded,
-          title: const Color(0xFF1E3A5F),
-          text: const Color(0xFF2563EB),
-        );
+        return _PriorityStyle(accent: const Color(0xFF6B7280), icon: Icons.info_outline_rounded);
+      default:
+        return _PriorityStyle(accent: const Color(0xFF6366F1), icon: Icons.campaign_rounded);
     }
   }
 }
 
-class _PriorityColors {
-  final Color bgStart;
-  final Color bgEnd;
-  final Color border;
-  final Color iconBg;
+class _PriorityStyle {
+  final Color accent;
   final IconData icon;
-  final Color title;
-  final Color text;
-
-  _PriorityColors({
-    required this.bgStart,
-    required this.bgEnd,
-    required this.border,
-    required this.iconBg,
-    required this.icon,
-    required this.title,
-    required this.text,
-  });
+  _PriorityStyle({required this.accent, required this.icon});
 }

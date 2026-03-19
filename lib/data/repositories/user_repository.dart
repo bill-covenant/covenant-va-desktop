@@ -64,17 +64,45 @@ class UserRepository {
     String? phone,
     String? company,
     String? timezone,
-    String? wiseEmail, // ← NEW
+    String? wiseEmail,
+    // Contact
+    String? secondaryEmail,
+    String? whatsapp,
+    // Demographics
+    DateTime? dateOfBirth,
+    String? gender,
+    String? nationality,
+    // Emergency Contact
+    String? emergencyContactName,
+    String? emergencyContactPhone,
+    String? emergencyContactRelationship,
+    // Professional
+    String? bio,
+    List<String>? skills,
+    List<String>? languages,
+    Map<String, dynamic>? deviceSpecs,
   }) async {
     print('📋 UserRepository: updateProfile called');
-    
+
     final Map<String, dynamic> body = {};
     if (firstName != null) body['firstName'] = firstName;
     if (lastName != null) body['lastName'] = lastName;
     if (phone != null) body['phone'] = phone;
     if (company != null) body['company'] = company;
     if (timezone != null) body['timezone'] = timezone;
-    if (wiseEmail != null) body['wiseEmail'] = wiseEmail; // ← NEW
+    if (wiseEmail != null) body['wiseEmail'] = wiseEmail;
+    if (secondaryEmail != null) body['secondaryEmail'] = secondaryEmail;
+    if (whatsapp != null) body['whatsapp'] = whatsapp;
+    if (dateOfBirth != null) body['dateOfBirth'] = dateOfBirth.toIso8601String();
+    if (gender != null) body['gender'] = gender;
+    if (nationality != null) body['nationality'] = nationality;
+    if (emergencyContactName != null) body['emergencyContactName'] = emergencyContactName;
+    if (emergencyContactPhone != null) body['emergencyContactPhone'] = emergencyContactPhone;
+    if (emergencyContactRelationship != null) body['emergencyContactRelationship'] = emergencyContactRelationship;
+    if (bio != null) body['bio'] = bio;
+    if (skills != null) body['skills'] = skills;
+    if (languages != null) body['languages'] = languages;
+    if (deviceSpecs != null) body['deviceSpecs'] = deviceSpecs;
 
     try {
       final response = await _apiProvider.put(

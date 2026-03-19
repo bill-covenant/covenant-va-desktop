@@ -57,11 +57,43 @@ class UserProfile {
   final String? timezone;
   final String? avatar;
 
+  // Contact
+  final String? secondaryEmail;
+  final String? whatsapp;
+
+  // Demographics
+  final DateTime? dateOfBirth;
+  final String? gender;
+  final String? nationality;
+
+  // Emergency Contact
+  final String? emergencyContactName;
+  final String? emergencyContactPhone;
+  final String? emergencyContactRelationship;
+
+  // Professional
+  final String? bio;
+  final List<String> skills;
+  final List<String> languages;
+  final Map<String, dynamic>? deviceSpecs;
+
   UserProfile({
     this.phone,
     this.company,
     this.timezone,
     this.avatar,
+    this.secondaryEmail,
+    this.whatsapp,
+    this.dateOfBirth,
+    this.gender,
+    this.nationality,
+    this.emergencyContactName,
+    this.emergencyContactPhone,
+    this.emergencyContactRelationship,
+    this.bio,
+    this.skills = const [],
+    this.languages = const [],
+    this.deviceSpecs,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -70,6 +102,18 @@ class UserProfile {
       company: json['company'] as String?,
       timezone: json['timezone'] as String?,
       avatar: json['avatar'] as String?,
+      secondaryEmail: json['secondaryEmail'] as String?,
+      whatsapp: json['whatsapp'] as String?,
+      dateOfBirth: json['dateOfBirth'] != null ? DateTime.tryParse(json['dateOfBirth'].toString()) : null,
+      gender: json['gender'] as String?,
+      nationality: json['nationality'] as String?,
+      emergencyContactName: json['emergencyContactName'] as String?,
+      emergencyContactPhone: json['emergencyContactPhone'] as String?,
+      emergencyContactRelationship: json['emergencyContactRelationship'] as String?,
+      bio: json['bio'] as String?,
+      skills: List<String>.from(json['skills'] ?? []),
+      languages: List<String>.from(json['languages'] ?? []),
+      deviceSpecs: json['deviceSpecs'] as Map<String, dynamic>?,
     );
   }
 
@@ -79,6 +123,18 @@ class UserProfile {
       'company': company,
       'timezone': timezone,
       'avatar': avatar,
+      'secondaryEmail': secondaryEmail,
+      'whatsapp': whatsapp,
+      'dateOfBirth': dateOfBirth?.toIso8601String(),
+      'gender': gender,
+      'nationality': nationality,
+      'emergencyContactName': emergencyContactName,
+      'emergencyContactPhone': emergencyContactPhone,
+      'emergencyContactRelationship': emergencyContactRelationship,
+      'bio': bio,
+      'skills': skills,
+      'languages': languages,
+      'deviceSpecs': deviceSpecs,
     };
   }
 }

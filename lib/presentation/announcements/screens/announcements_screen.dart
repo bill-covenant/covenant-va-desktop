@@ -62,6 +62,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   }
 
   Widget _buildHeader() {
+    final dark = ThemeProvider().isDarkMode;
     return Padding(
       padding: const EdgeInsets.fromLTRB(50, 32, 48, 0),
       child: Row(
@@ -92,7 +93,8 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
-                  color: Colors.white.withOpacity(0.95),
+                  color: dark ? Colors.white.withOpacity(0.95) : Colors.white,
+                  shadows: dark ? [] : [Shadow(color: Colors.black.withOpacity(0.3), blurRadius: 4)],
                 ),
               ),
               const SizedBox(height: 2),
@@ -100,7 +102,9 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                 'Latest announcements from Covenant VA',
                 style: TextStyle(
                   fontSize: 13,
-                  color: Colors.white.withOpacity(0.5),
+                  fontWeight: FontWeight.w500,
+                  color: dark ? Colors.white.withOpacity(0.5) : Colors.white.withOpacity(0.85),
+                  shadows: dark ? [] : [Shadow(color: Colors.black.withOpacity(0.2), blurRadius: 4)],
                 ),
               ),
             ],
@@ -108,7 +112,11 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
           const Spacer(),
           IconButton(
             onPressed: _fetchAnnouncements,
-            icon: Icon(Icons.refresh_rounded, color: Colors.white.withOpacity(0.6)),
+            icon: Icon(
+              Icons.refresh_rounded,
+              color: dark ? Colors.white.withOpacity(0.6) : Colors.white,
+              shadows: dark ? [] : [Shadow(color: Colors.black.withOpacity(0.3), blurRadius: 4)],
+            ),
             tooltip: 'Refresh',
           ),
         ],
@@ -117,9 +125,13 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   }
 
   Widget _buildBody() {
+    final dark = ThemeProvider().isDarkMode;
+
     if (_loading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Colors.white),
+      return Center(
+        child: CircularProgressIndicator(
+          color: dark ? Colors.white : const Color(0xFF6366F1),
+        ),
       );
     }
 
@@ -128,9 +140,9 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, color: Colors.white.withOpacity(0.4), size: 48),
+            Icon(Icons.error_outline, color: dark ? Colors.white.withOpacity(0.4) : const Color(0xFF9CA3AF), size: 48),
             const SizedBox(height: 12),
-            Text(_error!, style: TextStyle(color: Colors.white.withOpacity(0.6))),
+            Text(_error!, style: TextStyle(color: dark ? Colors.white.withOpacity(0.6) : const Color(0xFF6B7280))),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: _fetchAnnouncements,
@@ -152,14 +164,14 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.campaign_rounded, color: Colors.white.withOpacity(0.2), size: 64),
+            Icon(Icons.campaign_rounded, color: dark ? Colors.white.withOpacity(0.2) : const Color(0xFFD1D5DB), size: 64),
             const SizedBox(height: 16),
             Text(
               'No announcements yet',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: Colors.white.withOpacity(0.5),
+                color: dark ? Colors.white.withOpacity(0.5) : const Color(0xFF6B7280),
               ),
             ),
             const SizedBox(height: 6),
@@ -167,7 +179,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
               'Check back later for news and updates',
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.white.withOpacity(0.3),
+                color: dark ? Colors.white.withOpacity(0.3) : const Color(0xFF9CA3AF),
               ),
             ),
           ],
@@ -186,77 +198,176 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   }
 
   Widget _buildAnnouncementCard(AnnouncementModel announcement) {
+    final dark = ThemeProvider().isDarkMode;
     final colors = _priorityColors(announcement.priority);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: colors.accent.withOpacity(0.3), width: 1.5),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: dark
+              ? [const Color(0xFF1E2235), const Color(0xFF171B2D)]
+              : [Colors.white, const Color(0xFFF8F9FB)],
+        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: dark ? Colors.white.withOpacity(0.08) : Colors.white.withOpacity(0.6),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: dark
+                ? Colors.black.withOpacity(0.4)
+                : Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: dark
+                ? Colors.black.withOpacity(0.2)
+                : Colors.black.withOpacity(0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+          if (!dark)
+            BoxShadow(
+              color: colors.accent.withOpacity(0.08),
+              blurRadius: 24,
+              offset: const Offset(0, 4),
+            ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: Stack(
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: colors.accent.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(10),
+            // Accent strip on the left
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: Container(
+                width: 4,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [colors.accent, colors.accent.withOpacity(0.4)],
                   ),
-                  child: Icon(colors.icon, color: colors.accent, size: 18),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    announcement.title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
+              ),
+            ),
+            // Content
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 22, 24, 22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      // Icon with glow
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [colors.accent, colors.accent.withOpacity(0.7)],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: colors.accent.withOpacity(0.35),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Icon(colors.icon, color: Colors.white, size: 18),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          announcement.title,
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: dark ? Colors.white : const Color(0xFF1F2937),
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                      ),
+                      // Priority badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: colors.accent.withOpacity(dark ? 0.15 : 0.08),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: colors.accent.withOpacity(dark ? 0.25 : 0.15),
+                          ),
+                        ),
+                        child: Text(
+                          announcement.priority,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: colors.accent,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Divider
+                  Container(
+                    height: 1,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          colors.accent.withOpacity(0.2),
+                          dark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04),
+                          Colors.transparent,
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: colors.accent.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    announcement.priority,
+                  const SizedBox(height: 16),
+                  Text(
+                    announcement.content,
                     style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: colors.accent,
+                      fontSize: 14,
+                      color: dark ? Colors.white.withOpacity(0.7) : const Color(0xFF4B5563),
+                      height: 1.65,
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              announcement.content,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.white.withOpacity(0.7),
-                height: 1.6,
+                  if (announcement.publishedAt != null) ...[
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today_rounded,
+                          size: 13,
+                          color: dark ? Colors.white.withOpacity(0.3) : const Color(0xFF9CA3AF),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _formatDate(announcement.publishedAt!),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: dark ? Colors.white.withOpacity(0.35) : const Color(0xFF9CA3AF),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
               ),
             ),
-            if (announcement.publishedAt != null) ...[
-              const SizedBox(height: 16),
-              Text(
-                _formatDate(announcement.publishedAt!),
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.white.withOpacity(0.35),
-                ),
-              ),
-            ],
           ],
         ),
       ),

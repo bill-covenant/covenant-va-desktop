@@ -5,6 +5,8 @@ import 'package:covenant_va_desktop/presentation/profile/widgets/logout_dialog_3
 import 'package:covenant_va_desktop/presentation/profile/widgets/profile_card.dart';
 import 'package:covenant_va_desktop/presentation/profile/widgets/stats_grid.dart';
 import 'package:covenant_va_desktop/presentation/profile/widgets/payment_settings_card.dart';
+import 'package:covenant_va_desktop/presentation/profile/widgets/extended_profile_card.dart';
+import 'package:covenant_va_desktop/presentation/profile/widgets/device_specs_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/theme/theme_provider.dart';
@@ -332,8 +334,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onAvatarUpload: () => _loadUserData(showLoading: false),
           ),
           const SizedBox(height: 24),
-          if (_stats != null) StatsGrid(stats: _stats!),
-          const SizedBox(height: 24),
 
           // Payment Settings + Change Password side by side
           Row(
@@ -348,6 +348,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 24),
+          ExtendedProfileCard(
+            user: _user!,
+            onUpdated: () => _loadUserData(showLoading: false),
+          ),
+          const SizedBox(height: 24),
+          DeviceSpecsCard(
+            user: _user!,
+            onUpdated: () => _loadUserData(showLoading: false),
           ),
         ],
       ),
