@@ -84,8 +84,191 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
     widget.onClockStateChanged?.call(_clockInTime, _clockOutTime);
   }
 
+  Future<bool> _showClockConfirmation({required bool isClockIn}) async {
+    final now = TimeOfDay.now();
+    final timeStr = _formatTime(now);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0.8, end: 1.0),
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutBack,
+          builder: (context, scale, child) => Transform.scale(
+            scale: scale,
+            child: child,
+          ),
+          child: Container(
+            width: 420,
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF1E1B4B), Color(0xFF312E81)],
+              ),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: isClockIn
+                    ? const Color(0xFF7C3AED).withOpacity(0.4)
+                    : const Color(0xFFEF4444).withOpacity(0.4),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: (isClockIn
+                          ? const Color(0xFF7C3AED)
+                          : const Color(0xFFEF4444))
+                      .withOpacity(0.25),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: isClockIn
+                          ? [const Color(0xFF7C3AED), const Color(0xFF9333EA)]
+                          : [const Color(0xFFEF4444), const Color(0xFFDC2626)],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (isClockIn
+                                ? const Color(0xFF7C3AED)
+                                : const Color(0xFFEF4444))
+                            .withOpacity(0.4),
+                        blurRadius: 20,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    isClockIn ? Icons.play_arrow_rounded : Icons.stop_rounded,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // Title
+                Text(
+                  isClockIn ? 'Start Your Shift?' : 'End Your Shift?',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                // Subtitle
+                Text(
+                  isClockIn
+                      ? 'You are about to clock in at $timeStr.\nYour time will start tracking.'
+                      : 'You are about to clock out at $timeStr.\nYour shift will be recorded.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.6),
+                    fontSize: 14,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 28),
+                // Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            side: BorderSide(
+                              color: Colors.white.withOpacity(0.15),
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.7),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          backgroundColor: isClockIn
+                              ? const Color(0xFF7C3AED)
+                              : const Color(0xFFEF4444),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              isClockIn
+                                  ? Icons.play_arrow_rounded
+                                  : Icons.stop_rounded,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              isClockIn ? 'Clock In' : 'Clock Out',
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    return confirmed == true;
+  }
+
   Future<void> _handleClockToggle() async {
     if (_isClockingIn) return;
+
+    if (_clockInTime == null) {
+      // CLOCK IN — show confirmation first
+      final confirmed = await _showClockConfirmation(isClockIn: true);
+      if (!confirmed || !mounted) return;
+    } else if (_clockOutTime == null) {
+      // CLOCK OUT — show confirmation first
+      final confirmed = await _showClockConfirmation(isClockIn: false);
+      if (!confirmed || !mounted) return;
+    }
 
     setState(() => _isClockingIn = true);
 

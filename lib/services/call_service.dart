@@ -650,21 +650,27 @@ class CallService extends ChangeNotifier {
       'iceServers': [
         {'urls': 'stun:stun.l.google.com:19302'},
         {'urls': 'stun:stun1.l.google.com:19302'},
-        // TURN servers for NAT traversal
+        {'urls': 'stun:stun.relay.metered.ca:80'},
+        // Metered.ca TURN servers for NAT traversal
         {
-          'urls': 'turn:openrelay.metered.ca:80',
-          'username': 'openrelayproject',
-          'credential': 'openrelayproject',
+          'urls': 'turn:global.relay.metered.ca:80',
+          'username': 'e8dd65c092d0109410299e70',
+          'credential': 'mHj+thls0x0TEtv3',
         },
         {
-          'urls': 'turn:openrelay.metered.ca:443',
-          'username': 'openrelayproject',
-          'credential': 'openrelayproject',
+          'urls': 'turn:global.relay.metered.ca:80?transport=tcp',
+          'username': 'e8dd65c092d0109410299e70',
+          'credential': 'mHj+thls0x0TEtv3',
         },
         {
-          'urls': 'turn:openrelay.metered.ca:443?transport=tcp',
-          'username': 'openrelayproject',
-          'credential': 'openrelayproject',
+          'urls': 'turn:global.relay.metered.ca:443',
+          'username': 'e8dd65c092d0109410299e70',
+          'credential': 'mHj+thls0x0TEtv3',
+        },
+        {
+          'urls': 'turns:global.relay.metered.ca:443?transport=tcp',
+          'username': 'e8dd65c092d0109410299e70',
+          'credential': 'mHj+thls0x0TEtv3',
         },
       ],
     };
