@@ -302,30 +302,35 @@ class CallService extends ChangeNotifier {
                 break;
               case 'webrtc-answer':
                 if (signalData['answer'] != null && _peerConnection != null) {
-                  // Only set remote description if we're expecting an answer
                   if (_peerConnection!.signalingState == RTCSignalingState.RTCSignalingStateHaveLocalOffer) {
                     final answer = Map<String, dynamic>.from(signalData['answer']);
                     await _peerConnection!.setRemoteDescription(
                       RTCSessionDescription(answer['sdp'], answer['type']),
                     );
+                    // Flush queued ICE candidates
+                    await _flushPendingCandidates();
                   } else {
                     print('⚠️ Ignoring duplicate answer (state: ${_peerConnection!.signalingState})');
                   }
                 }
                 break;
               case 'webrtc-ice-candidate':
-                if (signalData['candidate'] != null && _peerConnection != null) {
+                if (signalData['candidate'] != null) {
                   final candidate = Map<String, dynamic>.from(signalData['candidate']);
-                  try {
-                    await _peerConnection!.addCandidate(
-                      RTCIceCandidate(
-                        candidate['candidate'],
-                        candidate['sdpMid'],
-                        candidate['sdpMLineIndex'],
-                      ),
-                    );
-                  } catch (e) {
-                    print('Error adding ICE candidate: $e');
+                  final iceCandidate = RTCIceCandidate(
+                    candidate['candidate'],
+                    candidate['sdpMid'],
+                    candidate['sdpMLineIndex'],
+                  );
+                  if (_peerConnection != null && _peerConnection!.getRemoteDescription() != null) {
+                    try {
+                      await _peerConnection!.addCandidate(iceCandidate);
+                    } catch (e) {
+                      print('Error adding ICE candidate: $e');
+                    }
+                  } else {
+                    print('📞 Queuing ICE candidate (no remote description yet)');
+                    _pendingCandidates.add(iceCandidate);
                   }
                 }
                 break;
@@ -472,24 +477,27 @@ class CallService extends ChangeNotifier {
         await _peerConnection!.setRemoteDescription(
           RTCSessionDescription(answer['sdp'], answer['type']),
         );
+        await _flushPendingCandidates();
       } else {
         print('⚠️ Ignoring duplicate answer via socket');
       }
     };
 
     _socket.onICECandidate = (candidate) async {
-      if (_peerConnection != null) {
+      final iceCandidate = RTCIceCandidate(
+        candidate['candidate'],
+        candidate['sdpMid'],
+        candidate['sdpMLineIndex'],
+      );
+      if (_peerConnection != null && _peerConnection!.getRemoteDescription() != null) {
         try {
-          await _peerConnection!.addCandidate(
-            RTCIceCandidate(
-              candidate['candidate'],
-              candidate['sdpMid'],
-              candidate['sdpMLineIndex'],
-            ),
-          );
+          await _peerConnection!.addCandidate(iceCandidate);
         } catch (e) {
           print('Error adding ICE candidate: $e');
         }
+      } else {
+        print('📞 Queuing ICE candidate via socket');
+        _pendingCandidates.add(iceCandidate);
       }
     };
   }
@@ -614,12 +622,50 @@ class CallService extends ChangeNotifier {
     }
   }
 
+  // Queue for ICE candidates that arrive before remote description is set
+  final List<RTCIceCandidate> _pendingCandidates = [];
+
+  Future<void> _flushPendingCandidates() async {
+    if (_peerConnection == null) return;
+    for (final candidate in _pendingCandidates) {
+      try {
+        await _peerConnection!.addCandidate(candidate);
+        print('📞 Flushed queued ICE candidate');
+      } catch (e) {
+        print('Error flushing ICE candidate: $e');
+      }
+    }
+    _pendingCandidates.clear();
+  }
+
   Future<RTCPeerConnection> _createPeerConnection() async {
+    // Close any existing connection first
+    if (_peerConnection != null) {
+      await _peerConnection!.close();
+      _peerConnection = null;
+    }
+    _pendingCandidates.clear();
+
     final config = {
       'iceServers': [
         {'urls': 'stun:stun.l.google.com:19302'},
         {'urls': 'stun:stun1.l.google.com:19302'},
-        {'urls': 'stun:stun2.l.google.com:19302'},
+        // TURN servers for NAT traversal
+        {
+          'urls': 'turn:openrelay.metered.ca:80',
+          'username': 'openrelayproject',
+          'credential': 'openrelayproject',
+        },
+        {
+          'urls': 'turn:openrelay.metered.ca:443',
+          'username': 'openrelayproject',
+          'credential': 'openrelayproject',
+        },
+        {
+          'urls': 'turn:openrelay.metered.ca:443?transport=tcp',
+          'username': 'openrelayproject',
+          'credential': 'openrelayproject',
+        },
       ],
     };
 
@@ -741,6 +787,7 @@ class CallService extends ChangeNotifier {
       await pc.setRemoteDescription(
         RTCSessionDescription(offer['sdp'], offer['type']),
       );
+      await _flushPendingCandidates();
 
       final answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
@@ -770,6 +817,7 @@ class CallService extends ChangeNotifier {
     _toneService.stop();
     _isNegotiating = false;
     _isCaller = false;
+    _pendingCandidates.clear();
     _signalPollTimer?.cancel();
     _signalPollTimer = null;
 

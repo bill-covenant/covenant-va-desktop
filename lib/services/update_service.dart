@@ -22,8 +22,8 @@ class UpdateInfo {
 
 class UpdateService {
   // ⚠️ Update this every time you release a new version
-  static const String currentVersion = '1.0.12';
-  static const int currentBuildNumber = 13;
+  static const String currentVersion = '1.0.13';
+  static const int currentBuildNumber = 14;
 
   static Future<UpdateInfo?> checkForUpdate(String apiBaseUrl) async {
     try {
