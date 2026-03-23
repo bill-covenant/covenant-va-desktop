@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:covenant_va_desktop/presentation/shared/widgets/cross_hatch_pattern.dart';
 import 'package:covenant_va_desktop/services/update_banner.dart';
 import 'package:flutter/material.dart';
@@ -86,15 +87,27 @@ class _MainLayoutState extends State<MainLayout> {
         'Authorization': 'Bearer $token',
       };
 
-      // Messages: unread count
+      // Messages: unread count from Firestore
       try {
-        final res = await http.get(
-          Uri.parse('$_apiBaseUrl/messages/unread-count'),
-          headers: headers,
-        );
-        if (res.statusCode == 200 && mounted) {
-          final data = json.decode(res.body);
-          setState(() => _messagesBadge = (data['unreadCount'] as int? ?? 0));
+        final userJson = prefs.getString('user');
+        if (userJson != null) {
+          final userData = json.decode(userJson);
+          final userId = userData['id']?.toString() ?? '';
+          if (userId.isNotEmpty) {
+            final snapshot = await FirebaseFirestore.instance
+                .collection('conversations')
+                .where('participants', arrayContains: userId)
+                .get();
+            int totalUnread = 0;
+            for (final doc in snapshot.docs) {
+              final data = doc.data();
+              final unreadCounts = data['unreadCounts'] as Map<String, dynamic>?;
+              if (unreadCounts != null) {
+                totalUnread += (unreadCounts[userId] as int? ?? 0);
+              }
+            }
+            if (mounted) setState(() => _messagesBadge = totalUnread);
+          }
         }
       } catch (_) {}
 
