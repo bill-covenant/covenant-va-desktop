@@ -6,6 +6,7 @@ import '../../../data/models/conversation_model.dart';
 class ChatHeader extends StatelessWidget {
   final ConversationModel conversation;
   final String currentUserId;
+  final bool isOtherUserOnline;
   final VoidCallback? onAudioCall;
   final VoidCallback? onVideoCall;
 
@@ -13,6 +14,7 @@ class ChatHeader extends StatelessWidget {
     super.key,
     required this.conversation,
     required this.currentUserId,
+    this.isOtherUserOnline = false,
     this.onAudioCall,
     this.onVideoCall,
   });
@@ -109,23 +111,28 @@ class ChatHeader extends StatelessWidget {
                           width: 7,
                           height: 7,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF22C55E),
+                            color: isOtherUserOnline
+                                ? const Color(0xFF22C55E)
+                                : const Color(0xFF9CA3AF),
                             shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color:
-                                    const Color(0xFF22C55E).withOpacity(0.5),
-                                blurRadius: 6,
-                                spreadRadius: 1,
-                              ),
-                            ],
+                            boxShadow: isOtherUserOnline
+                                ? [
+                                    BoxShadow(
+                                      color: const Color(0xFF22C55E).withOpacity(0.5),
+                                      blurRadius: 6,
+                                      spreadRadius: 1,
+                                    ),
+                                  ]
+                                : [],
                           ),
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          'Online',
+                          isOtherUserOnline ? 'Online' : 'Offline',
                           style: TextStyle(
-                            color: const Color(0xFF22C55E).withOpacity(0.9),
+                            color: isOtherUserOnline
+                                ? const Color(0xFF22C55E).withOpacity(0.9)
+                                : const Color(0xFF9CA3AF).withOpacity(0.9),
                             fontSize: 12.5,
                             fontWeight: FontWeight.w600,
                           ),

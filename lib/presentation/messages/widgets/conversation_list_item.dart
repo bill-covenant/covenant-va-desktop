@@ -7,6 +7,7 @@ class ConversationListItem extends StatefulWidget {
   final ConversationModel conversation;
   final String currentUserId;
   final bool isSelected;
+  final bool isOtherUserOnline;
   final VoidCallback onTap;
 
   const ConversationListItem({
@@ -14,6 +15,7 @@ class ConversationListItem extends StatefulWidget {
     required this.conversation,
     required this.currentUserId,
     required this.isSelected,
+    this.isOtherUserOnline = false,
     required this.onTap,
   });
 
@@ -252,16 +254,23 @@ class _ConversationListItemState extends State<ConversationListItem> {
               width: 13,
               height: 13,
               decoration: BoxDecoration(
-                color: const Color(0xFF22C55E),
+                color: widget.isOtherUserOnline
+                    ? const Color(0xFF22C55E)
+                    : const Color(0xFF9CA3AF),
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF22C55E).withOpacity(0.4),
-                    blurRadius: 4,
-                    spreadRadius: 0,
-                  ),
-                ],
+                border: Border.all(
+                  color: ThemeProvider().isDarkMode ? const Color(0xFF1A1D2E) : Colors.white,
+                  width: 2.5,
+                ),
+                boxShadow: widget.isOtherUserOnline
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF22C55E).withOpacity(0.4),
+                          blurRadius: 4,
+                          spreadRadius: 0,
+                        ),
+                      ]
+                    : [],
               ),
             ),
           ),

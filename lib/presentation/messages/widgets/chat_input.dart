@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' as foundation;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/conversation_model.dart';
 import '../bloc/messages_bloc.dart';
 import '../bloc/messages_event.dart';
@@ -300,22 +301,34 @@ class _ChatInputState extends State<ChatInput>
           child: Container(
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [
-                  Color(0xFF7C3AED),
-                  Color(0xFFEC4899),
-                ],
-              ),
+              gradient: ThemeProvider().isDarkMode
+                  ? const LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [
+                        Color(0xFF1A1230),
+                        Color(0xFF1E1535),
+                      ],
+                    )
+                  : const LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [
+                        Color(0xFF7C3AED),
+                        Color(0xFFEC4899),
+                      ],
+                    ),
               border: Border(
                 top: BorderSide(
-                  color: Colors.white.withOpacity(0.15),
+                  color: ThemeProvider().isDarkMode
+                      ? Colors.white.withOpacity(0.08)
+                      : Colors.white.withOpacity(0.15),
                 ),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF7C3AED).withOpacity(0.3),
+                  color: const Color(0xFF7C3AED).withOpacity(
+                      ThemeProvider().isDarkMode ? 0.1 : 0.3),
                   blurRadius: 20,
                   offset: const Offset(0, -4),
                 ),
@@ -333,14 +346,22 @@ class _ChatInputState extends State<ChatInput>
                       curve: Curves.easeOutCubic,
                       constraints: const BoxConstraints(maxHeight: 120),
                       decoration: BoxDecoration(
-                        color: _isFocused
-                            ? Colors.white.withOpacity(0.97)
-                            : Colors.white.withOpacity(0.9),
+                        color: ThemeProvider().isDarkMode
+                            ? (_isFocused
+                                ? Colors.white.withOpacity(0.15)
+                                : Colors.white.withOpacity(0.1))
+                            : (_isFocused
+                                ? Colors.white.withOpacity(0.97)
+                                : Colors.white.withOpacity(0.9)),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: _isFocused
-                              ? Colors.white
-                              : Colors.white.withOpacity(0.6),
+                          color: ThemeProvider().isDarkMode
+                              ? (_isFocused
+                                  ? Colors.white.withOpacity(0.3)
+                                  : Colors.white.withOpacity(0.15))
+                              : (_isFocused
+                                  ? Colors.white
+                                  : Colors.white.withOpacity(0.6)),
                           width: _isFocused ? 1.5 : 1,
                         ),
                         boxShadow: [
@@ -380,8 +401,10 @@ class _ChatInputState extends State<ChatInput>
                                 maxLines: null,
                                 keyboardType: TextInputType.multiline,
                                 textInputAction: TextInputAction.send,
-                                style: const TextStyle(
-                                  color: Color(0xFF2D2252),
+                                style: TextStyle(
+                                  color: ThemeProvider().isDarkMode
+                                      ? Colors.white
+                                      : const Color(0xFF2D2252),
                                   fontSize: 14.5,
                                   height: 1.45,
                                   fontWeight: FontWeight.w400,
@@ -389,8 +412,10 @@ class _ChatInputState extends State<ChatInput>
                                 decoration: InputDecoration(
                                   hintText: 'Type a message...',
                                   hintStyle: TextStyle(
-                                    color: const Color(0xFF9CA3AF)
-                                        .withOpacity(0.8),
+                                    color: ThemeProvider().isDarkMode
+                                        ? Colors.white.withOpacity(0.5)
+                                        : const Color(0xFF9CA3AF)
+                                            .withOpacity(0.8),
                                     fontSize: 14.5,
                                     fontWeight: FontWeight.w400,
                                   ),
@@ -517,8 +542,10 @@ class _ChatInputState extends State<ChatInput>
             child: Icon(
               icon,
               color: isActive
-                  ? const Color(0xFF7C3AED)
-                  : const Color(0xFFA78BFA).withOpacity(0.7),
+                  ? (ThemeProvider().isDarkMode ? Colors.white : const Color(0xFF7C3AED))
+                  : (ThemeProvider().isDarkMode
+                      ? Colors.white.withOpacity(0.5)
+                      : const Color(0xFFA78BFA).withOpacity(0.7)),
               size: 20,
             ),
           ),

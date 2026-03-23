@@ -7,6 +7,7 @@ import '../../../data/repositories/client_repository.dart';
 import '../../../data/providers/storage_provider.dart';
 import '../../../core/di/service_locator.dart';
 import 'conversation_list_item.dart';
+import '../../../services/socket_service.dart';
 
 class ConversationListPanel extends StatefulWidget {
   final List<ConversationModel> conversations;
@@ -618,10 +619,12 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
             widget.selectedConversation?.id == conversation.id;
 
         final enriched = _enrichConversation(conversation);
+        final otherUserId = enriched.getOtherUserId(widget.currentUserId);
         return ConversationListItem(
           conversation: enriched,
           currentUserId: widget.currentUserId,
           isSelected: isSelected,
+          isOtherUserOnline: SocketService().isUserOnline(otherUserId),
           onTap: () => widget.onConversationSelected(enriched),
         );
       },

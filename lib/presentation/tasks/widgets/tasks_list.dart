@@ -84,16 +84,19 @@ class TasksList extends StatelessWidget {
   }
 
   Widget _buildHeader(int count) {
+    final isDark = ThemeProvider().isDarkMode;
     return Container(
       padding: const EdgeInsets.fromLTRB(28, 22, 28, 18),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
-          colors: [Color(0xFF7C3AED), Color(0xFF6366F1)],
+          colors: isDark
+              ? [const Color(0xFF1E1535), const Color(0xFF1A1230)]
+              : [const Color(0xFF7C3AED), const Color(0xFF6366F1)],
         ),
         boxShadow: [
-          BoxShadow(color: const Color(0xFF7C3AED).withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4)),
+          BoxShadow(color: const Color(0xFF7C3AED).withOpacity(isDark ? 0.1 : 0.3), blurRadius: 12, offset: const Offset(0, 4)),
         ],
       ),
       child: Row(
@@ -143,7 +146,7 @@ class TasksList extends StatelessWidget {
 
   Widget _buildColumnHeaders() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: ThemeProvider().isDarkMode
@@ -179,7 +182,7 @@ class _ColHeader extends StatelessWidget {
       textAlign: center ? TextAlign.center : TextAlign.left,
       style: TextStyle(
         color: const Color(0xFF7C3AED).withOpacity(0.5),
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: FontWeight.w800,
         letterSpacing: 1.2,
       ),
@@ -283,14 +286,14 @@ class _TaskRowState extends State<_TaskRow> {
                       ),
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                           child: Row(
                             children: [
                               // # badge
                               SizedBox(
                                 width: 44,
                                 child: Container(
-                                  width: 28, height: 28,
+                                  width: 34, height: 34,
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
                                     color: _isHovered ? _priorityColor.withOpacity(0.1) : (ThemeProvider().isDarkMode ? Colors.white.withOpacity(0.06) : const Color(0xFFF3F4F6)),
@@ -299,13 +302,14 @@ class _TaskRowState extends State<_TaskRow> {
                                   child: Text(
                                     '${widget.index}',
                                     style: TextStyle(
-                                      fontSize: 12,
+                                      fontSize: 14,
                                       fontWeight: FontWeight.w800,
                                       color: _isHovered ? _priorityColor : const Color(0xFF9CA3AF),
                                     ),
                                   ),
                                 ),
                               ),
+                              const SizedBox(width: 14),
                               // Task title + description
                               Expanded(
                                 flex: 4,
@@ -315,14 +319,14 @@ class _TaskRowState extends State<_TaskRow> {
                                   children: [
                                     Text(
                                       widget.task.title,
-                                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: ThemeProvider().isDarkMode ? Colors.white : const Color(0xFF111827), letterSpacing: -0.2),
+                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: ThemeProvider().isDarkMode ? Colors.white : const Color(0xFF111827), letterSpacing: -0.2),
                                       maxLines: 1, overflow: TextOverflow.ellipsis,
                                     ),
                                     if (widget.task.description != null && widget.task.description!.isNotEmpty) ...[
                                       const SizedBox(height: 2),
                                       Text(
                                         widget.task.description!,
-                                        style: TextStyle(fontSize: 11, color: ThemeProvider().isDarkMode ? Colors.white54 : Colors.grey[400]),
+                                        style: TextStyle(fontSize: 13, color: ThemeProvider().isDarkMode ? Colors.white54 : Colors.grey[400]),
                                         maxLines: 1, overflow: TextOverflow.ellipsis,
                                       ),
                                     ],
@@ -335,7 +339,7 @@ class _TaskRowState extends State<_TaskRow> {
                                 child: Align(
                                   alignment: Alignment.centerLeft,
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                                     decoration: BoxDecoration(
                                       gradient: LinearGradient(
                                         begin: Alignment.topLeft,
@@ -349,17 +353,17 @@ class _TaskRowState extends State<_TaskRow> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Container(
-                                          width: 7, height: 7,
+                                          width: 8, height: 8,
                                           decoration: BoxDecoration(
                                             color: _priorityColor,
                                             shape: BoxShape.circle,
                                             boxShadow: [BoxShadow(color: _priorityColor.withOpacity(0.4), blurRadius: 3)],
                                           ),
                                         ),
-                                        const SizedBox(width: 6),
+                                        const SizedBox(width: 7),
                                         Text(
                                           _priorityLabel,
-                                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _priorityColor),
+                                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _priorityColor),
                                         ),
                                       ],
                                     ),
@@ -372,7 +376,7 @@ class _TaskRowState extends State<_TaskRow> {
                                 child: Align(
                                   alignment: Alignment.centerLeft,
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                     decoration: BoxDecoration(
                                       gradient: LinearGradient(
                                         colors: [statusColor.withOpacity(0.12), statusColor.withOpacity(0.04)],
@@ -386,8 +390,8 @@ class _TaskRowState extends State<_TaskRow> {
                                       isDense: true,
                                       dropdownColor: ThemeProvider().isDarkMode ? const Color(0xFF1A1D2E) : Colors.white,
                                       borderRadius: BorderRadius.circular(14),
-                                      icon: Icon(Icons.arrow_drop_down, color: statusColor, size: 18),
-                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: statusColor),
+                                      icon: Icon(Icons.arrow_drop_down, color: statusColor, size: 20),
+                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: statusColor),
                                       items: const [
                                         DropdownMenuItem(value: 'PENDING', child: Text('Pending')),
                                         DropdownMenuItem(value: 'IN_PROGRESS', child: Text('In Progress')),
@@ -411,21 +415,21 @@ class _TaskRowState extends State<_TaskRow> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Container(
-                                            padding: const EdgeInsets.all(5),
+                                            padding: const EdgeInsets.all(6),
                                             decoration: BoxDecoration(
                                               color: isOverdue
                                                   ? (ThemeProvider().isDarkMode ? const Color(0xFF3B1515) : const Color(0xFFFEE2E2))
                                                   : (ThemeProvider().isDarkMode ? Colors.white.withOpacity(0.06) : const Color(0xFFF3F4F6)),
                                               borderRadius: BorderRadius.circular(7),
                                             ),
-                                            child: Icon(Icons.calendar_today, size: 12, color: isOverdue ? const Color(0xFFDC2626) : (ThemeProvider().isDarkMode ? Colors.white70 : Colors.grey[500])),
+                                            child: Icon(Icons.calendar_today, size: 14, color: isOverdue ? const Color(0xFFDC2626) : (ThemeProvider().isDarkMode ? Colors.white70 : Colors.grey[500])),
                                           ),
                                           const SizedBox(width: 8),
                                           Flexible(
                                             child: Text(
                                               DateFormat('MMM dd, yyyy').format(widget.task.dueDate!),
                                               style: TextStyle(
-                                                fontSize: 12,
+                                                fontSize: 14,
                                                 fontWeight: isOverdue ? FontWeight.w700 : FontWeight.w600,
                                                 color: isOverdue ? const Color(0xFFDC2626) : (ThemeProvider().isDarkMode ? Colors.white70 : Colors.grey[600]),
                                               ),
@@ -446,7 +450,7 @@ class _TaskRowState extends State<_TaskRow> {
                                           ],
                                         ],
                                       )
-                                    : Text('No date', style: TextStyle(fontSize: 12, color: ThemeProvider().isDarkMode ? Colors.white54 : Colors.grey[400], fontStyle: FontStyle.italic)),
+                                    : Text('No date', style: TextStyle(fontSize: 14, color: ThemeProvider().isDarkMode ? Colors.white54 : Colors.grey[400], fontStyle: FontStyle.italic)),
                               ),
                               // View button
                               SizedBox(
@@ -454,7 +458,7 @@ class _TaskRowState extends State<_TaskRow> {
                                 child: Center(
                                   child: AnimatedContainer(
                                     duration: const Duration(milliseconds: 200),
-                                    padding: const EdgeInsets.all(8),
+                                    padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
                                       gradient: _isHovered
                                           ? const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF6366F1)])
@@ -467,7 +471,7 @@ class _TaskRowState extends State<_TaskRow> {
                                     ),
                                     child: Icon(
                                       Icons.visibility_outlined,
-                                      size: 16,
+                                      size: 18,
                                       color: _isHovered ? Colors.white : const Color(0xFF7C3AED).withOpacity(0.5),
                                     ),
                                   ),

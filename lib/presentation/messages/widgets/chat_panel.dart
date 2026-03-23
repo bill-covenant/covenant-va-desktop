@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/conversation_model.dart';
 import '../../../services/call_service.dart';
+import '../../../services/socket_service.dart';
 import 'chat_header.dart';
 import 'chat_messages_area.dart';
 import 'chat_input.dart';
@@ -33,6 +34,7 @@ class ChatPanel extends StatelessWidget {
         ChatHeader(
           conversation: conversation!,
           currentUserId: currentUserId,
+          isOtherUserOnline: SocketService().isUserOnline(conversation!.getOtherUserId(currentUserId)),
           onAudioCall: callService != null ? () {
             final otherUserId = conversation!.getOtherUserId(currentUserId);
             final otherUserName = conversation!.getOtherParticipantName(currentUserId);

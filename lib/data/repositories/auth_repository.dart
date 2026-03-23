@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/constants/api_constants.dart';
 import '../models/login_request.dart';
 import '../models/login_response.dart';
@@ -28,9 +29,19 @@ class AuthRepository {
       // Save token and user to local storage
       await _storageProvider.saveToken(loginResponse.token);
       await _storageProvider.saveUser(loginResponse.user);
-      
+
       // Set token in API provider for future requests
       _apiProvider.setToken(loginResponse.token);
+
+      // Sign into Firebase for Firestore chat access
+      if (loginResponse.firebaseToken != null) {
+        try {
+          await FirebaseAuth.instance.signInWithCustomToken(loginResponse.firebaseToken!);
+          print('✅ Firebase auth successful');
+        } catch (e) {
+          print('⚠️ Firebase sign-in failed: $e');
+        }
+      }
 
       return loginResponse;
     } catch (e) {
@@ -71,6 +82,9 @@ class AuthRepository {
   Future<void> logout() async {
     await _storageProvider.clearAll();
     _apiProvider.clearToken();
+    try {
+      await FirebaseAuth.instance.signOut();
+    } catch (_) {}
   }
 
   // Initialize (restore session)

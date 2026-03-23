@@ -20,6 +20,13 @@ class SocketService {
   final _newMessageController = StreamController<MessageModel>.broadcast();
   Stream<MessageModel> get onNewMessage => _newMessageController.stream;
 
+  // ✅ Track online users
+  final Set<String> _onlineUsers = {};
+  final _userStatusController = StreamController<Map<String, dynamic>>.broadcast();
+  Stream<Map<String, dynamic>> get onUserStatusChanged => _userStatusController.stream;
+
+  bool isUserOnline(String userId) => _onlineUsers.contains(userId);
+
   // ═══════════════════════════════════════
   // Call signaling callbacks (set by CallService)
   // ═══════════════════════════════════════
@@ -98,6 +105,31 @@ class SocketService {
       print('💬 ========== NEW MESSAGE RECEIVED ==========');
       print('💬 Raw data: $data');
       _handleNewMessage(data);
+    });
+
+    // ✅ Receive full list of currently online users on connect
+    _socket!.on('online-users', (data) {
+      if (data is List) {
+        _onlineUsers.clear();
+        for (final userId in data) {
+          _onlineUsers.add(userId.toString());
+        }
+        _userStatusController.add({'type': 'bulk', 'users': data});
+      }
+    });
+
+    // ✅ Listen for user online/offline status changes
+    _socket!.on('user-status-changed', (data) {
+      final userId = data['userId']?.toString() ?? '';
+      final status = data['status']?.toString() ?? 'offline';
+      if (userId.isNotEmpty) {
+        if (status == 'online') {
+          _onlineUsers.add(userId);
+        } else {
+          _onlineUsers.remove(userId);
+        }
+        _userStatusController.add({'userId': userId, 'status': status});
+      }
     });
 
     // ═══════════════════════════════════════

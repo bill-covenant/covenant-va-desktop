@@ -18,7 +18,7 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAYpDz8xIg-p3CeTeahP2S6I9rqpLnt2hc',
+    apiKey: 'AIzaSyAYpDz8xIg-p3CeTEahP2S6I9rqpLnt2hc',
     authDomain: 'covenant-va-platform.firebaseapp.com',
     projectId: 'covenant-va-platform',
     storageBucket: 'covenant-va-platform.firebasestorage.app',

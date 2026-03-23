@@ -14,71 +14,54 @@ class TaskDetailModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pColor = _getPriorityColor(task.priority);
+    final isDark = ThemeProvider().isDarkMode;
 
     return Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 680),
+        constraints: const BoxConstraints(maxWidth: 520, maxHeight: 700),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: ThemeProvider().isDarkMode
-                ? [const Color(0xFF1A1D2E), const Color(0xFF1E2130), const Color(0xFF1A1D2E)]
-                : [Colors.white, Colors.white.withOpacity(0.97), pColor.withOpacity(0.02)],
+          color: isDark ? const Color(0xFF1A1D2E) : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withOpacity(0.08)
+                : Colors.grey.withOpacity(0.12),
           ),
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: Colors.white.withOpacity(0.7), width: 1.5),
           boxShadow: [
-            // Deep colored shadow
             BoxShadow(
-              color: pColor.withOpacity(0.18),
-              blurRadius: 48,
-              offset: const Offset(0, 24),
-              spreadRadius: -8,
+              color: const Color(0xFF7C3AED).withOpacity(isDark ? 0.15 : 0.25),
+              blurRadius: 40,
+              offset: const Offset(0, 20),
             ),
-            // Mid purple shadow
             BoxShadow(
-              color: const Color(0xFF7C3AED).withOpacity(0.12),
-              blurRadius: 32,
-              offset: const Offset(0, 16),
-            ),
-            // Ambient shadow
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withOpacity(isDark ? 0.4 : 0.1),
               blurRadius: 12,
               offset: const Offset(0, 4),
-            ),
-            // Top highlight
-            BoxShadow(
-              color: Colors.white.withOpacity(0.9),
-              blurRadius: 1,
-              offset: const Offset(0, -1),
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildHeader(context),
               Flexible(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                  padding: const EdgeInsets.fromLTRB(28, 24, 28, 28),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildBadges(),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
                       _buildDescription(),
                       if (task.attachments.isNotEmpty) ...[
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 24),
                         _buildAttachments(),
                       ],
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
                       _buildMetadata(),
                     ],
                   ),
@@ -93,154 +76,74 @@ class TaskDetailModal extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
-    final pColor = _getPriorityColor(task.priority);
-
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 16, 20),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.all(24),
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF7C3AED),
-            const Color(0xFF6366F1),
-            pColor.withOpacity(0.85),
+            Color(0xFF7C3AED),
+            Color(0xFFEC4899),
           ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF7C3AED).withOpacity(0.35),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
       ),
-      child: Stack(
+      child: Row(
         children: [
-          // Top shine line
-          Positioned(
-            top: 0, left: 0, right: 0,
-            child: Container(
-              height: 1,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [
-                  Colors.white.withOpacity(0.0),
-                  Colors.white.withOpacity(0.35),
-                  Colors.white.withOpacity(0.0),
-                ]),
-              ),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white.withOpacity(0.2)),
+            ),
+            child: const Icon(Icons.task_alt, color: Colors.white, size: 22),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Task Details',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.75),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  task.title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.3,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
-          // Decorative orb
-          Positioned(
-            top: -20, right: -10,
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
             child: Container(
-              width: 80, height: 80,
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(colors: [
-                  pColor.withOpacity(0.3),
-                  Colors.transparent,
-                ]),
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.2)),
               ),
+              child: const Icon(Icons.close, color: Colors.white, size: 18),
             ),
-          ),
-          Row(
-            children: [
-              // 3D glass icon
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white.withOpacity(0.25),
-                      Colors.white.withOpacity(0.08),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.white.withOpacity(0.25)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.12),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                    BoxShadow(
-                      color: Colors.white.withOpacity(0.15),
-                      blurRadius: 2,
-                      offset: const Offset(0, -1),
-                    ),
-                  ],
-                ),
-                child: const Icon(Icons.task_alt, color: Colors.white, size: 22),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Task Details',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.75),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      task.title,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.3,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black.withOpacity(0.2),
-                            offset: const Offset(0, 2),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              // 3D close button
-              GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                child: Container(
-                  padding: const EdgeInsets.all(9),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.white.withOpacity(0.22),
-                        Colors.white.withOpacity(0.06),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white.withOpacity(0.2)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 6,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(Icons.close, color: Colors.white, size: 18),
-                ),
-              ),
-            ],
           ),
         ],
       ),
@@ -252,13 +155,13 @@ class TaskDetailModal extends StatelessWidget {
     final sColor = _getStatusColor(task.status);
 
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: 10,
+      runSpacing: 10,
       children: [
-        _build3DBadge(Icons.flag, task.priority, pColor),
-        _build3DBadge(_getStatusIcon(task.status), _formatStatus(task.status), sColor),
+        _buildBadge(Icons.flag, task.priority, pColor),
+        _buildBadge(_getStatusIcon(task.status), _formatStatus(task.status), sColor),
         if (task.dueDate != null)
-          _build3DBadge(
+          _buildBadge(
             Icons.calendar_today,
             '${DateFormat('MMM dd, yyyy').format(task.dueDate!)}${task.isOverdue ? '  OVERDUE' : ''}',
             task.isOverdue ? const Color(0xFFDC2626) : const Color(0xFF6B7280),
@@ -267,47 +170,25 @@ class TaskDetailModal extends StatelessWidget {
     );
   }
 
-  Widget _build3DBadge(IconData icon, String label, Color color) {
+  Widget _buildBadge(IconData icon, String label, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            color.withOpacity(0.16),
-            color.withOpacity(0.06),
-          ],
-        ),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.22)),
-        boxShadow: [
-          // Outer drop shadow
-          BoxShadow(
-            color: color.withOpacity(0.18),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-          // Inner top highlight
-          BoxShadow(
-            color: Colors.white.withOpacity(0.8),
-            blurRadius: 2,
-            offset: const Offset(0, -1),
-          ),
-        ],
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 6),
+          Icon(icon, size: 15, color: color),
+          const SizedBox(width: 7),
           Text(
             label,
             style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
               color: color,
-              letterSpacing: 0.2,
             ),
           ),
         ],
@@ -316,46 +197,36 @@ class TaskDetailModal extends StatelessWidget {
   }
 
   Widget _buildDescription() {
+    final isDark = ThemeProvider().isDarkMode;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _build3DSectionLabel(Icons.description, 'Description'),
-        const SizedBox(height: 10),
+        _buildSectionLabel(Icons.description, 'Description'),
+        const SizedBox(height: 12),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: ThemeProvider().isDarkMode
-                  ? [const Color(0xFF232738), const Color(0xFF1E2130)]
-                  : [const Color(0xFFF9FAFB), Colors.white.withOpacity(0.9)],
-            ),
+            color: isDark
+                ? Colors.white.withOpacity(0.05)
+                : const Color(0xFFF9FAFB),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.withOpacity(0.12)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-              BoxShadow(
-                color: Colors.white.withOpacity(0.9),
-                blurRadius: 2,
-                offset: const Offset(-1, -1),
-              ),
-            ],
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withOpacity(0.08)
+                  : Colors.grey.withOpacity(0.12),
+            ),
           ),
           child: Text(
             task.description?.isNotEmpty == true
                 ? task.description!
                 : 'No description provided.',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 14,
               color: task.description?.isNotEmpty == true
-                  ? (ThemeProvider().isDarkMode ? Colors.white : const Color(0xFF374151))
-                  : (ThemeProvider().isDarkMode ? Colors.white54 : const Color(0xFF9CA3AF)),
+                  ? (isDark ? Colors.white : const Color(0xFF374151))
+                  : (isDark ? Colors.white54 : const Color(0xFF9CA3AF)),
               height: 1.5,
               fontStyle: task.description?.isNotEmpty == true
                   ? FontStyle.normal
@@ -368,63 +239,46 @@ class TaskDetailModal extends StatelessWidget {
   }
 
   Widget _buildAttachments() {
+    final isDark = ThemeProvider().isDarkMode;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            _build3DSectionLabel(Icons.attach_file, 'Attachments'),
+            _buildSectionLabel(Icons.attach_file, 'Attachments'),
             const SizedBox(width: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFF7C3AED), Color(0xFF6366F1)],
                 ),
                 borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF7C3AED).withOpacity(0.3),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
               ),
               child: Text(
                 '${task.attachments.length}',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: FontWeight.w800,
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: ThemeProvider().isDarkMode
-                  ? [const Color(0xFF232738), const Color(0xFF1E2130)]
-                  : [const Color(0xFFF9FAFB), Colors.white.withOpacity(0.9)],
-            ),
+            color: isDark
+                ? Colors.white.withOpacity(0.05)
+                : const Color(0xFFF9FAFB),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.withOpacity(0.12)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-              BoxShadow(
-                color: Colors.white.withOpacity(0.9),
-                blurRadius: 2,
-                offset: const Offset(-1, -1),
-              ),
-            ],
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withOpacity(0.08)
+                  : Colors.grey.withOpacity(0.12),
+            ),
           ),
           child: Column(
             children: task.attachments.asMap().entries.map((entry) {
@@ -446,30 +300,16 @@ class TaskDetailModal extends StatelessWidget {
                       bottom: isLast ? const Radius.circular(16) : Radius.zero,
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       child: Row(
                         children: [
                           Container(
-                            width: 38,
-                            height: 38,
+                            width: 40,
+                            height: 40,
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  _getFileColor(att).withOpacity(0.15),
-                                  _getFileColor(att).withOpacity(0.05),
-                                ],
-                              ),
+                              color: _getFileColor(att).withOpacity(0.12),
                               borderRadius: BorderRadius.circular(11),
                               border: Border.all(color: _getFileColor(att).withOpacity(0.2)),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: _getFileColor(att).withOpacity(0.15),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
                             ),
                             child: Icon(
                               _getFileIcon(att),
@@ -477,27 +317,27 @@ class TaskDetailModal extends StatelessWidget {
                               color: _getFileColor(att),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 14),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   att.fileName,
-                                  style: const TextStyle(
-                                    fontSize: 13,
+                                  style: TextStyle(
+                                    fontSize: 14,
                                     fontWeight: FontWeight.w700,
-                                    color: Color(0xFF374151),
+                                    color: isDark ? Colors.white : const Color(0xFF374151),
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                const SizedBox(height: 2),
+                                const SizedBox(height: 3),
                                 Text(
                                   '${att.formattedSize}${att.uploaderName != null ? ' \u00b7 ${att.uploaderName}' : ''}',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: Color(0xFF9CA3AF),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark ? Colors.white54 : const Color(0xFF9CA3AF),
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -505,22 +345,15 @@ class TaskDetailModal extends StatelessWidget {
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.all(7),
+                            padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  const Color(0xFF3B82F6).withOpacity(0.12),
-                                  const Color(0xFF3B82F6).withOpacity(0.04),
-                                ],
-                              ),
+                              color: const Color(0xFF3B82F6).withOpacity(0.1),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(color: const Color(0xFF3B82F6).withOpacity(0.15)),
                             ),
                             child: const Icon(
                               Icons.open_in_new,
-                              size: 14,
+                              size: 15,
                               color: Color(0xFF3B82F6),
                             ),
                           ),
@@ -529,7 +362,14 @@ class TaskDetailModal extends StatelessWidget {
                     ),
                   ),
                   if (!isLast)
-                    Divider(height: 1, color: Colors.grey.withOpacity(0.08), indent: 14, endIndent: 14),
+                    Divider(
+                      height: 1,
+                      color: isDark
+                          ? Colors.white.withOpacity(0.06)
+                          : Colors.grey.withOpacity(0.08),
+                      indent: 16,
+                      endIndent: 16,
+                    ),
                 ],
               );
             }).toList(),
@@ -556,49 +396,44 @@ class TaskDetailModal extends StatelessWidget {
   }
 
   Widget _buildMetadata() {
+    final isDark = ThemeProvider().isDarkMode;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _build3DSectionLabel(Icons.info_outline, 'Task Information'),
-        const SizedBox(height: 10),
+        _buildSectionLabel(Icons.info_outline, 'Task Information'),
+        const SizedBox(height: 12),
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: ThemeProvider().isDarkMode
-                  ? [const Color(0xFF232738), const Color(0xFF1E2130)]
-                  : [const Color(0xFFF9FAFB), Colors.white.withOpacity(0.9)],
-            ),
+            color: isDark
+                ? Colors.white.withOpacity(0.05)
+                : const Color(0xFFF9FAFB),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.withOpacity(0.12)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-              BoxShadow(
-                color: Colors.white.withOpacity(0.9),
-                blurRadius: 2,
-                offset: const Offset(-1, -1),
-              ),
-            ],
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withOpacity(0.08)
+                  : Colors.grey.withOpacity(0.12),
+            ),
           ),
           child: Column(
             children: [
-              _build3DMetaRow(
+              _buildMetaRow(
                 'Created',
                 DateFormat('MMM dd, yyyy - hh:mm a').format(task.createdAt),
                 Icons.add_circle_outline,
                 const Color(0xFF3B82F6),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Divider(color: Colors.grey.withOpacity(0.1), height: 1),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Divider(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.06)
+                      : Colors.grey.withOpacity(0.1),
+                  height: 1,
+                ),
               ),
-              _build3DMetaRow(
+              _buildMetaRow(
                 'Last Updated',
                 DateFormat('MMM dd, yyyy - hh:mm a').format(task.updatedAt),
                 Icons.update,
@@ -606,10 +441,15 @@ class TaskDetailModal extends StatelessWidget {
               ),
               if (task.completedAt != null) ...[
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Divider(color: Colors.grey.withOpacity(0.1), height: 1),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.06)
+                        : Colors.grey.withOpacity(0.1),
+                    height: 1,
+                  ),
                 ),
-                _build3DMetaRow(
+                _buildMetaRow(
                   'Completed',
                   DateFormat('MMM dd, yyyy - hh:mm a').format(task.completedAt!),
                   Icons.check_circle,
@@ -623,113 +463,68 @@ class TaskDetailModal extends StatelessWidget {
     );
   }
 
-  Widget _build3DSectionLabel(IconData icon, String label) {
+  Widget _buildSectionLabel(IconData icon, String label) {
+    final isDark = ThemeProvider().isDarkMode;
+
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(7),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
               colors: [Color(0xFF7C3AED), Color(0xFF6366F1)],
             ),
             borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF7C3AED).withOpacity(0.35),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-              BoxShadow(
-                color: Colors.white.withOpacity(0.15),
-                blurRadius: 1,
-                offset: const Offset(0, -1),
-              ),
-            ],
           ),
-          child: Icon(icon, color: Colors.white, size: 14),
+          child: Icon(icon, color: Colors.white, size: 15),
         ),
         const SizedBox(width: 10),
         Text(
           label,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 15,
             fontWeight: FontWeight.w800,
-            color: ThemeProvider().isDarkMode ? Colors.white : const Color(0xFF374151),
-            letterSpacing: -0.2,
-            shadows: [
-              Shadow(
-                color: Colors.black.withOpacity(0.05),
-                offset: const Offset(0, 1),
-                blurRadius: 1,
-              ),
-            ],
+            color: isDark ? Colors.white : const Color(0xFF374151),
           ),
         ),
       ],
     );
   }
 
-  Widget _build3DMetaRow(String label, String value, IconData icon, Color color) {
+  Widget _buildMetaRow(String label, String value, IconData icon, Color color) {
+    final isDark = ThemeProvider().isDarkMode;
+
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(7),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                color.withOpacity(0.15),
-                color.withOpacity(0.06),
-              ],
-            ),
+            color: color.withOpacity(0.1),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: color.withOpacity(0.18)),
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.15),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-              BoxShadow(
-                color: Colors.white.withOpacity(0.7),
-                blurRadius: 2,
-                offset: const Offset(-1, -1),
-              ),
-            ],
+            border: Border.all(color: color.withOpacity(0.15)),
           ),
-          child: Icon(icon, size: 14, color: color),
+          child: Icon(icon, size: 15, color: color),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: Color(0xFF9CA3AF),
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.3,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.white54 : const Color(0xFF9CA3AF),
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 3),
               Text(
                 value,
                 style: TextStyle(
-                  fontSize: 13,
-                  color: ThemeProvider().isDarkMode ? Colors.white : const Color(0xFF111827),
+                  fontSize: 14,
+                  color: isDark ? Colors.white : const Color(0xFF111827),
                   fontWeight: FontWeight.w700,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black.withOpacity(0.04),
-                      offset: const Offset(0, 1),
-                      blurRadius: 1,
-                    ),
-                  ],
                 ),
               ),
             ],
@@ -740,18 +535,17 @@ class TaskDetailModal extends StatelessWidget {
   }
 
   Widget _buildFooter(BuildContext context) {
+    final isDark = ThemeProvider().isDarkMode;
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 14, 24, 18),
+      padding: const EdgeInsets.fromLTRB(28, 16, 28, 20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: ThemeProvider().isDarkMode
-              ? [const Color(0xFF1E2130), const Color(0xFF1A1D2E)]
-              : [Colors.grey.withOpacity(0.03), Colors.grey.withOpacity(0.06)],
-        ),
         border: Border(
-          top: BorderSide(color: ThemeProvider().isDarkMode ? Colors.white.withOpacity(0.06) : Colors.grey.withOpacity(0.08), width: 1),
+          top: BorderSide(
+            color: isDark
+                ? Colors.white.withOpacity(0.06)
+                : Colors.grey.withOpacity(0.1),
+          ),
         ),
       ),
       child: Row(
@@ -760,47 +554,26 @@ class TaskDetailModal extends StatelessWidget {
           GestureDetector(
             onTap: () => Navigator.of(context).pop(),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 11),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF7C3AED), Color(0xFF6366F1)],
+                  colors: [Color(0xFF7C3AED), Color(0xFFEC4899)],
                 ),
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF7C3AED).withOpacity(0.35),
+                    color: const Color(0xFF7C3AED).withOpacity(0.3),
                     blurRadius: 12,
-                    offset: const Offset(0, 5),
-                  ),
-                  BoxShadow(
-                    color: const Color(0xFF7C3AED).withOpacity(0.15),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                  // Inner top highlight
-                  BoxShadow(
-                    color: Colors.white.withOpacity(0.2),
-                    blurRadius: 1,
-                    offset: const Offset(0, -1),
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: Text(
+              child: const Text(
                 'Close',
                 style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
                   color: Colors.white,
-                  letterSpacing: 0.3,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black.withOpacity(0.15),
-                      offset: const Offset(0, 1),
-                      blurRadius: 2,
-                    ),
-                  ],
                 ),
               ),
             ),
