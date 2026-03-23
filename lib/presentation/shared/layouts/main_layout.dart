@@ -41,6 +41,7 @@ class _MainLayoutState extends State<MainLayout> {
   int _messagesBadge = 0;
   int _tasksBadge = 0;
   int _timecardBadge = 0;
+  int _announcementBadge = 0;
   Timer? _badgeTimer;
 
   static final String _apiBaseUrl = ApiConstants.baseUrl;
@@ -126,6 +127,21 @@ class _MainLayoutState extends State<MainLayout> {
           setState(() => _timecardBadge = (approvedCount - lastSeen).clamp(0, 999));
         }
       } catch (_) {}
+
+      // Announcements: total count vs last seen
+      try {
+        final res = await http.get(
+          Uri.parse('$_apiBaseUrl/announcements/published'),
+          headers: headers,
+        );
+        if (res.statusCode == 200 && mounted) {
+          final data = json.decode(res.body);
+          final announcements = (data['announcements'] as List?) ?? [];
+          final total = announcements.length;
+          final lastSeen = prefs.getInt('badge_lastSeen_announcements') ?? 0;
+          setState(() => _announcementBadge = (total - lastSeen).clamp(0, 999));
+        }
+      } catch (_) {}
     } catch (_) {}
   }
 
@@ -162,6 +178,18 @@ class _MainLayoutState extends State<MainLayout> {
           final entries = (data['entries'] as List?) ?? [];
           final approvedCount = entries.where((e) => e['status'] == 'APPROVED').length;
           await prefs.setInt('badge_lastSeen_timecard', approvedCount);
+        }
+      } catch (_) {}
+    }
+
+    if (route == 'announcements') {
+      if (mounted) setState(() => _announcementBadge = 0);
+      try {
+        final res = await http.get(Uri.parse('$_apiBaseUrl/announcements/published'), headers: headers);
+        if (res.statusCode == 200) {
+          final data = json.decode(res.body);
+          final total = ((data['announcements'] as List?) ?? []).length;
+          await prefs.setInt('badge_lastSeen_announcements', total);
         }
       } catch (_) {}
     }
@@ -292,6 +320,7 @@ class _MainLayoutState extends State<MainLayout> {
                     label: 'Announcements',
                     route: 'announcements',
                     isSelected: _selectedRoute == 'announcements',
+                    badge: _announcementBadge > 0 ? _announcementBadge : null,
                     onTap: () => _navigateTo('announcements'),
                   ),
                   const SizedBox(height: 8),

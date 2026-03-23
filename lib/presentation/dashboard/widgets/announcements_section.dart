@@ -43,6 +43,7 @@ class _AnnouncementsSectionState extends State<AnnouncementsSection> {
         });
       }
     } catch (e) {
+      print('❌ AnnouncementsSection: Failed to fetch announcements: $e');
       if (mounted) setState(() => _loaded = true);
     }
   }
