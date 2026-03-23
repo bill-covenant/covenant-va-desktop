@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/constants/api_constants.dart';
+import 'dart:convert';
 import '../models/login_request.dart';
 import '../models/login_response.dart';
 import '../models/user_model.dart';
@@ -87,11 +88,26 @@ class AuthRepository {
     } catch (_) {}
   }
 
-  // Initialize (restore session)
+  // Initialize (restore session + re-authenticate Firebase)
   Future<void> initialize() async {
     final token = await _storageProvider.getToken();
     if (token != null) {
       _apiProvider.setToken(token);
+
+      // Re-authenticate Firebase for Firestore chat access
+      try {
+        final response = await _apiProvider.get(
+          '/auth/firebase-token',
+          requiresAuth: true,
+        );
+        final firebaseToken = response['token'] as String?;
+        if (firebaseToken != null) {
+          await FirebaseAuth.instance.signInWithCustomToken(firebaseToken);
+          print('✅ Firebase re-auth successful on session restore');
+        }
+      } catch (e) {
+        print('⚠️ Firebase re-auth failed on session restore: $e');
+      }
     }
   }
 }
