@@ -80,7 +80,7 @@ Future<void> setupServiceLocator() async {
     ),
   );
 
-  getIt.registerFactory<MessagesBloc>(
+  getIt.registerLazySingleton<MessagesBloc>(
     () => MessagesBloc(messageRepository: getIt<FirebaseMessageRepository>()),
   );
 

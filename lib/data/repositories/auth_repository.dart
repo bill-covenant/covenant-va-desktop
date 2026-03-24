@@ -94,7 +94,13 @@ class AuthRepository {
     if (token != null) {
       _apiProvider.setToken(token);
 
-      // Re-authenticate Firebase for Firestore chat access
+      // Re-authenticate Firebase with retries (backend may be cold-starting)
+      await _authenticateFirebase();
+    }
+  }
+
+  Future<void> _authenticateFirebase({int maxRetries = 3}) async {
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         final response = await _apiProvider.get(
           '/auth/firebase-token',
@@ -104,10 +110,16 @@ class AuthRepository {
         if (firebaseToken != null) {
           await FirebaseAuth.instance.signInWithCustomToken(firebaseToken);
           print('✅ Firebase re-auth successful on session restore');
+          return;
         }
       } catch (e) {
-        print('⚠️ Firebase re-auth failed on session restore: $e');
+        print('⚠️ Firebase re-auth attempt $attempt/$maxRetries failed: $e');
+        if (attempt < maxRetries) {
+          // Wait before retrying (3s, 6s)
+          await Future.delayed(Duration(seconds: attempt * 3));
+        }
       }
     }
+    print('❌ Firebase re-auth failed after $maxRetries attempts');
   }
 }

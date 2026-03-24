@@ -19,10 +19,11 @@ class MessageMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => _showBottomSheet(context),
+        onTap: () => _showOptionsDialog(context),
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(8),
@@ -30,141 +31,137 @@ class MessageMenu extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Colors.white,
-                Colors.grey.shade50,
-              ],
+              colors: isDark
+                  ? [Colors.grey.shade800, Colors.grey.shade900]
+                  : [Colors.white, Colors.grey.shade50],
             ),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: Colors.grey.shade200,
+              color: isDark ? Colors.grey.shade700 : Colors.grey.shade200,
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
-              ),
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
               ),
             ],
           ),
           child: Icon(
             Icons.more_horiz_rounded,
             size: 20,
-            color: Colors.grey.shade600,
+            color: isDark ? Colors.grey.shade300 : Colors.grey.shade600,
           ),
         ),
       ),
     );
   }
 
-  void _showBottomSheet(BuildContext context) {
-    showModalBottomSheet(
+  void _showOptionsDialog(BuildContext context) {
+    // Capture bloc reference and navigator before opening any dialogs
+    final messagesBloc = context.read<MessagesBloc>();
+    final navigator = Navigator.of(context);
+    // Capture the overlay context from the navigator for showing subsequent dialogs
+    final rootContext = navigator.context;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle bar
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 20),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
+      builder: (dialogContext) => Dialog(
+        backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          width: 320,
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  'Message Options',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.grey.shade200 : Colors.grey.shade800,
+                  ),
+                ),
               ),
-            ),
-            
-            // Delete option (only for own messages)
-            if (isMe)
+              Divider(color: isDark ? Colors.grey.shade700 : Colors.grey.shade200, height: 1),
+              const SizedBox(height: 8),
+
+              // Delete option (only for own messages)
+              if (isMe)
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFFEF4444).withOpacity(0.15) : const Color(0xFFFEE2E2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.delete_outline_rounded,
+                      color: Color(0xFFEF4444),
+                      size: 20,
+                    ),
+                  ),
+                  title: const Text(
+                    'Delete Message',
+                    style: TextStyle(
+                      color: Color(0xFFEF4444),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(dialogContext);
+                    _showDeleteConfirmation(rootContext, messagesBloc, isDark);
+                  },
+                ),
+
+              // Copy option
               ListTile(
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFEE2E2),
+                    color: isDark ? Colors.grey.shade800 : const Color(0xFFF3F4F6),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(
-                    Icons.delete_outline_rounded,
-                    color: Color(0xFFEF4444),
+                  child: Icon(
+                    Icons.copy_rounded,
+                    color: isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED),
                     size: 20,
                   ),
                 ),
-                title: const Text(
-                  'Delete Message',
+                title: Text(
+                  'Copy Text',
                   style: TextStyle(
-                    color: Color(0xFFEF4444),
+                    color: isDark ? Colors.grey.shade200 : const Color(0xFF1F2937),
                     fontSize: 15,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 onTap: () {
-                  // ✅ FIX: Close sheet first, THEN show dialog with original context
-                  Navigator.pop(sheetContext);
-                  
-                  // ✅ Use Future.delayed to ensure sheet is fully closed
-                  Future.delayed(const Duration(milliseconds: 100), () {
-                    if (context.mounted) {
-                      _showDeleteDialog(context);
-                    }
-                  });
+                  Navigator.pop(dialogContext);
+                  _copyToClipboard();
                 },
               ),
-            
-            // Copy option
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3F4F6),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.copy_rounded,
-                  color: Color(0xFF7C3AED),
-                  size: 20,
-                ),
-              ),
-              title: const Text(
-                'Copy Text',
-                style: TextStyle(
-                  color: Color(0xFF1F2937),
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                _copyToClipboard();
-              },
-            ),
-            
-            const SizedBox(height: 10),
-          ],
+
+              const SizedBox(height: 4),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  void _showDeleteDialog(BuildContext context) {
-    // ✅ FIX: Check context is still valid BEFORE showing dialog
-    if (!context.mounted) return;
-    
+  void _showDeleteConfirmation(BuildContext navContext, MessagesBloc bloc, bool isDark) {
     showDialog(
-      context: context,
+      context: navContext,
       builder: (dialogContext) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         contentPadding: const EdgeInsets.all(24),
         title: Row(
@@ -187,21 +184,22 @@ class MessageMenu extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 16),
-            const Expanded(
+            Expanded(
               child: Text(
                 'Delete Message?',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black,
                 ),
               ),
             ),
           ],
         ),
-        content: const Text(
+        content: Text(
           'This message will be permanently deleted. This action cannot be undone.',
           style: TextStyle(
-            color: Color(0xFF6B7280),
+            color: isDark ? Colors.grey.shade400 : const Color(0xFF6B7280),
             fontSize: 15,
             height: 1.5,
           ),
@@ -215,10 +213,10 @@ class MessageMenu extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text(
+            child: Text(
               'Cancel',
               style: TextStyle(
-                color: Color(0xFF6B7280),
+                color: isDark ? Colors.grey.shade400 : const Color(0xFF6B7280),
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
               ),
@@ -227,10 +225,13 @@ class MessageMenu extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(dialogContext);
-              // ✅ FIX: Use original context, with mounted check
-              if (context.mounted) {
-                _deleteMessage(context);
-              }
+              // Use captured bloc reference directly — no context dependency
+              bloc.add(
+                MessageDeleteRequested(
+                  conversationId: conversationId,
+                  messageId: message.id,
+                ),
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFEF4444),
@@ -250,18 +251,6 @@ class MessageMenu extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  void _deleteMessage(BuildContext context) {
-    // ✅ FIX: Final check before triggering BLoC event
-    if (!context.mounted) return;
-    
-    context.read<MessagesBloc>().add(
-      MessageDeleteRequested(
-        conversationId: conversationId,
-        messageId: message.id,
       ),
     );
   }

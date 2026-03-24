@@ -1,9 +1,14 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../auth/bloc/auth_bloc.dart';
 import '../../../auth/bloc/auth_event.dart';
 import '../../../auth/bloc/auth_state.dart';
+
+// Cache decoded avatar bytes so they don't re-decode on every navigation
+Uint8List? _cachedAvatarBytes;
+String? _cachedAvatarSource;
 
 class LayoutSidebarFooter extends StatelessWidget {
   const LayoutSidebarFooter({super.key});
@@ -34,6 +39,22 @@ class LayoutSidebarFooter extends StatelessWidget {
 
           userEmail = state.user.email;
           avatarBase64 = state.user.profile?.avatar;
+        }
+
+        // Cache decoded avatar bytes
+        Uint8List? avatarBytes;
+        if (avatarBase64 != null) {
+          if (_cachedAvatarSource == avatarBase64) {
+            avatarBytes = _cachedAvatarBytes;
+          } else {
+            try {
+              avatarBytes = base64Decode(avatarBase64.split(',')[1]);
+              _cachedAvatarBytes = avatarBytes;
+              _cachedAvatarSource = avatarBase64;
+            } catch (_) {
+              avatarBytes = null;
+            }
+          }
         }
 
         return Container(
@@ -67,13 +88,14 @@ class LayoutSidebarFooter extends StatelessWidget {
                         width: 2,
                       ),
                     ),
-                    child: avatarBase64 != null
+                    child: avatarBytes != null
                         ? ClipOval(
                             child: Image.memory(
-                              base64Decode(avatarBase64.split(',')[1]),
+                              avatarBytes,
                               fit: BoxFit.cover,
                               width: 48,
                               height: 48,
+                              gaplessPlayback: true,
                               errorBuilder: (context, error, stackTrace) {
                                 return Center(
                                   child: Text(

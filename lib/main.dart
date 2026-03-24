@@ -21,6 +21,7 @@ import 'presentation/messages/bloc/messages_event.dart';
 import 'presentation/notes/screens/notes_screen.dart';
 import 'presentation/notes/bloc/notes_bloc.dart';
 import 'presentation/notes/bloc/notes_event.dart';
+import 'presentation/notes/bloc/notes_state.dart';
 import 'presentation/profile/screens/profile_screen.dart';
 import 'presentation/announcements/screens/announcements_screen.dart';
 import 'data/repositories/announcement_repository.dart';
@@ -86,7 +87,6 @@ class _AppContentState extends State<_AppContent> {
   bool _splashComplete = false;
   final SocketService _socketService = SocketService();
   final CallService _callService = CallService();
-  OverlayEntry? _overlayEntry;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
@@ -97,109 +97,31 @@ class _AppContentState extends State<_AppContent> {
     });
   }
 
-  void _showNotificationBanner(String title, String body) {
-    _overlayEntry?.remove();
-    
-    _overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        top: 70,
-        right: 16,
-        width: 380,
-        child: Material(
-          color: Colors.transparent,
-          child: TweenAnimationBuilder<double>(
-            duration: const Duration(milliseconds: 300),
-            tween: Tween(begin: 0.0, end: 1.0),
-            builder: (context, value, child) {
-              return Transform.translate(
-                offset: Offset((1 - value) * 400, 0),
-                child: Opacity(
-                  opacity: value,
-                  child: child,
-                ),
-              );
-            },
-            child: Container(
-              margin: const EdgeInsets.all(8),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF7C3AED), Color(0xFF9333EA)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.purple.withOpacity(0.3),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.notifications_active,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          body,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.white,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    onPressed: () {
-                      _overlayEntry?.remove();
-                      _overlayEntry = null;
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-    
-    if (mounted) {
-      Overlay.of(context).insert(_overlayEntry!);
-      
-      Future.delayed(const Duration(seconds: 5), () {
-        _overlayEntry?.remove();
-        _overlayEntry = null;
-      });
+  Future<void> _preloadData({int attempt = 1}) async {
+    const maxRetries = 3;
+    const retryDelay = Duration(seconds: 5);
+
+    // Pre-load notes
+    getIt<NotesBloc>().add(const NotesLoadRequested());
+
+    // Pre-load announcements
+    try {
+      final announcements = await getIt<AnnouncementRepository>().getPublishedAnnouncements();
+      AnnouncementsScreen.updateCache(announcements);
+    } catch (_) {
+      // Will retry below
+    }
+
+    // Check if notes loaded successfully
+    await Future.delayed(const Duration(seconds: 2));
+    final notesState = getIt<NotesBloc>().state;
+    final notesFailed = notesState is! NotesLoaded || (notesState as NotesLoaded).notes.isEmpty;
+
+    if (notesFailed && attempt < maxRetries) {
+      await Future.delayed(retryDelay);
+      if (mounted) {
+        _preloadData(attempt: attempt + 1);
+      }
     }
   }
 
@@ -209,8 +131,6 @@ class _AppContentState extends State<_AppContent> {
     authBloc.stream.listen((authState) {
       if (authState is AuthAuthenticated && !_hasLoadedNotifications) {
         _hasLoadedNotifications = true;
-
-        _socketService.onNotification = _showNotificationBanner;
 
         context.read<NotificationBloc>()
           ..add(LoadNotifications())
@@ -237,13 +157,8 @@ class _AppContentState extends State<_AppContent> {
           '/announcements/published',
         ]);
 
-        // Pre-load notes so they're instant when the user navigates
-        getIt<NotesBloc>().add(const NotesLoadRequested());
-
-        // Pre-load announcements
-        getIt<AnnouncementRepository>().getPublishedAnnouncements().then((announcements) {
-          AnnouncementsScreen.updateCache(announcements);
-        }).catchError((_) {});
+        // Pre-load data with retry on cold start failure
+        _preloadData();
         
         _notificationTimer = Timer.periodic(
           const Duration(seconds: 30),
@@ -276,7 +191,6 @@ class _AppContentState extends State<_AppContent> {
   void dispose() {
     _notificationTimer?.cancel();
     _socketService.disconnect();
-    _overlayEntry?.remove();
     super.dispose();
   }
 

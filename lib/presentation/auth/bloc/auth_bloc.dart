@@ -40,8 +40,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         token: loginResponse.token,
       ));
     } catch (e) {
+      print('❌ Login failed: $e');
       emit(AuthError(message: e.toString()));
-      // Return to unauthenticated after showing error
       emit(const AuthUnauthenticated());
     }
   }
