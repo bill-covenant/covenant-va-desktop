@@ -14,6 +14,7 @@ class TasksContent extends StatelessWidget {
   final Function(String) onSearchChanged;
   final VoidCallback onTaskUpdated;
   final Future<void> Function() onRefresh;
+  final void Function(TaskModel task)? onArchiveTask;
 
   const TasksContent({
     super.key,
@@ -26,6 +27,7 @@ class TasksContent extends StatelessWidget {
     required this.onSearchChanged,
     required this.onTaskUpdated,
     required this.onRefresh,
+    this.onArchiveTask,
   });
 
   @override
@@ -79,6 +81,7 @@ class TasksContent extends StatelessWidget {
     return TasksList(
       tasks: filteredTasks,
       onTaskUpdated: onTaskUpdated,
+      onArchiveTask: onArchiveTask,
     );
   }
 }

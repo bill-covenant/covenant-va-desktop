@@ -33,7 +33,7 @@ class DashboardContent extends StatelessWidget {
             : state;
 
         if (displayState is DashboardLoading) {
-          return _buildShimmerLoading();
+          return const SizedBox();
         }
 
         if (displayState is DashboardError) {

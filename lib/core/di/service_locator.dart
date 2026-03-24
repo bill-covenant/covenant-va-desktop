@@ -90,8 +90,8 @@ Future<void> setupServiceLocator() async {
     ),
   );
 
-  // ✅ NEW: Notes BLoC
-  getIt.registerFactory<NotesBloc>(
+  // ✅ Notes BLoC — singleton so cache persists across navigations
+  getIt.registerLazySingleton<NotesBloc>(
     () => NotesBloc(noteRepository: getIt<NoteRepository>()),
   );
 }

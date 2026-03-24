@@ -14,11 +14,13 @@ const _priorityOrder = ['URGENT', 'HIGH', 'MEDIUM', 'LOW'];
 class TasksList extends StatelessWidget {
   final List<TaskModel> tasks;
   final VoidCallback onTaskUpdated;
+  final void Function(TaskModel task)? onArchiveTask;
 
   const TasksList({
     super.key,
     required this.tasks,
     required this.onTaskUpdated,
+    this.onArchiveTask,
   });
 
   List<TaskModel> get _sortedTasks {
@@ -72,6 +74,7 @@ class TasksList extends StatelessWidget {
                       index: i + 1,
                       isLast: i == sorted.length - 1,
                       onStatusChanged: onTaskUpdated,
+                      onArchive: onArchiveTask != null ? () => onArchiveTask!(sorted[i]) : null,
                     );
                   }),
                 ],
@@ -199,12 +202,14 @@ class _TaskRow extends StatefulWidget {
   final int index;
   final bool isLast;
   final VoidCallback onStatusChanged;
+  final VoidCallback? onArchive;
 
   const _TaskRow({
     required this.task,
     required this.index,
     required this.isLast,
     required this.onStatusChanged,
+    this.onArchive,
   });
 
   @override
@@ -452,6 +457,41 @@ class _TaskRowState extends State<_TaskRow> {
                                       )
                                     : Text('No date', style: TextStyle(fontSize: 14, color: ThemeProvider().isDarkMode ? Colors.white54 : Colors.grey[400], fontStyle: FontStyle.italic)),
                               ),
+                              // Archive + View buttons
+                              if (widget.task.isCompleted && widget.onArchive != null)
+                                SizedBox(
+                                  width: 44,
+                                  child: Center(
+                                    child: Tooltip(
+                                      message: 'Archive task',
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          // Stop event from opening detail modal
+                                        },
+                                        child: InkWell(
+                                          borderRadius: BorderRadius.circular(10),
+                                          onTap: widget.onArchive,
+                                          child: AnimatedContainer(
+                                            duration: const Duration(milliseconds: 200),
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: _isHovered
+                                                  ? const Color(0xFF6366F1).withOpacity(0.12)
+                                                  : const Color(0xFF6366F1).withOpacity(0.05),
+                                              borderRadius: BorderRadius.circular(10),
+                                              border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.12)),
+                                            ),
+                                            child: Icon(
+                                              Icons.archive_outlined,
+                                              size: 16,
+                                              color: const Color(0xFF6366F1).withOpacity(_isHovered ? 0.8 : 0.4),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               // View button
                               SizedBox(
                                 width: 56,

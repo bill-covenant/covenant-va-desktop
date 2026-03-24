@@ -124,7 +124,8 @@ class TaskModel {
   bool get isPending => status == 'PENDING';
   bool get isInProgress => status == 'IN_PROGRESS';
   bool get isCompleted => status == 'COMPLETED';
-  
+  bool get isArchived => status == 'ARCHIVED';
+
   bool get isHighPriority => priority == 'HIGH' || priority == 'URGENT';
   bool get isMediumPriority => priority == 'MEDIUM';
   bool get isLowPriority => priority == 'LOW';

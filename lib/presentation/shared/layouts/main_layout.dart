@@ -121,7 +121,8 @@ class _MainLayoutState extends State<MainLayout> {
         if (res.statusCode == 200 && mounted) {
           final data = json.decode(res.body);
           final tasks = (data['tasks'] as List?) ?? [];
-          final total = tasks.length;
+          final activeTasks = tasks.where((t) => t['status'] != 'ARCHIVED').toList();
+          final total = activeTasks.length;
           final lastSeen = prefs.getInt('badge_lastSeen_tasks') ?? 0;
           setState(() => _tasksBadge = (total - lastSeen).clamp(0, 999));
         }
@@ -330,6 +331,14 @@ class _MainLayoutState extends State<MainLayout> {
                   ),
                   const SizedBox(height: 8),
                   LayoutSidebarNavItem(
+                    icon: Icons.archive_rounded,
+                    label: 'Archive',
+                    route: 'archive',
+                    isSelected: _selectedRoute == 'archive',
+                    onTap: () => _navigateTo('archive'),
+                  ),
+                  const SizedBox(height: 8),
+                  LayoutSidebarNavItem(
                     icon: Icons.campaign_rounded,
                     label: 'Announcements',
                     route: 'announcements',
@@ -507,15 +516,7 @@ class _MainLayoutState extends State<MainLayout> {
           _isCheckingUpdate = false;
           _updateInfo = info?.updateAvailable == true ? info : null;
         });
-        if (info == null || !info.updateAvailable) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('You\'re up to date! (v${UpdateService.currentVersion})'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            margin: const EdgeInsets.all(16),
-            duration: const Duration(seconds: 3),
-          ));
-        } else {
+        if (info != null && info.updateAvailable) {
           // Auto-start download for direct links
           _downloadAndInstall(info);
         }
@@ -523,12 +524,6 @@ class _MainLayoutState extends State<MainLayout> {
     } catch (e) {
       if (mounted) {
         setState(() => _isCheckingUpdate = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text('Failed to check for updates'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          margin: const EdgeInsets.all(16),
-        ));
       }
     }
   }

@@ -336,16 +336,14 @@ class _TimecardScreenState extends State<TimecardScreen> {
       );
     }
 
-    // No cached data — show skeleton only on first load
-    if (state is TimecardLoading) {
-      return const TimecardLoadingSkeleton();
-    } else if (state is TimecardError) {
+    // No cached data — show empty instead of skeleton
+    if (state is TimecardError) {
       return TimecardErrorState(
         message: state.message,
         onRetry: _loadData,
       );
     }
 
-    return const TimecardLoadingSkeleton();
+    return const SizedBox();
   }
 }

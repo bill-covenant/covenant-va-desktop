@@ -117,15 +117,13 @@ class _NotesScreenState extends State<NotesScreen> {
               child: BlocConsumer<NotesBloc, NotesState>(
                 listener: _onStateChanged,
                 builder: (context, state) {
-                  if (state is NotesLoading) {
-                    return const Center(child: CircularProgressIndicator(color: Colors.white));
-                  }
-                  if (state is NotesError) {
+                  if (state is NotesError && state is! NotesLoaded) {
                     return _buildError(state.message);
                   }
                   if (state is NotesLoaded) {
                     return _buildContent(state);
                   }
+                  // Show empty content instead of spinner while loading
                   return const SizedBox();
                 },
               ),

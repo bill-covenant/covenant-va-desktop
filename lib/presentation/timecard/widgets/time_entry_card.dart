@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/time_entry.dart';
 
 class TimeEntryCard extends StatefulWidget {
@@ -27,21 +28,25 @@ class _TimeEntryCardState extends State<TimeEntryCard> {
   @override
   Widget build(BuildContext context) {
     final entry = widget.entry;
+    final isDark = ThemeProvider().isDarkMode;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white.withOpacity(0.12),
-            Colors.white.withOpacity(0.04),
-          ],
-        ),
+        color: isDark ? null : const Color(0xFFF9FAFB),
+        gradient: isDark
+            ? LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withOpacity(0.12),
+                  Colors.white.withOpacity(0.04),
+                ],
+              )
+            : null,
         border: Border.all(
-          color: Colors.white.withOpacity(0.15),
+          color: isDark ? Colors.white.withOpacity(0.15) : Colors.grey.withOpacity(0.15),
           width: 1,
         ),
       ),
@@ -97,18 +102,19 @@ class _TimeEntryCardState extends State<TimeEntryCard> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.08),
+              color: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFEEF2FF),
               borderRadius: BorderRadius.circular(6),
+              border: isDark ? null : Border.all(color: const Color(0xFF6366F1).withOpacity(0.15)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.access_time, size: 12, color: Colors.white70),
+                Icon(Icons.access_time, size: 12, color: isDark ? Colors.white70 : const Color(0xFF6366F1)),
                 const SizedBox(width: 4),
                 Text(
                   '${entry.hoursWorked} hrs',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: isDark ? Colors.white : const Color(0xFF4338CA),
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                   ),
@@ -123,7 +129,7 @@ class _TimeEntryCardState extends State<TimeEntryCard> {
             child: Text(
               entry.description ?? '',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.6),
+                color: isDark ? Colors.white.withOpacity(0.6) : Colors.grey[600],
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),

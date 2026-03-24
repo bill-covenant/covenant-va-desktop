@@ -459,11 +459,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildLoadingState() {
-    return const Center(
-      child: CircularProgressIndicator(
-        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-      ),
-    );
+    return const SizedBox();
   }
 
   Widget _buildErrorState() {

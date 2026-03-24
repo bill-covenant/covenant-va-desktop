@@ -8,37 +8,59 @@ import '../../../data/repositories/announcement_repository.dart';
 class AnnouncementsScreen extends StatefulWidget {
   const AnnouncementsScreen({super.key});
 
+  /// Pre-warm cache from outside
+  static void updateCache(List<AnnouncementModel> announcements) {
+    _AnnouncementsScreenState._cachedAnnouncements = announcements;
+    _AnnouncementsScreenState._lastFetchTime = DateTime.now();
+  }
+
   @override
   State<AnnouncementsScreen> createState() => _AnnouncementsScreenState();
 }
 
 class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   List<AnnouncementModel> _announcements = [];
-  bool _loading = true;
+  bool _loading = false;
   String? _error;
+
+  static List<AnnouncementModel>? _cachedAnnouncements;
+  static DateTime? _lastFetchTime;
 
   @override
   void initState() {
     super.initState();
-    _fetchAnnouncements();
+    if (_cachedAnnouncements != null) {
+      _announcements = _cachedAnnouncements!;
+      _loading = false;
+      if (_lastFetchTime == null ||
+          DateTime.now().difference(_lastFetchTime!) > const Duration(seconds: 30)) {
+        _fetchAnnouncements(showLoading: false);
+      }
+    } else {
+      _fetchAnnouncements(showLoading: false);
+    }
   }
 
-  Future<void> _fetchAnnouncements() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _fetchAnnouncements({bool showLoading = false}) async {
+    if (showLoading) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final repo = GetIt.I<AnnouncementRepository>();
       final announcements = await repo.getPublishedAnnouncements();
       if (mounted) {
+        _cachedAnnouncements = announcements;
+        _lastFetchTime = DateTime.now();
         setState(() {
           _announcements = announcements;
           _loading = false;
         });
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && _announcements.isEmpty) {
         setState(() {
           _error = 'Failed to load announcements';
           _loading = false;
@@ -196,12 +218,31 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
           PointerDeviceKind.trackpad,
         },
       ),
-      child: RefreshIndicator(
-        onRefresh: _fetchAnnouncements,
-        child: ListView.builder(
-          padding: const EdgeInsets.fromLTRB(50, 24, 48, 40),
-          itemCount: _announcements.length,
-          itemBuilder: (context, index) => _buildAnnouncementCard(_announcements[index]),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(50, 24, 48, 40),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            const crossAxisCount = 3;
+            const spacing = 20.0;
+            final cardWidth = (constraints.maxWidth - spacing * (crossAxisCount - 1)) / crossAxisCount;
+
+            final rows = <Widget>[];
+            for (int i = 0; i < _announcements.length; i += crossAxisCount) {
+              final rowItems = <Widget>[];
+              for (int j = 0; j < crossAxisCount; j++) {
+                if (i + j < _announcements.length) {
+                  rowItems.add(SizedBox(width: cardWidth, child: _buildAnnouncementCard(_announcements[i + j])));
+                } else {
+                  rowItems.add(SizedBox(width: cardWidth));
+                }
+                if (j < crossAxisCount - 1) rowItems.add(const SizedBox(width: spacing));
+              }
+              rows.add(Row(crossAxisAlignment: CrossAxisAlignment.start, children: rowItems));
+              if (i + crossAxisCount < _announcements.length) rows.add(const SizedBox(height: spacing));
+            }
+
+            return Column(children: rows);
+          },
         ),
       ),
     );
@@ -212,7 +253,6 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
     final colors = _priorityColors(announcement.priority);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,

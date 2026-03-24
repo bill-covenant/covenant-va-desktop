@@ -14,13 +14,16 @@ import 'presentation/dashboard/bloc/dashboard_bloc.dart';
 import 'presentation/dashboard/bloc/dashboard_event.dart';
 import 'presentation/dashboard/screens/dashboard_screen.dart';
 import 'presentation/tasks/screens/my_tasks_screen.dart';
+import 'presentation/tasks/screens/archive_screen.dart';
 import 'presentation/messages/screens/messages_screen.dart';
 import 'presentation/messages/bloc/messages_bloc.dart';
 import 'presentation/messages/bloc/messages_event.dart';
 import 'presentation/notes/screens/notes_screen.dart';
 import 'presentation/notes/bloc/notes_bloc.dart';
+import 'presentation/notes/bloc/notes_event.dart';
 import 'presentation/profile/screens/profile_screen.dart';
 import 'presentation/announcements/screens/announcements_screen.dart';
+import 'data/repositories/announcement_repository.dart';
 import 'presentation/shared/layouts/main_layout.dart';
 import 'presentation/notifications/bloc/notification_bloc.dart';
 import 'presentation/notifications/bloc/notification_event.dart';
@@ -230,7 +233,17 @@ class _AppContentState extends State<_AppContent> {
           '/timecard/entries',
           '/messages',
           '/notifications',
+          '/notes',
+          '/announcements/published',
         ]);
+
+        // Pre-load notes so they're instant when the user navigates
+        getIt<NotesBloc>().add(const NotesLoadRequested());
+
+        // Pre-load announcements
+        getIt<AnnouncementRepository>().getPublishedAnnouncements().then((announcements) {
+          AnnouncementsScreen.updateCache(announcements);
+        }).catchError((_) {});
         
         _notificationTimer = Timer.periodic(
           const Duration(seconds: 30),
@@ -310,9 +323,9 @@ class _AppContentState extends State<_AppContent> {
                 child: MyTasksScreen(),
               ),
             ),
-        // ✅ NEW: Notes route
-        '/notes': (context) => BlocProvider(
-              create: (context) => getIt<NotesBloc>(),
+        // ✅ Notes route — uses global singleton BLoC
+        '/notes': (context) => BlocProvider.value(
+              value: getIt<NotesBloc>(),
               child: const MainLayout(
                 currentRoute: 'notes',
                 child: NotesScreen(),
@@ -336,6 +349,10 @@ class _AppContentState extends State<_AppContent> {
         '/profile': (context) => const MainLayout(
               currentRoute: 'profile',
               child: ProfileScreen(),
+            ),
+        '/archive': (context) => const MainLayout(
+              currentRoute: 'archive',
+              child: ArchiveScreen(),
             ),
         '/announcements': (context) => const MainLayout(
               currentRoute: 'announcements',

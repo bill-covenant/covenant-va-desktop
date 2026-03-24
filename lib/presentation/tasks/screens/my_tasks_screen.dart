@@ -9,6 +9,7 @@ import '../widgets/tasks_skeleton_loading.dart';
 import '../widgets/tasks_content.dart';
 import '../widgets/tasks_error_state.dart';
 import '../widgets/refresh_fab.dart';
+import 'archive_screen.dart';
 
 class MyTasksScreen extends StatefulWidget {
   const MyTasksScreen({super.key});
@@ -78,8 +79,16 @@ class _MyTasksScreenState extends State<MyTasksScreen> {
 
     try {
       final taskRepository = getIt<TaskRepository>();
-      final tasks = await taskRepository.getAllTasks();
-      
+
+      // Fetch active + archived tasks in parallel
+      final results = await Future.wait([
+        taskRepository.getAllTasks(),
+        taskRepository.getAllTasks(status: 'ARCHIVED'),
+      ]);
+
+      final tasks = results[0];
+      final archivedTasks = results[1];
+
       tasks.sort((a, b) {
         if (a.dueDate == null && b.dueDate == null) return 0;
         if (a.dueDate == null) return 1;
@@ -88,11 +97,12 @@ class _MyTasksScreenState extends State<MyTasksScreen> {
       });
 
       if (!mounted) return;
-      
-      // ✅ Update cache
+
+      // Update cache for both screens
       _cachedTasks = tasks;
       _lastFetchTime = DateTime.now();
-      
+      ArchiveScreen.updateCache(archivedTasks);
+
       setState(() {
         _allTasks = tasks;
         _isLoading = false;
@@ -108,8 +118,59 @@ class _MyTasksScreenState extends State<MyTasksScreen> {
     }
   }
 
+  Future<void> _handleArchiveTask(TaskModel task) async {
+    // Optimistic removal + add to archive cache
+    setState(() {
+      _allTasks.removeWhere((t) => t.id == task.id);
+      _cachedTasks = List.from(_allTasks);
+    });
+    // Pre-warm archive cache with the newly archived task
+    final archivedTask = TaskModel(
+      id: task.id, title: task.title, description: task.description,
+      status: 'ARCHIVED', priority: task.priority, dueDate: task.dueDate,
+      completedAt: task.completedAt, createdAt: task.createdAt,
+      updatedAt: DateTime.now(), userId: task.userId,
+      assignedToId: task.assignedToId, attachments: task.attachments,
+    );
+    ArchiveScreen.updateCache([
+      archivedTask,
+      ...(ArchiveScreen.getCache() ?? []),
+    ]);
+
+    try {
+      final taskRepository = getIt<TaskRepository>();
+      await taskRepository.updateTaskStatus(task.id, 'ARCHIVED');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Task archived'),
+            backgroundColor: const Color(0xFF6366F1),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    } catch (e) {
+      // Revert on failure
+      _loadAllTasks(showLoading: false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to archive: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    }
+  }
+
   List<TaskModel> _filterTasks(List<TaskModel> tasks) {
     return tasks.where((task) {
+      // Never show archived tasks in My Tasks
+      if (task.isArchived) return false;
+
       if (_statusFilter != 'ALL') {
         if (_statusFilter == 'PENDING' && !task.isPending) return false;
         if (_statusFilter == 'IN_PROGRESS' && !task.isInProgress) return false;
@@ -162,9 +223,9 @@ class _MyTasksScreenState extends State<MyTasksScreen> {
   }
 
   Widget _buildContent() {
-    // ✅ Only show skeleton on initial load with no cache
+    // Show empty instead of skeleton while loading
     if (_isLoading && _isInitialLoad) {
-      return const TasksSkeletonLoading();
+      return const SizedBox();
     }
 
     if (_error != null && _allTasks.isEmpty) {
@@ -195,6 +256,7 @@ class _MyTasksScreenState extends State<MyTasksScreen> {
       },
       onTaskUpdated: () => _loadAllTasks(showLoading: false),
       onRefresh: () => _loadAllTasks(showLoading: false),
+      onArchiveTask: _handleArchiveTask,
     );
   }
 }
