@@ -57,6 +57,7 @@ class _MainLayoutState extends State<MainLayout> {
 
     _fetchBadgeCounts();
     _badgeTimer = Timer.periodic(const Duration(minutes: 1), (_) => _fetchBadgeCounts());
+    _checkForUpdate();
   }
 
   void _showNotificationBanner(String title, String body) {
@@ -370,7 +371,7 @@ class _MainLayoutState extends State<MainLayout> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
-          onTap: _isDownloading ? null : _checkForUpdate,
+          onTap: (_isDownloading || _updateInfo == null) ? null : _checkForUpdate,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
@@ -421,13 +422,10 @@ class _MainLayoutState extends State<MainLayout> {
         Container(
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [Color(0xFF3B82F6), Color(0xFF6366F1)]),
+            color: Colors.white.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
-            boxShadow: [BoxShadow(color: const Color(0xFF3B82F6).withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 2))],
           ),
-          child: _isCheckingUpdate
-              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : const Icon(Icons.system_update_alt, color: Colors.white, size: 16),
+          child: Icon(Icons.info_outline_rounded, color: Colors.white.withOpacity(0.5), size: 16),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -435,7 +433,7 @@ class _MainLayoutState extends State<MainLayout> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _isCheckingUpdate ? 'Checking...' : 'Check for Updates',
+                'CVA Desktop',
                 style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 13, fontWeight: FontWeight.w600),
               ),
               Text('v${UpdateService.currentVersion}', style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 10, fontWeight: FontWeight.w500)),

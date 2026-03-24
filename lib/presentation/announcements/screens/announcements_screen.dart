@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import '../../../core/theme/theme_provider.dart';
@@ -187,12 +188,21 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _fetchAnnouncements,
-      child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(50, 24, 48, 40),
-        itemCount: _announcements.length,
-        itemBuilder: (context, index) => _buildAnnouncementCard(_announcements[index]),
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(
+        dragDevices: {
+          PointerDeviceKind.touch,
+          PointerDeviceKind.mouse,
+          PointerDeviceKind.trackpad,
+        },
+      ),
+      child: RefreshIndicator(
+        onRefresh: _fetchAnnouncements,
+        child: ListView.builder(
+          padding: const EdgeInsets.fromLTRB(50, 24, 48, 40),
+          itemCount: _announcements.length,
+          itemBuilder: (context, index) => _buildAnnouncementCard(_announcements[index]),
+        ),
       ),
     );
   }
