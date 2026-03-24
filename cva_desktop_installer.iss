@@ -1,12 +1,12 @@
 [Setup]
 AppName=CVA Desktop
-AppVersion=1.0.17
+AppVersion=1.0.18
 AppPublisher=Covenant VA
 AppPublisherURL=https://covenant-va.com
 DefaultDirName={autopf}\CVA Desktop
 DefaultGroupName=CVA Desktop
 OutputDir=Output
-OutputBaseFilename=CVA-Desktop-Setup-v1.0.17
+OutputBaseFilename=CVA-Desktop-Setup-v1.0.18
 UninstallDisplayIcon={app}\covenant_va_desktop.exe
 Compression=lzma2
 SolidCompression=yes
