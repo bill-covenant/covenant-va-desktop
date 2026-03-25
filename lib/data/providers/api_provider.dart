@@ -120,7 +120,7 @@ class ApiProvider {
             Uri.parse(fullUrl),
             headers: _getHeaders(includeAuth: requiresAuth),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 30));
 
       return _handleResponse(response);
     } on TimeoutException {
@@ -145,7 +145,7 @@ class ApiProvider {
             headers: _getHeaders(includeAuth: requiresAuth),
             body: jsonEncode(body),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 30));
 
       // Invalidate related cache on mutations
       _invalidateRelatedCache(endpoint);
@@ -173,7 +173,7 @@ class ApiProvider {
             headers: _getHeaders(includeAuth: requiresAuth),
             body: jsonEncode(body),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 30));
 
       _invalidateRelatedCache(endpoint);
 
@@ -198,7 +198,7 @@ class ApiProvider {
             Uri.parse(fullUrl),
             headers: _getHeaders(includeAuth: requiresAuth),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 30));
 
       _invalidateRelatedCache(endpoint);
 

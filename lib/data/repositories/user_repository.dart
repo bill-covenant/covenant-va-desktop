@@ -104,30 +104,42 @@ class UserRepository {
     if (languages != null) body['languages'] = languages;
     if (deviceSpecs != null) body['deviceSpecs'] = deviceSpecs;
 
-    try {
-      final response = await _apiProvider.put(
-        '/auth/profile',
-        body,
-        requiresAuth: true,
-      );
+    // Retry once on timeout/network errors (handles Render cold starts)
+    Exception? lastError;
+    for (int attempt = 0; attempt < 2; attempt++) {
+      try {
+        final response = await _apiProvider.put(
+          '/auth/profile',
+          body,
+          requiresAuth: true,
+        );
 
-      final user = UserModel.fromJson(response['user']);
-      
-      // Update stored user data
-      await _storageProvider.saveUser(user);
-      
-      print('✅ UserRepository: Profile updated');
-      return user;
-    } catch (e) {
-      print('❌ UserRepository: Error - $e');
-      
-      if (e.toString().contains('Unauthorized') || 
-          e.toString().contains('401')) {
-        throw UnauthorizedException('Invalid token');
+        final user = UserModel.fromJson(response['user']);
+        await _storageProvider.saveUser(user);
+
+        print('✅ UserRepository: Profile updated${attempt > 0 ? ' (retry)' : ''}');
+        return user;
+      } catch (e) {
+        print('❌ UserRepository: Error (attempt ${attempt + 1}) - $e');
+
+        if (e.toString().contains('Unauthorized') ||
+            e.toString().contains('401')) {
+          throw UnauthorizedException('Invalid token');
+        }
+
+        lastError = e is Exception ? e : Exception(e.toString());
+
+        // Only retry on timeout/network errors
+        if (attempt == 0 && (e.toString().contains('timed out') || e.toString().contains('Network error'))) {
+          print('🔄 Retrying profile update...');
+          await Future.delayed(const Duration(seconds: 1));
+          continue;
+        }
+
+        rethrow;
       }
-      
-      rethrow;
     }
+    throw lastError ?? Exception('Failed to update profile');
   }
 
   /// Change password
