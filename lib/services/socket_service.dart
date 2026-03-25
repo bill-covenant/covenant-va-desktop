@@ -16,6 +16,9 @@ class SocketService {
   // Callback for task updates
   Function()? onTaskUpdate;
 
+  // Callback for announcement updates
+  Function()? onAnnouncementUpdate;
+
   // ✅ Stream for real-time incoming messages
   final _newMessageController = StreamController<MessageModel>.broadcast();
   Stream<MessageModel> get onNewMessage => _newMessageController.stream;
@@ -105,6 +108,13 @@ class SocketService {
       print('💬 ========== NEW MESSAGE RECEIVED ==========');
       print('💬 Raw data: $data');
       _handleNewMessage(data);
+    });
+
+    // ✅ Listen for new announcements
+    _socket!.on('new-announcement', (data) {
+      print('📢 ========== NEW ANNOUNCEMENT ==========');
+      print('📢 Raw data: $data');
+      _handleNewAnnouncement(data);
     });
 
     // ✅ Receive full list of currently online users on connect
@@ -250,9 +260,22 @@ class SocketService {
 
   void _handleTaskUpdated(Map<String, dynamic> data) {
     final task = data['task'];
-    
-    _showNotification(title: 'Task Updated 📝', body: task['title']);
-    
+    final title = task['title'] ?? 'Unknown Task';
+    final priority = task['priority']?.toString().toUpperCase() ?? '';
+    final status = task['status']?.toString() ?? '';
+
+    String notifTitle = 'Task Updated 📝';
+    String notifBody = title;
+
+    if (priority.isNotEmpty) {
+      notifBody = '$title — Priority: $priority';
+    }
+    if (status.isNotEmpty) {
+      notifBody = '$title — Status: $status';
+    }
+
+    _showNotification(title: notifTitle, body: notifBody);
+
     if (onTaskUpdate != null) {
       print('🔄 Triggering task list refresh');
       onTaskUpdate!();
@@ -261,9 +284,27 @@ class SocketService {
 
   void _handleTaskDeleted(Map<String, dynamic> data) {
     _showNotification(title: 'Task Deleted 🗑️', body: 'A task has been removed');
-    
+
     if (onTaskUpdate != null) {
       onTaskUpdate!();
+    }
+  }
+
+  void _handleNewAnnouncement(Map<String, dynamic> data) {
+    try {
+      final announcement = data['announcement'] ?? data;
+      final title = announcement['title'] ?? 'New Announcement';
+
+      _showNotification(
+        title: 'New Announcement 📢',
+        body: title,
+      );
+
+      if (onAnnouncementUpdate != null) {
+        onAnnouncementUpdate!();
+      }
+    } catch (e) {
+      print('❌ Error parsing announcement: $e');
     }
   }
 

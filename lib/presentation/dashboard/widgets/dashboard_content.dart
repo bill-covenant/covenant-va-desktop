@@ -11,6 +11,7 @@ import 'clients_preview.dart';
 import 'dashboard_widgets.dart';
 import 'greeting_header.dart';
 import 'live_timer_card.dart';
+import '../../shared/widgets/refresh_fab.dart';
 
 class DashboardContent extends StatelessWidget {
   final DashboardLoaded? cachedState;
@@ -62,7 +63,11 @@ class DashboardContent extends StatelessWidget {
   Widget _buildDashboard(BuildContext context, DashboardLoaded state) {
     return Column(
       children: [
-        const GreetingHeader(),
+        GreetingHeader(
+          trailing: RefreshFAB(onRefresh: () async {
+            context.read<DashboardBloc>().add(const DashboardRefreshRequested());
+          }),
+        ),
         Expanded(
           child: RefreshIndicator(
             onRefresh: () async {
@@ -76,18 +81,19 @@ class DashboardContent extends StatelessWidget {
                 },
               ),
               child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(32, 16, 32, 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const AnnouncementsSection(),
-                  _buildTopRow(state),
-                  const SizedBox(height: 24),
-                  _buildBottomRow(state),
-                ],
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(32, 16, 32, 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const AnnouncementsSection(),
+                    _buildTopRow(state),
+                    const SizedBox(height: 24),
+                    _buildBottomRow(state),
+                  ],
+                ),
               ),
-            )),
+            ),
           ),
         ),
       ],

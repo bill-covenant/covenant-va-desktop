@@ -160,12 +160,12 @@ class TasksList extends StatelessWidget {
       ),
       child: const Row(
         children: [
-          SizedBox(width: 44, child: _ColHeader(label: '#')),
-          Expanded(flex: 4, child: _ColHeader(label: 'TASK')),
-          Expanded(flex: 2, child: _ColHeader(label: 'PRIORITY')),
-          Expanded(flex: 2, child: _ColHeader(label: 'STATUS')),
-          Expanded(flex: 3, child: _ColHeader(label: 'DUE DATE')),
-          SizedBox(width: 56, child: _ColHeader(label: 'VIEW', center: true)),
+          Expanded(flex: 1, child: _ColHeader(label: '#', center: true)),
+          Expanded(flex: 3, child: _ColHeader(label: 'TASK')),
+          Expanded(flex: 2, child: _ColHeader(label: 'PRIORITY', center: true)),
+          Expanded(flex: 2, child: _ColHeader(label: 'STATUS', center: true)),
+          Expanded(flex: 2, child: _ColHeader(label: 'DUE DATE', center: true)),
+          Expanded(flex: 1, child: _ColHeader(label: 'VIEW', center: true)),
         ],
       ),
     );
@@ -294,30 +294,31 @@ class _TaskRowState extends State<_TaskRow> {
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                           child: Row(
                             children: [
-                              // # badge
-                              SizedBox(
-                                width: 44,
-                                child: Container(
-                                  width: 34, height: 34,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color: _isHovered ? _priorityColor.withOpacity(0.1) : (ThemeProvider().isDarkMode ? Colors.white.withOpacity(0.06) : const Color(0xFFF3F4F6)),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    '${widget.index}',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w800,
-                                      color: _isHovered ? _priorityColor : const Color(0xFF9CA3AF),
+                              // # badge — centered
+                              Expanded(
+                                flex: 1,
+                                child: Center(
+                                  child: Container(
+                                    width: 34, height: 34,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: _isHovered ? _priorityColor.withOpacity(0.1) : (ThemeProvider().isDarkMode ? Colors.white.withOpacity(0.06) : const Color(0xFFF3F4F6)),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      '${widget.index}',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                        color: _isHovered ? _priorityColor : const Color(0xFF9CA3AF),
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 14),
-                              // Task title + description
+                              // Task title + description — left aligned
                               Expanded(
-                                flex: 4,
+                                flex: 3,
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -338,12 +339,12 @@ class _TaskRowState extends State<_TaskRow> {
                                   ],
                                 ),
                               ),
-                              // Priority badge
+                              // Priority badge — centered, fixed width
                               Expanded(
                                 flex: 2,
-                                child: Align(
-                                  alignment: Alignment.centerLeft,
+                                child: Center(
                                   child: Container(
+                                    width: 110,
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                                     decoration: BoxDecoration(
                                       gradient: LinearGradient(
@@ -355,7 +356,7 @@ class _TaskRowState extends State<_TaskRow> {
                                       border: Border.all(color: _priorityColor.withOpacity(0.15)),
                                     ),
                                     child: Row(
-                                      mainAxisSize: MainAxisSize.min,
+                                      mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         Container(
                                           width: 8, height: 8,
@@ -375,11 +376,10 @@ class _TaskRowState extends State<_TaskRow> {
                                   ),
                                 ),
                               ),
-                              // Status dropdown
+                              // Status dropdown — centered
                               Expanded(
                                 flex: 2,
-                                child: Align(
-                                  alignment: Alignment.centerLeft,
+                                child: Center(
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                     decoration: BoxDecoration(
@@ -412,26 +412,26 @@ class _TaskRowState extends State<_TaskRow> {
                                   ),
                                 ),
                               ),
-                              // Due Date
+                              // Due Date — centered
                               Expanded(
-                                flex: 3,
-                                child: widget.task.dueDate != null
-                                    ? Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(6),
-                                            decoration: BoxDecoration(
-                                              color: isOverdue
-                                                  ? (ThemeProvider().isDarkMode ? const Color(0xFF3B1515) : const Color(0xFFFEE2E2))
-                                                  : (ThemeProvider().isDarkMode ? Colors.white.withOpacity(0.06) : const Color(0xFFF3F4F6)),
-                                              borderRadius: BorderRadius.circular(7),
+                                flex: 2,
+                                child: Center(
+                                  child: widget.task.dueDate != null
+                                      ? Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.all(6),
+                                              decoration: BoxDecoration(
+                                                color: isOverdue
+                                                    ? (ThemeProvider().isDarkMode ? const Color(0xFF3B1515) : const Color(0xFFFEE2E2))
+                                                    : (ThemeProvider().isDarkMode ? Colors.white.withOpacity(0.06) : const Color(0xFFF3F4F6)),
+                                                borderRadius: BorderRadius.circular(7),
+                                              ),
+                                              child: Icon(Icons.calendar_today, size: 14, color: isOverdue ? const Color(0xFFDC2626) : (ThemeProvider().isDarkMode ? Colors.white70 : Colors.grey[500])),
                                             ),
-                                            child: Icon(Icons.calendar_today, size: 14, color: isOverdue ? const Color(0xFFDC2626) : (ThemeProvider().isDarkMode ? Colors.white70 : Colors.grey[500])),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Flexible(
-                                            child: Text(
+                                            const SizedBox(width: 8),
+                                            Text(
                                               DateFormat('MMM dd, yyyy').format(widget.task.dueDate!),
                                               style: TextStyle(
                                                 fontSize: 14,
@@ -440,81 +440,78 @@ class _TaskRowState extends State<_TaskRow> {
                                               ),
                                               overflow: TextOverflow.ellipsis,
                                             ),
-                                          ),
-                                          if (isOverdue) ...[
-                                            const SizedBox(width: 8),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                                              decoration: BoxDecoration(
-                                                gradient: const LinearGradient(colors: [Color(0xFFDC2626), Color(0xFFEF4444)]),
-                                                borderRadius: BorderRadius.circular(6),
-                                                boxShadow: [BoxShadow(color: const Color(0xFFDC2626).withOpacity(0.25), blurRadius: 6, offset: const Offset(0, 2))],
+                                            if (isOverdue) ...[
+                                              const SizedBox(width: 8),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                                decoration: BoxDecoration(
+                                                  gradient: const LinearGradient(colors: [Color(0xFFDC2626), Color(0xFFEF4444)]),
+                                                  borderRadius: BorderRadius.circular(6),
+                                                  boxShadow: [BoxShadow(color: const Color(0xFFDC2626).withOpacity(0.25), blurRadius: 6, offset: const Offset(0, 2))],
+                                                ),
+                                                child: const Text('LATE', style: TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
                                               ),
-                                              child: const Text('LATE', style: TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
-                                            ),
+                                            ],
                                           ],
-                                        ],
-                                      )
-                                    : Text('No date', style: TextStyle(fontSize: 14, color: ThemeProvider().isDarkMode ? Colors.white54 : Colors.grey[400], fontStyle: FontStyle.italic)),
+                                        )
+                                      : Text('No date', style: TextStyle(fontSize: 14, color: ThemeProvider().isDarkMode ? Colors.white54 : Colors.grey[400], fontStyle: FontStyle.italic)),
+                                ),
                               ),
-                              // Archive + View buttons
-                              if (widget.task.isCompleted && widget.onArchive != null)
-                                SizedBox(
-                                  width: 44,
-                                  child: Center(
-                                    child: Tooltip(
-                                      message: 'Archive task',
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          // Stop event from opening detail modal
-                                        },
-                                        child: InkWell(
-                                          borderRadius: BorderRadius.circular(10),
-                                          onTap: widget.onArchive,
-                                          child: AnimatedContainer(
-                                            duration: const Duration(milliseconds: 200),
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: BoxDecoration(
-                                              color: _isHovered
-                                                  ? const Color(0xFF6366F1).withOpacity(0.12)
-                                                  : const Color(0xFF6366F1).withOpacity(0.05),
-                                              borderRadius: BorderRadius.circular(10),
-                                              border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.12)),
-                                            ),
-                                            child: Icon(
-                                              Icons.archive_outlined,
-                                              size: 16,
-                                              color: const Color(0xFF6366F1).withOpacity(_isHovered ? 0.8 : 0.4),
+                              // Archive + View buttons — centered
+                              Expanded(
+                                flex: 1,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    if (widget.task.isCompleted && widget.onArchive != null)
+                                      Tooltip(
+                                        message: 'Archive task',
+                                        child: GestureDetector(
+                                          onTap: () {},
+                                          child: InkWell(
+                                            borderRadius: BorderRadius.circular(10),
+                                            onTap: widget.onArchive,
+                                            child: AnimatedContainer(
+                                              duration: const Duration(milliseconds: 200),
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: BoxDecoration(
+                                                color: _isHovered
+                                                    ? const Color(0xFF6366F1).withOpacity(0.12)
+                                                    : const Color(0xFF6366F1).withOpacity(0.05),
+                                                borderRadius: BorderRadius.circular(10),
+                                                border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.12)),
+                                              ),
+                                              child: Icon(
+                                                Icons.archive_outlined,
+                                                size: 16,
+                                                color: const Color(0xFF6366F1).withOpacity(_isHovered ? 0.8 : 0.4),
+                                              ),
                                             ),
                                           ),
                                         ),
                                       ),
+                                    if (widget.task.isCompleted && widget.onArchive != null)
+                                      const SizedBox(width: 8),
+                                    AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        gradient: _isHovered
+                                            ? const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF6366F1)])
+                                            : LinearGradient(colors: [const Color(0xFF7C3AED).withOpacity(0.08), const Color(0xFF6366F1).withOpacity(0.04)]),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(color: const Color(0xFF7C3AED).withOpacity(_isHovered ? 0.3 : 0.1)),
+                                        boxShadow: _isHovered
+                                            ? [BoxShadow(color: const Color(0xFF7C3AED).withOpacity(0.25), blurRadius: 8, offset: const Offset(0, 3))]
+                                            : [],
+                                      ),
+                                      child: Icon(
+                                        Icons.visibility_outlined,
+                                        size: 18,
+                                        color: _isHovered ? Colors.white : const Color(0xFF7C3AED).withOpacity(0.5),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              // View button
-                              SizedBox(
-                                width: 56,
-                                child: Center(
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      gradient: _isHovered
-                                          ? const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF6366F1)])
-                                          : LinearGradient(colors: [const Color(0xFF7C3AED).withOpacity(0.08), const Color(0xFF6366F1).withOpacity(0.04)]),
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(color: const Color(0xFF7C3AED).withOpacity(_isHovered ? 0.3 : 0.1)),
-                                      boxShadow: _isHovered
-                                          ? [BoxShadow(color: const Color(0xFF7C3AED).withOpacity(0.25), blurRadius: 8, offset: const Offset(0, 3))]
-                                          : [],
-                                    ),
-                                    child: Icon(
-                                      Icons.visibility_outlined,
-                                      size: 18,
-                                      color: _isHovered ? Colors.white : const Color(0xFF7C3AED).withOpacity(0.5),
-                                    ),
-                                  ),
+                                  ],
                                 ),
                               ),
                             ],

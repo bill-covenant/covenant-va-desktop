@@ -11,6 +11,7 @@ import '../widgets/timecard_loading_skeleton.dart';
 import '../widgets/timecard_error_state.dart';
 import '../widgets/log_hours_dialog.dart';
 import '../../../data/models/time_entry.dart';
+import '../../shared/widgets/refresh_fab.dart';
 
 class TimecardScreen extends StatefulWidget {
   final String clientId;
@@ -296,6 +297,7 @@ class _TimecardScreenState extends State<TimecardScreen> {
               onMonthChanged: _handleMonthChanged,
               onLogHours: _handleLogHours,
               onRefresh: _silentRefresh,
+              trailing: RefreshFAB(onRefresh: () async => _silentRefresh()),
             ),
             Expanded(
               child: RefreshIndicator(

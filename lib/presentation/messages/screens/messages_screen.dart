@@ -10,6 +10,7 @@ import '../widgets/messages_error_state.dart';
 import '../../../data/providers/storage_provider.dart';
 import '../../../data/models/conversation_model.dart';
 import '../../../services/call_service.dart';
+import '../../shared/widgets/refresh_fab.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
@@ -316,82 +317,7 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
           ),
         ),
         const Spacer(),
-        MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: _handleRefresh,
-            child: AnimatedBuilder(
-              animation: _refreshAnimationController,
-              builder: (context, child) {
-                return Transform.rotate(
-                  angle: _refreshAnimationController.value * 2 * 3.14159,
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Color(0xFFFFFFFF),
-                          Color(0xFFF3F4F6),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.white.withOpacity(0.8),
-                          offset: const Offset(-2, -2),
-                          blurRadius: 6,
-                          spreadRadius: 0,
-                        ),
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
-                          offset: const Offset(4, 4),
-                          blurRadius: 12,
-                          spreadRadius: 0,
-                        ),
-                        BoxShadow(
-                          color: const Color(0xFF10B981).withOpacity(0.1),
-                          offset: const Offset(0, 2),
-                          blurRadius: 8,
-                          spreadRadius: 0,
-                        ),
-                      ],
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.5),
-                        width: 1,
-                      ),
-                    ),
-                    child: Container(
-                      margin: const EdgeInsets.all(1),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Colors.white.withOpacity(0.9),
-                            Colors.white.withOpacity(0.7),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(11),
-                      ),
-                      child: Center(
-                        child: Icon(
-                          Icons.refresh_rounded,
-                          color: _isRefreshing 
-                              ? const Color(0xFF10B981)
-                              : const Color(0xFF6B7280),
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
+        RefreshFAB(onRefresh: () async => _handleRefresh()),
       ],
     ),
   );

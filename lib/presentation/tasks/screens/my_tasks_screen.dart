@@ -8,7 +8,7 @@ import '../widgets/tasks_header.dart';
 import '../widgets/tasks_skeleton_loading.dart';
 import '../widgets/tasks_content.dart';
 import '../widgets/tasks_error_state.dart';
-import '../widgets/refresh_fab.dart';
+import '../../shared/widgets/refresh_fab.dart';
 import 'archive_screen.dart';
 
 class MyTasksScreen extends StatefulWidget {
@@ -201,21 +201,12 @@ class _MyTasksScreenState extends State<MyTasksScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const TasksHeader(),
-            Expanded(
-              child: Stack(
-                children: [
-                  _buildContent(),
-                  Positioned(
-                    right: 16,
-                    bottom: 16,
-                    child: RefreshFAB(
-                      onRefresh: () => _loadAllTasks(showLoading: false),
-                    ),
-                  ),
-                ],
+            TasksHeader(
+              trailing: RefreshFAB(
+                onRefresh: () => _loadAllTasks(showLoading: false),
               ),
             ),
+            Expanded(child: _buildContent()),
           ],
         );
       },

@@ -23,7 +23,7 @@ class ConversationModel {
     this.unreadCount = 0,
   });
 
-  factory ConversationModel.fromFirestore(dynamic doc) {
+  factory ConversationModel.fromFirestore(dynamic doc, {String? currentUserId}) {
     final data = doc.data() as Map<String, dynamic>;
     final lastMsgAt = data['lastMessageAt'];
     DateTime? lastMsgAtDate;
@@ -32,6 +32,14 @@ class ConversationModel {
         lastMsgAtDate = (lastMsgAt as dynamic).toDate() as DateTime;
       } catch (_) {}
     }
+
+    // Read unread count for current user from the unreadCounts map
+    int unread = 0;
+    if (currentUserId != null) {
+      final unreadCounts = data['unreadCounts'] as Map<String, dynamic>? ?? {};
+      unread = (unreadCounts[currentUserId] as num?)?.toInt() ?? 0;
+    }
+
     return ConversationModel(
       id: doc.id as String,
       clientId: data['clientId'] as String? ?? '',
@@ -56,7 +64,7 @@ class ConversationModel {
               lastName: (data['vaName'] as String).split(' ').skip(1).join(' '),
             )
           : null,
-      unreadCount: 0,
+      unreadCount: unread,
     );
   }
 

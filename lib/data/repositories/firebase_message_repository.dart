@@ -15,7 +15,7 @@ class FirebaseMessageRepository {
         .orderBy('lastMessageAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => ConversationModel.fromFirestore(doc))
+            .map((doc) => ConversationModel.fromFirestore(doc, currentUserId: userId))
             .toList());
   }
 

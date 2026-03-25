@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 class TasksHeader extends StatelessWidget {
-  const TasksHeader({super.key});
+  final Widget? trailing;
+  const TasksHeader({super.key, this.trailing});
 
   @override
   Widget build(BuildContext context) {
@@ -12,6 +13,8 @@ class TasksHeader extends StatelessWidget {
           _build3DIcon(),
           const SizedBox(width: 16),
           _build3DText(),
+          const Spacer(),
+          if (trailing != null) trailing!,
         ],
       ),
     );

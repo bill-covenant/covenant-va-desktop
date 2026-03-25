@@ -39,6 +39,8 @@ class _MainLayoutState extends State<MainLayout> {
   int _timecardBadge = 0;
   int _announcementBadge = 0;
   Timer? _badgeTimer;
+  StreamSubscription? _messagesStreamSub;
+  int _lastKnownUnread = 0;
 
   static final String _apiBaseUrl = ApiConstants.baseUrl;
 
@@ -48,9 +50,24 @@ class _MainLayoutState extends State<MainLayout> {
     _selectedRoute = widget.currentRoute;
 
     print('🔔 MainLayout: Setting up notification callback');
-    SocketService().onNotification = _showNotificationBanner;
+    final socketService = SocketService();
+    socketService.onNotification = (title, body) {
+      _showNotificationBanner(title, body);
+      // If it's a task notification, increment badge immediately
+      if (title.contains('Task') && _selectedRoute != 'tasks') {
+        if (mounted) setState(() => _tasksBadge++);
+      }
+      // Refresh other badges
+      if (mounted) _fetchBadgeCounts();
+    };
+
+    // Refresh badges when announcements arrive via socket
+    socketService.onAnnouncementUpdate = () {
+      if (mounted) _fetchBadgeCounts();
+    };
 
     _fetchBadgeCounts();
+    _listenToMessagesStream();
     _badgeTimer = Timer.periodic(const Duration(minutes: 1), (_) => _fetchBadgeCounts());
   }
 
@@ -64,9 +81,49 @@ class _MainLayoutState extends State<MainLayout> {
     }
   }
 
+  /// Listen to Firestore conversations for real-time message notifications
+  Future<void> _listenToMessagesStream() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userJson = prefs.getString('user_data');
+      if (userJson == null) return;
+
+      final userData = json.decode(userJson);
+      final userId = userData['id']?.toString() ?? '';
+      if (userId.isEmpty) return;
+
+      _messagesStreamSub = FirebaseFirestore.instance
+          .collection('conversations')
+          .where('participants', arrayContains: userId)
+          .snapshots()
+          .listen((snapshot) {
+        int totalUnread = 0;
+        for (final doc in snapshot.docs) {
+          final data = doc.data();
+          final unreadCounts = data['unreadCounts'] as Map<String, dynamic>? ?? {};
+          totalUnread += (unreadCounts[userId] as num?)?.toInt() ?? 0;
+        }
+
+        // Show notification if unread count increased (new message arrived)
+        if (totalUnread > _lastKnownUnread && _lastKnownUnread >= 0) {
+          // Don't show notification if we're on the messages screen
+          if (_selectedRoute != 'messages') {
+            _showNotificationBanner('New Message 💬', 'You have a new message');
+          }
+        }
+
+        _lastKnownUnread = totalUnread;
+        if (mounted) setState(() => _messagesBadge = totalUnread);
+      });
+    } catch (e) {
+      print('⚠️ Failed to listen to messages stream: $e');
+    }
+  }
+
   @override
   void dispose() {
     _badgeTimer?.cancel();
+    _messagesStreamSub?.cancel();
     LayoutNotificationOverlay.dismiss();
     super.dispose();
   }
@@ -82,29 +139,7 @@ class _MainLayoutState extends State<MainLayout> {
         'Authorization': 'Bearer $token',
       };
 
-      // Messages: unread count from Firestore
-      try {
-        final userJson = prefs.getString('user');
-        if (userJson != null) {
-          final userData = json.decode(userJson);
-          final userId = userData['id']?.toString() ?? '';
-          if (userId.isNotEmpty) {
-            final snapshot = await FirebaseFirestore.instance
-                .collection('conversations')
-                .where('participants', arrayContains: userId)
-                .get();
-            int totalUnread = 0;
-            for (final doc in snapshot.docs) {
-              final data = doc.data();
-              final unreadCounts = data['unreadCounts'] as Map<String, dynamic>?;
-              if (unreadCounts != null) {
-                totalUnread += (unreadCounts[userId] as int? ?? 0);
-              }
-            }
-            if (mounted) setState(() => _messagesBadge = totalUnread);
-          }
-        }
-      } catch (_) {}
+      // Messages: handled by real-time Firestore stream (_listenToMessagesStream)
 
       // Tasks: total count vs last seen
       try {
@@ -118,7 +153,11 @@ class _MainLayoutState extends State<MainLayout> {
           final activeTasks = tasks.where((t) => t['status'] != 'ARCHIVED').toList();
           final total = activeTasks.length;
           final lastSeen = prefs.getInt('badge_lastSeen_tasks') ?? 0;
-          setState(() => _tasksBadge = (total - lastSeen).clamp(0, 999));
+          final countBadge = (total - lastSeen).clamp(0, 999);
+          // Keep the higher value — socket events may have incremented it
+          if (countBadge > _tasksBadge) {
+            setState(() => _tasksBadge = countBadge);
+          }
         }
       } catch (_) {}
 
@@ -163,7 +202,11 @@ class _MainLayoutState extends State<MainLayout> {
     };
 
     if (route == 'messages') {
-      if (mounted) setState(() => _messagesBadge = 0);
+      // Don't force to 0 — re-fetch after a short delay to reflect
+      // conversations that get marked as read when opened
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) _fetchBadgeCounts();
+      });
     }
 
     if (route == 'tasks') {

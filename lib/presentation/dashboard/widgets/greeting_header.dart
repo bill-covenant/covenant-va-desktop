@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class GreetingHeader extends StatelessWidget {
-  const GreetingHeader({super.key});
+  final Widget? trailing;
+  const GreetingHeader({super.key, this.trailing});
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +43,10 @@ class GreetingHeader extends StatelessWidget {
             },
           ),
           const Spacer(),
+          if (trailing != null) ...[
+            trailing!,
+            const SizedBox(width: 12),
+          ],
           // Profile avatar
           FutureBuilder<String>(
             future: _getVAName(),

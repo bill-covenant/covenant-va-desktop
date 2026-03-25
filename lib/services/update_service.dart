@@ -22,8 +22,8 @@ class UpdateInfo {
 
 class UpdateService {
   // ⚠️ Update this every time you release a new version
-  static const String currentVersion = '1.0.18';
-  static const int currentBuildNumber = 19;
+  static const String currentVersion = '1.0.19';
+  static const int currentBuildNumber = 20;
 
   static Future<UpdateInfo?> checkForUpdate(String apiBaseUrl) async {
     try {
@@ -35,7 +35,8 @@ class UpdateService {
         final data = json.decode(response.body);
 
         if (data['success'] == true) {
-          final latestVersion = data['version'] as String;
+          final rawVersion = data['version'] as String;
+          final latestVersion = _normalizeVersion(rawVersion);
           final latestBuild = data['buildNumber'] as int;
           final updateAvailable = _isNewerVersion(latestVersion, latestBuild);
 
@@ -54,6 +55,23 @@ class UpdateService {
       print('⚠️ Update check failed: $e');
       return null;
     }
+  }
+
+  /// Normalize version to semver format (e.g., "1.018" → "1.0.18")
+  static String _normalizeVersion(String version) {
+    final parts = version.split('.');
+    if (parts.length == 2) {
+      // "1.018" → major=1, rest=018 → "1.0.18"
+      final major = parts[0];
+      final rest = parts[1];
+      if (rest.length > 2) {
+        final minor = rest.substring(0, rest.length - 2);
+        final patch = rest.substring(rest.length - 2);
+        return '$major.${int.parse(minor)}.${int.parse(patch)}';
+      }
+      return '$major.0.${int.parse(rest)}';
+    }
+    return version; // Already in x.y.z format
   }
 
   static bool _isNewerVersion(String latestVersion, int latestBuild) {

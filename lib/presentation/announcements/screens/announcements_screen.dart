@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/announcement_model.dart';
 import '../../../data/repositories/announcement_repository.dart';
+import '../../shared/widgets/refresh_fab.dart';
 
 class AnnouncementsScreen extends StatefulWidget {
   const AnnouncementsScreen({super.key});
@@ -133,15 +134,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
             ],
           ),
           const Spacer(),
-          IconButton(
-            onPressed: _fetchAnnouncements,
-            icon: Icon(
-              Icons.refresh_rounded,
-              color: dark ? Colors.white.withOpacity(0.6) : Colors.white,
-              shadows: dark ? [] : [Shadow(color: Colors.black.withOpacity(0.3), blurRadius: 4)],
-            ),
-            tooltip: 'Refresh',
-          ),
+          RefreshFAB(onRefresh: () => _fetchAnnouncements(showLoading: false)),
         ],
       ),
     );

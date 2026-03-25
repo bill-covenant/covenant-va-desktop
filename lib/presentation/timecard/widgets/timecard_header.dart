@@ -7,6 +7,7 @@ class TimecardHeader extends StatelessWidget {
   final Function(String) onMonthChanged;
   final VoidCallback onLogHours;
   final VoidCallback? onRefresh;
+  final Widget? trailing;
 
   const TimecardHeader({
     super.key,
@@ -15,6 +16,7 @@ class TimecardHeader extends StatelessWidget {
     required this.onMonthChanged,
     required this.onLogHours,
     this.onRefresh,
+    this.trailing,
   });
 
   String _formatMonthDisplay(String month) {
@@ -118,9 +120,11 @@ class TimecardHeader extends StatelessWidget {
             children: [
               _buildMonthSelector(),
               const SizedBox(width: 12),
-              _buildRefreshButton(),
-              const SizedBox(width: 12),
               _buildLogHoursButton(),
+              if (trailing != null) ...[
+                const SizedBox(width: 12),
+                trailing!,
+              ],
             ],
           ),
         ],
