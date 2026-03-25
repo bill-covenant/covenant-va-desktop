@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/conversation_model.dart';
+import '../../../data/models/message_model.dart';
 import '../../../services/call_service.dart';
 import '../../../services/socket_service.dart';
 import 'chat_header.dart';
 import 'chat_messages_area.dart';
 import 'chat_input.dart';
 
-class ChatPanel extends StatelessWidget {
+class ChatPanel extends StatefulWidget {
   final ConversationModel? conversation;
   final String currentUserId;
   final CallService? callService;
@@ -20,60 +21,78 @@ class ChatPanel extends StatelessWidget {
   });
 
   @override
+  State<ChatPanel> createState() => _ChatPanelState();
+}
+
+class _ChatPanelState extends State<ChatPanel> {
+  MessageModel? _replyingTo;
+
+  @override
+  void didUpdateWidget(ChatPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Clear reply when conversation changes
+    if (oldWidget.conversation?.id != widget.conversation?.id) {
+      _replyingTo = null;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (conversation == null) {
+    if (widget.conversation == null) {
       return _buildEmptyState();
     }
 
-    // Check if this is a new conversation (temporary ID)
-    final isNewConversation = conversation!.id.startsWith('new_');
+    final isNewConversation = widget.conversation!.id.startsWith('new_');
 
     return Column(
       children: [
-        // Header with participant info
         ChatHeader(
-          conversation: conversation!,
-          currentUserId: currentUserId,
-          isOtherUserOnline: SocketService().isUserOnline(conversation!.getOtherUserId(currentUserId)),
-          onAudioCall: callService != null ? () {
-            final otherUserId = conversation!.getOtherUserId(currentUserId);
-            final otherUserName = conversation!.getOtherParticipantName(currentUserId);
-            callService!.startCall(otherUserId, otherUserName, 'audio');
+          conversation: widget.conversation!,
+          currentUserId: widget.currentUserId,
+          isOtherUserOnline: SocketService().isUserOnline(widget.conversation!.getOtherUserId(widget.currentUserId)),
+          onAudioCall: widget.callService != null ? () {
+            final otherUserId = widget.conversation!.getOtherUserId(widget.currentUserId);
+            final otherUserName = widget.conversation!.getOtherParticipantName(widget.currentUserId);
+            widget.callService!.startCall(otherUserId, otherUserName, 'audio');
           } : null,
-          onVideoCall: callService != null ? () {
-            final otherUserId = conversation!.getOtherUserId(currentUserId);
-            final otherUserName = conversation!.getOtherParticipantName(currentUserId);
-            callService!.startCall(otherUserId, otherUserName, 'video');
+          onVideoCall: widget.callService != null ? () {
+            final otherUserId = widget.conversation!.getOtherUserId(widget.currentUserId);
+            final otherUserName = widget.conversation!.getOtherParticipantName(widget.currentUserId);
+            widget.callService!.startCall(otherUserId, otherUserName, 'video');
           } : null,
         ),
 
-        // Messages area (will be empty for new conversations)
         Expanded(
-          child: isNewConversation 
+          child: isNewConversation
               ? _buildNewConversationState()
               : ChatMessagesArea(
-                  conversation: conversation!,
-                  currentUserId: currentUserId,
+                  conversation: widget.conversation!,
+                  currentUserId: widget.currentUserId,
+                  onReply: (message) {
+                    setState(() => _replyingTo = message);
+                  },
                 ),
         ),
 
-        // Message input (always show, even for new conversations)
         ChatInput(
-          conversation: conversation!,
-          currentUserId: currentUserId,
+          conversation: widget.conversation!,
+          currentUserId: widget.currentUserId,
+          replyingTo: _replyingTo,
+          onClearReply: () {
+            setState(() => _replyingTo = null);
+          },
         ),
       ],
     );
   }
 
   Widget _buildNewConversationState() {
-    final clientName = conversation!.client?.fullName ?? 'Client';
-    
+    final clientName = widget.conversation!.client?.fullName ?? 'Client';
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Avatar
           Container(
             width: 80,
             height: 80,
@@ -92,8 +111,8 @@ class ChatPanel extends StatelessWidget {
             ),
             child: Center(
               child: Text(
-                (conversation!.client?.firstName.isNotEmpty == true
-                    ? conversation!.client!.firstName[0].toUpperCase()
+                (widget.conversation!.client?.firstName.isNotEmpty == true
+                    ? widget.conversation!.client!.firstName[0].toUpperCase()
                     : 'C'),
                 style: const TextStyle(
                   color: Colors.white,
@@ -103,9 +122,7 @@ class ChatPanel extends StatelessWidget {
               ),
             ),
           ),
-          
           const SizedBox(height: 24),
-          
           Text(
             clientName,
             style: TextStyle(
@@ -114,9 +131,7 @@ class ChatPanel extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-
           const SizedBox(height: 8),
-
           Text(
             'Start a conversation',
             style: TextStyle(
@@ -124,9 +139,7 @@ class ChatPanel extends StatelessWidget {
               fontSize: 15,
             ),
           ),
-          
           const SizedBox(height: 24),
-          
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
@@ -136,19 +149,11 @@ class ChatPanel extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.info_outline,
-                  size: 18,
-                  color: Colors.black.withOpacity(0.5),
-                ),
+                Icon(Icons.info_outline, size: 18, color: Colors.black.withOpacity(0.5)),
                 const SizedBox(width: 8),
                 Text(
                   'Type a message below to begin',
-                  style: TextStyle(
-                    color: Colors.black.withOpacity(0.6),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: TextStyle(color: Colors.black.withOpacity(0.6), fontSize: 14, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
@@ -163,7 +168,6 @@ class ChatPanel extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // 3D Glassmorphic icon container
           Container(
             width: 120,
             height: 120,
@@ -171,39 +175,17 @@ class ChatPanel extends StatelessWidget {
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFFB24FE0), // Lighter purple
-                  Color(0xFF8B2FC9), // Darker purple
-                ],
+                colors: [Color(0xFFB24FE0), Color(0xFF8B2FC9)],
               ),
               borderRadius: BorderRadius.circular(28),
               boxShadow: [
-                // Main shadow
-                BoxShadow(
-                  color: const Color(0xFF8B2FC9).withOpacity(0.4),
-                  blurRadius: 30,
-                  offset: const Offset(0, 15),
-                  spreadRadius: 0,
-                ),
-                // Secondary glow
-                BoxShadow(
-                  color: const Color(0xFFB24FE0).withOpacity(0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                  spreadRadius: -5,
-                ),
-                // Inner highlight (simulated with white)
-                BoxShadow(
-                  color: Colors.white.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(-2, -2),
-                  spreadRadius: 0,
-                ),
+                BoxShadow(color: const Color(0xFF8B2FC9).withOpacity(0.4), blurRadius: 30, offset: const Offset(0, 15)),
+                BoxShadow(color: const Color(0xFFB24FE0).withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 8), spreadRadius: -5),
+                BoxShadow(color: Colors.white.withOpacity(0.1), blurRadius: 10, offset: const Offset(-2, -2)),
               ],
             ),
             child: Stack(
               children: [
-                // Inner glow
                 Positioned.fill(
                   child: Container(
                     margin: const EdgeInsets.all(2),
@@ -212,29 +194,16 @@ class ChatPanel extends StatelessWidget {
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white.withOpacity(0.2),
-                          Colors.white.withOpacity(0.0),
-                        ],
+                        colors: [Colors.white.withOpacity(0.2), Colors.white.withOpacity(0.0)],
                       ),
                     ),
                   ),
                 ),
-                // Icon
-                const Center(
-                  child: Icon(
-                    Icons.chat_bubble_rounded,
-                    color: Colors.white,
-                    size: 56,
-                  ),
-                ),
+                const Center(child: Icon(Icons.chat_bubble_rounded, color: Colors.white, size: 56)),
               ],
             ),
           ),
-          
           const SizedBox(height: 32),
-          
-          // Title with bold weight
           Text(
             'No Conversation Selected',
             style: TextStyle(
@@ -244,17 +213,13 @@ class ChatPanel extends StatelessWidget {
               letterSpacing: -0.5,
             ),
           ),
-
           const SizedBox(height: 12),
-
-          // Subtitle
           Text(
             'Choose a conversation from the list to start chatting',
             style: TextStyle(
               color: ThemeProvider().isDarkMode ? Colors.white54 : Colors.black.withOpacity(0.5),
               fontSize: 15,
               fontWeight: FontWeight.w500,
-              letterSpacing: 0,
             ),
           ),
         ],

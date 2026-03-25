@@ -12,6 +12,7 @@ import 'dart:convert';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/conversation_model.dart';
+import '../../../data/models/message_model.dart';
 import '../../../data/providers/api_provider.dart';
 import 'package:get_it/get_it.dart';
 import '../bloc/messages_bloc.dart';
@@ -21,11 +22,15 @@ import '../bloc/messages_state.dart';
 class ChatInput extends StatefulWidget {
   final ConversationModel conversation;
   final String currentUserId;
+  final MessageModel? replyingTo;
+  final VoidCallback? onClearReply;
 
   const ChatInput({
     super.key,
     required this.conversation,
     required this.currentUserId,
+    this.replyingTo,
+    this.onClearReply,
   });
 
   @override
@@ -86,6 +91,15 @@ class _ChatInputState extends State<ChatInput>
       _sendButtonController.forward();
     } else {
       _sendButtonController.reverse();
+    }
+  }
+
+  @override
+  void didUpdateWidget(ChatInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Auto-focus input when replying to a message
+    if (widget.replyingTo != null && oldWidget.replyingTo != widget.replyingTo) {
+      _focusNode.requestFocus();
     }
   }
 
@@ -262,6 +276,19 @@ class _ChatInputState extends State<ChatInput>
 
     _messageController.clear();
 
+    final replyTo = widget.replyingTo != null
+        ? {
+            'messageId': widget.replyingTo!.id,
+            'senderId': widget.replyingTo!.senderId,
+            'senderName': widget.replyingTo!.senderId == widget.currentUserId
+                ? 'You'
+                : (widget.conversation.client?.fullName ?? 'Client'),
+            'content': widget.replyingTo!.content.length > 100
+                ? widget.replyingTo!.content.substring(0, 100)
+                : widget.replyingTo!.content,
+          }
+        : null;
+
     context.read<MessagesBloc>().add(
           MessageSendRequested(
             conversationId: widget.conversation.id,
@@ -270,9 +297,11 @@ class _ChatInputState extends State<ChatInput>
             clientName: widget.conversation.client?.fullName ?? '',
             vaName: widget.conversation.va?.fullName ?? '',
             attachments: attachments,
+            replyTo: replyTo,
           ),
         );
 
+    widget.onClearReply?.call();
     _focusNode.requestFocus();
   }
 
@@ -474,6 +503,9 @@ class _ChatInputState extends State<ChatInput>
         mainAxisSize: MainAxisSize.min,
         children: [
           // Pending files preview strip
+          // Reply preview bar
+          if (widget.replyingTo != null) _buildReplyPreview(isDark),
+
           if (_pendingFiles.isNotEmpty) _buildPendingFilesStrip(isDark),
 
           // Input bar
@@ -714,6 +746,75 @@ class _ChatInputState extends State<ChatInput>
                     ],
                   ),
                 ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReplyPreview(bool isDark) {
+    final reply = widget.replyingTo!;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1A1230) : const Color(0xFF6D28D9),
+        border: Border(
+          top: BorderSide(
+            color: isDark
+                ? Colors.white.withOpacity(0.06)
+                : Colors.white.withOpacity(0.1),
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 3,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFFA78BFA),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Replying to',
+                  style: TextStyle(
+                    color: const Color(0xFFA78BFA),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  reply.content.isNotEmpty
+                      ? reply.content
+                      : 'Attachment',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.6),
+                    fontSize: 12.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: widget.onClearReply,
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Icon(
+                Icons.close_rounded,
+                size: 18,
+                color: Colors.white.withOpacity(0.5),
               ),
             ),
           ),

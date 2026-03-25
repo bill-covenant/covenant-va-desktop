@@ -16,11 +16,13 @@ import 'messages_error_state.dart';
 class ChatMessagesArea extends StatefulWidget {
   final ConversationModel conversation;
   final String currentUserId;
+  final void Function(MessageModel)? onReply;
 
   const ChatMessagesArea({
     super.key,
     required this.conversation,
     required this.currentUserId,
+    this.onReply,
   });
 
   @override
@@ -289,6 +291,7 @@ class _ChatMessagesAreaState extends State<ChatMessagesArea>
               currentUserId: widget.currentUserId,
               isFirstInGroup: isFirstInGroup,
               isLastInGroup: isLastInGroup,
+              onReply: widget.onReply != null ? () => widget.onReply!(message) : null,
             );
           },
         ),

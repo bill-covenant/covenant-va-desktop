@@ -395,7 +395,7 @@ class _SplashScreenState extends State<SplashScreen>
                   child: Opacity(
                     opacity: _progressOpacity.value,
                     child: Text(
-                      'v1.0.20',
+                      'v1.0.21',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 11,

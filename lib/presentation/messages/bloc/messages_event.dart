@@ -57,6 +57,7 @@ class MessageSendRequested extends MessagesEvent {
   final String clientName;
   final String vaName;
   final List<Map<String, dynamic>> attachments;
+  final Map<String, dynamic>? replyTo;
 
   const MessageSendRequested({
     required this.conversationId,
@@ -65,10 +66,11 @@ class MessageSendRequested extends MessagesEvent {
     this.clientName = '',
     this.vaName = '',
     this.attachments = const [],
+    this.replyTo,
   });
 
   @override
-  List<Object> get props => [conversationId, content, senderId, clientName, vaName, attachments];
+  List<Object?> get props => [conversationId, content, senderId, clientName, vaName, attachments, replyTo];
 }
 
 // ============================================

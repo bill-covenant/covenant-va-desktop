@@ -18,6 +18,7 @@ void showMessageContextMenu({
   required bool isMe,
   required String conversationId,
   required String currentUserId,
+  VoidCallback? onReply,
 }) {
   final overlay = Overlay.of(context);
   late OverlayEntry entry;
@@ -31,6 +32,7 @@ void showMessageContextMenu({
       currentUserId: currentUserId,
       onDismiss: () => entry.remove(),
       parentContext: context,
+      onReply: onReply,
     ),
   );
 
@@ -45,6 +47,7 @@ class _MessageContextOverlay extends StatefulWidget {
   final String currentUserId;
   final VoidCallback onDismiss;
   final BuildContext parentContext;
+  final VoidCallback? onReply;
 
   const _MessageContextOverlay({
     required this.tapPosition,
@@ -54,6 +57,7 @@ class _MessageContextOverlay extends StatefulWidget {
     required this.currentUserId,
     required this.onDismiss,
     required this.parentContext,
+    this.onReply,
   });
 
   @override
@@ -100,6 +104,11 @@ class _MessageContextOverlayState extends State<_MessageContextOverlay>
     _dismiss();
   }
 
+  void _onReply() {
+    _dismiss();
+    widget.onReply?.call();
+  }
+
   void _onCopy() {
     Clipboard.setData(ClipboardData(text: widget.message.content));
     _dismiss();
@@ -133,7 +142,7 @@ class _MessageContextOverlayState extends State<_MessageContextOverlay>
     const double menuItemHeight = 44;
 
     // Count menu items
-    int menuItems = 0;
+    int menuItems = 1; // Reply is always available
     if (widget.message.content.isNotEmpty) menuItems++; // Copy
     if (widget.message.attachments.isNotEmpty) menuItems++; // Download
     if (widget.isMe) menuItems++; // Delete
@@ -259,6 +268,14 @@ class _MessageContextOverlayState extends State<_MessageContextOverlay>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          _buildMenuItem(
+            icon: Icons.reply_rounded,
+            label: 'Reply',
+            iconColor: isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED),
+            textColor: isDark ? Colors.grey.shade200 : const Color(0xFF1F2937),
+            onTap: _onReply,
+            isDark: isDark,
+          ),
           if (widget.message.content.isNotEmpty)
             _buildMenuItem(
               icon: Icons.copy_rounded,

@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -16,6 +17,7 @@ class MessageBubble extends StatefulWidget {
   final bool showAvatar;
   final bool isFirstInGroup;
   final bool isLastInGroup;
+  final VoidCallback? onReply;
 
   const MessageBubble({
     super.key,
@@ -26,6 +28,7 @@ class MessageBubble extends StatefulWidget {
     this.showAvatar = true,
     this.isFirstInGroup = true,
     this.isLastInGroup = true,
+    this.onReply,
   });
 
   @override
@@ -111,6 +114,7 @@ class _MessageBubbleState extends State<MessageBubble> {
       isMe: widget.isMe,
       conversationId: widget.conversationId,
       currentUserId: widget.currentUserId,
+      onReply: widget.onReply,
     );
   }
 
@@ -210,6 +214,54 @@ class _MessageBubbleState extends State<MessageBubble> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
+                                // Quoted reply block
+                                if (widget.message.replyTo != null)
+                                  Container(
+                                    margin: widget.message.attachments.any((a) => a.isImage)
+                                        ? const EdgeInsets.fromLTRB(4, 4, 4, 0)
+                                        : const EdgeInsets.only(bottom: 8),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: widget.isMe
+                                          ? Colors.white.withOpacity(0.12)
+                                          : const Color(0xFF7C3AED).withOpacity(0.06),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border(
+                                        left: BorderSide(
+                                          color: widget.isMe ? Colors.white54 : const Color(0xFF7C3AED),
+                                          width: 3,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          widget.message.replyTo!.senderName.isNotEmpty
+                                              ? widget.message.replyTo!.senderName
+                                              : 'Unknown',
+                                          style: TextStyle(
+                                            color: widget.isMe ? Colors.white70 : const Color(0xFF7C3AED),
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          widget.message.replyTo!.content.isNotEmpty
+                                              ? widget.message.replyTo!.content
+                                              : 'Attachment',
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: widget.isMe ? Colors.white54 : Colors.grey.shade600,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 // Image attachments
                                 ...widget.message.attachments.where((a) => a.isImage).map((att) =>
                                   Padding(
@@ -300,23 +352,15 @@ class _MessageBubbleState extends State<MessageBubble> {
                                     ),
                                   ),
                                 ),
-                                // Text content
+                                // Text content (with clickable links)
                                 if (widget.message.content.isNotEmpty)
                                   Padding(
                                     padding: widget.message.attachments.any((a) => a.isImage)
                                         ? const EdgeInsets.fromLTRB(12, 6, 12, 6)
                                         : EdgeInsets.zero,
-                                    child: Text(
+                                    child: _buildLinkifiedText(
                                       widget.message.content,
-                                      style: TextStyle(
-                                        color: widget.isMe
-                                            ? Colors.white
-                                            : ThemeProvider().isDarkMode ? Colors.white : const Color(0xFF2D2252),
-                                        fontSize: 14.5,
-                                        height: 1.45,
-                                        fontWeight: FontWeight.w400,
-                                        letterSpacing: 0.1,
-                                      ),
+                                      widget.isMe,
                                     ),
                                   ),
                               ],
@@ -395,6 +439,69 @@ class _MessageBubbleState extends State<MessageBubble> {
           ),
         ),
       ),
+    );
+  }
+
+  static final RegExp _urlRegex = RegExp(
+    r'https?://[^\s<]+',
+    caseSensitive: false,
+  );
+
+  Widget _buildLinkifiedText(String text, bool isMe) {
+    final matches = _urlRegex.allMatches(text).toList();
+    if (matches.isEmpty) {
+      return Text(
+        text,
+        style: _textStyle(isMe),
+      );
+    }
+
+    final spans = <InlineSpan>[];
+    int lastEnd = 0;
+
+    for (final match in matches) {
+      // Text before the link
+      if (match.start > lastEnd) {
+        spans.add(TextSpan(
+          text: text.substring(lastEnd, match.start),
+          style: _textStyle(isMe),
+        ));
+      }
+      // The link itself
+      final url = match.group(0)!;
+      spans.add(TextSpan(
+        text: url,
+        style: _textStyle(isMe).copyWith(
+          decoration: TextDecoration.underline,
+          decorationColor: isMe ? Colors.white70 : const Color(0xFF7C3AED),
+          color: isMe ? Colors.white : const Color(0xFF7C3AED),
+        ),
+        recognizer: TapGestureRecognizer()
+          ..onTap = () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+      ));
+      lastEnd = match.end;
+    }
+
+    // Remaining text after last link
+    if (lastEnd < text.length) {
+      spans.add(TextSpan(
+        text: text.substring(lastEnd),
+        style: _textStyle(isMe),
+      ));
+    }
+
+    return RichText(text: TextSpan(children: spans));
+  }
+
+  TextStyle _textStyle(bool isMe) {
+    return TextStyle(
+      color: isMe
+          ? Colors.white
+          : ThemeProvider().isDarkMode ? Colors.white : const Color(0xFF2D2252),
+      fontSize: 14.5,
+      height: 1.45,
+      fontWeight: FontWeight.w400,
+      letterSpacing: 0.1,
     );
   }
 

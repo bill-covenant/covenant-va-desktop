@@ -46,6 +46,36 @@ class MessageReaction {
   Map<String, dynamic> toJson() => {emoji: userIds};
 }
 
+class ReplyTo {
+  final String messageId;
+  final String senderId;
+  final String senderName;
+  final String content;
+
+  const ReplyTo({
+    required this.messageId,
+    required this.senderId,
+    this.senderName = '',
+    this.content = '',
+  });
+
+  factory ReplyTo.fromMap(Map<String, dynamic> map) {
+    return ReplyTo(
+      messageId: map['messageId'] as String? ?? '',
+      senderId: map['senderId'] as String? ?? '',
+      senderName: map['senderName'] as String? ?? '',
+      content: map['content'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'messageId': messageId,
+    'senderId': senderId,
+    'senderName': senderName,
+    'content': content,
+  };
+}
+
 class MessageModel {
   final String id;
   final String conversationId;
@@ -56,6 +86,7 @@ class MessageModel {
   final DateTime updatedAt;
   final List<MessageAttachment> attachments;
   final Map<String, List<String>> reactions; // emoji -> list of userIds
+  final ReplyTo? replyTo;
 
   MessageModel({
     required this.id,
@@ -67,6 +98,7 @@ class MessageModel {
     required this.updatedAt,
     this.attachments = const [],
     this.reactions = const {},
+    this.replyTo,
   });
 
   factory MessageModel.fromFirestore(dynamic doc) {
@@ -94,6 +126,8 @@ class MessageModel {
       (key, value) => MapEntry(key, List<String>.from(value as List? ?? [])),
     );
 
+    final rawReplyTo = data['replyTo'] as Map<String, dynamic>?;
+
     return MessageModel(
       id: doc.id as String,
       conversationId: convId,
@@ -104,6 +138,7 @@ class MessageModel {
       updatedAt: createdAtDate,
       attachments: attachments,
       reactions: reactions,
+      replyTo: rawReplyTo != null ? ReplyTo.fromMap(rawReplyTo) : null,
     );
   }
 
@@ -113,6 +148,7 @@ class MessageModel {
     final reactions = rawReactions.map<String, List<String>>(
       (key, value) => MapEntry(key, List<String>.from(value as List? ?? [])),
     );
+    final rawReplyTo = json['replyTo'] as Map<String, dynamic>?;
     return MessageModel(
       id: json['id'] as String,
       conversationId: json['conversationId'] as String,
@@ -125,6 +161,7 @@ class MessageModel {
           .map((a) => MessageAttachment.fromMap(Map<String, dynamic>.from(a as Map)))
           .toList(),
       reactions: reactions,
+      replyTo: rawReplyTo != null ? ReplyTo.fromMap(rawReplyTo) : null,
     );
   }
 
@@ -142,6 +179,7 @@ class MessageModel {
     DateTime? updatedAt,
     List<MessageAttachment>? attachments,
     Map<String, List<String>>? reactions,
+    ReplyTo? replyTo,
   }) {
     return MessageModel(
       id: id ?? this.id,
@@ -153,6 +191,7 @@ class MessageModel {
       updatedAt: updatedAt ?? this.updatedAt,
       attachments: attachments ?? this.attachments,
       reactions: reactions ?? this.reactions,
+      replyTo: replyTo ?? this.replyTo,
     );
   }
 
@@ -167,6 +206,7 @@ class MessageModel {
       'updatedAt': updatedAt.toIso8601String(),
       'attachments': attachments.map((a) => a.toJson()).toList(),
       'reactions': reactions,
+      if (replyTo != null) 'replyTo': replyTo!.toJson(),
     };
   }
 

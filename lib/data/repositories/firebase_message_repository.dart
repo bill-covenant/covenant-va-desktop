@@ -39,6 +39,7 @@ class FirebaseMessageRepository {
     required String content,
     required String senderName,
     List<Map<String, dynamic>> attachments = const [],
+    Map<String, dynamic>? replyTo,
   }) async {
     if (content.trim().isEmpty && attachments.isEmpty) {
       throw Exception('Message cannot be empty');
@@ -67,6 +68,10 @@ class FirebaseMessageRepository {
 
     if (attachments.isNotEmpty) {
       messageData['attachments'] = attachments;
+    }
+
+    if (replyTo != null) {
+      messageData['replyTo'] = replyTo;
     }
 
     await messagesRef.add(messageData);

@@ -123,6 +123,7 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
         content: event.content,
         senderName: '',
         attachments: event.attachments,
+        replyTo: event.replyTo,
       );
     } catch (error) {
       print('❌ Failed to send message: $error');
