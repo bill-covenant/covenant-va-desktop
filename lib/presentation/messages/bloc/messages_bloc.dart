@@ -22,6 +22,7 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
     on<MessageSendRequested>(_onMessageSendRequested);
     on<MessageDeleteRequested>(_onMessageDeleteRequested);
     on<UnreadCountLoadRequested>(_onUnreadCountLoadRequested);
+    on<MessageReactionToggled>(_onMessageReactionToggled);
     on<SocketMessageReceived>(_onSocketMessageReceived);
   }
 
@@ -121,6 +122,7 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
         senderId: event.senderId,
         content: event.content,
         senderName: '',
+        attachments: event.attachments,
       );
     } catch (error) {
       print('❌ Failed to send message: $error');
@@ -144,6 +146,22 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
       );
     } catch (error) {
       print('❌ Failed to delete message: $error');
+    }
+  }
+
+  Future<void> _onMessageReactionToggled(
+    MessageReactionToggled event,
+    Emitter<MessagesState> emit,
+  ) async {
+    try {
+      await _messageRepository.toggleReaction(
+        conversationId: event.conversationId,
+        messageId: event.messageId,
+        emoji: event.emoji,
+        userId: event.userId,
+      );
+    } catch (error) {
+      print('❌ Failed to toggle reaction: $error');
     }
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/message_model.dart';
 import '../bloc/messages_bloc.dart';
@@ -11,6 +12,7 @@ class MessageBubble extends StatefulWidget {
   final MessageModel message;
   final bool isMe;
   final String conversationId;
+  final String currentUserId;
   final bool showAvatar;
   final bool isFirstInGroup;
   final bool isLastInGroup;
@@ -20,6 +22,7 @@ class MessageBubble extends StatefulWidget {
     required this.message,
     required this.isMe,
     required this.conversationId,
+    required this.currentUserId,
     this.showAvatar = true,
     this.isFirstInGroup = true,
     this.isLastInGroup = true,
@@ -32,18 +35,13 @@ class MessageBubble extends StatefulWidget {
 class _MessageBubbleState extends State<MessageBubble> {
   bool _isHovered = false;
 
-  // Adaptive border radius based on position in a consecutive group.
-  // The "tail" corner (small radius) only appears on the last message.
-  // Middle messages get fully rounded corners.
   BorderRadius get _bubbleRadius {
     const double full = 20.0;
     const double tail = 5.0;
-    const double mid = 14.0; // slightly less rounded for middle messages
+    const double mid = 14.0;
 
     if (widget.isMe) {
-      // Sent messages — tail is bottom-right
       if (widget.isFirstInGroup && widget.isLastInGroup) {
-        // Solo message
         return const BorderRadius.only(
           topLeft: Radius.circular(full),
           topRight: Radius.circular(full),
@@ -51,7 +49,6 @@ class _MessageBubbleState extends State<MessageBubble> {
           bottomRight: Radius.circular(tail),
         );
       } else if (widget.isFirstInGroup) {
-        // First in group — rounded top, rounded bottom-right
         return const BorderRadius.only(
           topLeft: Radius.circular(full),
           topRight: Radius.circular(full),
@@ -59,7 +56,6 @@ class _MessageBubbleState extends State<MessageBubble> {
           bottomRight: Radius.circular(mid),
         );
       } else if (widget.isLastInGroup) {
-        // Last in group — slightly less rounded top, tail bottom-right
         return const BorderRadius.only(
           topLeft: Radius.circular(full),
           topRight: Radius.circular(mid),
@@ -67,7 +63,6 @@ class _MessageBubbleState extends State<MessageBubble> {
           bottomRight: Radius.circular(tail),
         );
       } else {
-        // Middle message
         return const BorderRadius.only(
           topLeft: Radius.circular(full),
           topRight: Radius.circular(mid),
@@ -76,7 +71,6 @@ class _MessageBubbleState extends State<MessageBubble> {
         );
       }
     } else {
-      // Received messages — tail is bottom-left
       if (widget.isFirstInGroup && widget.isLastInGroup) {
         return const BorderRadius.only(
           topLeft: Radius.circular(full),
@@ -109,211 +103,324 @@ class _MessageBubbleState extends State<MessageBubble> {
     }
   }
 
+  void _onRightClick(TapDownDetails details) {
+    showMessageContextMenu(
+      context: context,
+      tapPosition: details.globalPosition,
+      message: widget.message,
+      isMe: widget.isMe,
+      conversationId: widget.conversationId,
+      currentUserId: widget.currentUserId,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Tighter spacing between grouped messages, more space at group boundaries
-    final bottomPadding = widget.isLastInGroup ? 14.0 : 3.0;
+    final hasReactions = widget.message.reactions.isNotEmpty;
+    // Extra bottom space when reactions are shown so they don't overlap next message
+    final reactionExtra = hasReactions ? 20.0 : 0.0;
+    final bottomPadding = (widget.isLastInGroup ? 14.0 : 3.0) + reactionExtra;
 
     return Padding(
       padding: EdgeInsets.only(bottom: bottomPadding),
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _isHovered = true),
-        onExit: (_) => setState(() => _isHovered = false),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOutCubic,
-          transform: Matrix4.translationValues(0, _isHovered ? -1.0 : 0, 0),
-          child: Row(
-            mainAxisAlignment:
-                widget.isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              // No avatar for received messages
-              if (!widget.isMe) ...[
-                const SizedBox(width: 8),
-              ],
+      child: GestureDetector(
+        onSecondaryTapDown: _onRightClick,
+        child: MouseRegion(
+          onEnter: (_) => setState(() => _isHovered = true),
+          onExit: (_) => setState(() => _isHovered = false),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            transform: Matrix4.translationValues(0, _isHovered ? -1.0 : 0, 0),
+            child: Row(
+              mainAxisAlignment:
+                  widget.isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (!widget.isMe) ...[
+                  const SizedBox(width: 8),
+                ],
 
-              // Menu button left (received)
-              if (!widget.isMe && _isHovered)
-                Padding(
-                  padding: const EdgeInsets.only(right: 6, bottom: 4),
-                  child: MessageMenu(
-                    message: widget.message,
-                    isMe: widget.isMe,
-                    conversationId: widget.conversationId,
-                  ),
-                ),
-
-              Flexible(
-                child: Column(
-                  crossAxisAlignment: widget.isMe
-                      ? CrossAxisAlignment.end
-                      : CrossAxisAlignment.start,
-                  children: [
-                    // Bubble
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      curve: Curves.easeOutCubic,
-                      constraints: const BoxConstraints(maxWidth: 480),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 11),
-                      decoration: BoxDecoration(
-                        gradient: widget.isMe
-                            ? const LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Color(0xFF8B5CF6),
-                                  Color(0xFF7C3AED),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: widget.isMe
+                        ? CrossAxisAlignment.end
+                        : CrossAxisAlignment.start,
+                    children: [
+                      // Bubble + reactions stack
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          // The bubble itself
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            curve: Curves.easeOutCubic,
+                            constraints: const BoxConstraints(maxWidth: 480),
+                            padding: widget.message.attachments.any((a) => a.isImage)
+                                ? const EdgeInsets.all(4)
+                                : const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+                            decoration: BoxDecoration(
+                              gradient: widget.isMe
+                                  ? const LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        Color(0xFF8B5CF6),
+                                        Color(0xFF7C3AED),
+                                      ],
+                                    )
+                                  : null,
+                              color: widget.isMe
+                                  ? null
+                                  : ThemeProvider().isDarkMode
+                                      ? const Color(0xFF1A1D2E)
+                                      : Colors.white.withOpacity(0.95),
+                              borderRadius: _bubbleRadius,
+                              border: widget.isMe
+                                  ? null
+                                  : Border.all(
+                                      color: const Color(0xFF7C3AED).withOpacity(0.06),
+                                    ),
+                              boxShadow: [
+                                if (widget.isMe) ...[
+                                  BoxShadow(
+                                    color: const Color(0xFF7C3AED)
+                                        .withOpacity(_isHovered ? 0.35 : 0.22),
+                                    blurRadius: _isHovered ? 20 : 14,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                  BoxShadow(
+                                    color: const Color(0xFF7C3AED)
+                                        .withOpacity(_isHovered ? 0.15 : 0.08),
+                                    blurRadius: 28,
+                                    offset: const Offset(0, 8),
+                                    spreadRadius: -4,
+                                  ),
+                                ] else ...[
+                                  BoxShadow(
+                                    color: Colors.black
+                                        .withOpacity(_isHovered ? 0.07 : 0.04),
+                                    blurRadius: _isHovered ? 14 : 8,
+                                    offset: const Offset(0, 2),
+                                  ),
                                 ],
-                              )
-                            : null,
-                        color: widget.isMe
-                            ? null
-                            : ThemeProvider().isDarkMode
-                                ? const Color(0xFF1A1D2E)
-                                : Colors.white.withOpacity(0.95),
-                        borderRadius: _bubbleRadius,
-                        border: widget.isMe
-                            ? null
-                            : Border.all(
-                                color:
-                                    const Color(0xFF7C3AED).withOpacity(0.06),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Image attachments
+                                ...widget.message.attachments.where((a) => a.isImage).map((att) =>
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 6),
+                                    child: GestureDetector(
+                                      onTap: () => _showImageDialog(context, att.fileUrl),
+                                      child: SizedBox(
+                                        width: 260,
+                                        height: 180,
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(12),
+                                          child: Image.network(
+                                            att.fileUrl,
+                                            width: 260,
+                                            height: 180,
+                                            fit: BoxFit.cover,
+                                            loadingBuilder: (ctx, child, progress) {
+                                              if (progress == null) return child;
+                                              return Container(
+                                                width: 260, height: 180,
+                                                decoration: BoxDecoration(
+                                                  color: widget.isMe ? Colors.white.withOpacity(0.15) : Colors.grey.withOpacity(0.1),
+                                                  borderRadius: BorderRadius.circular(12),
+                                                ),
+                                                child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                                              );
+                                            },
+                                            errorBuilder: (ctx, err, stack) {
+                                              return Container(
+                                                width: 260, height: 80,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.red.withOpacity(0.1),
+                                                  borderRadius: BorderRadius.circular(12),
+                                                ),
+                                                child: Center(
+                                                  child: Column(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      const Icon(Icons.broken_image, color: Colors.red),
+                                                      const SizedBox(height: 4),
+                                                      Text(att.fileName, style: TextStyle(fontSize: 10, color: Colors.red.shade300)),
+                                                    ],
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // File attachments (non-image)
+                                ...widget.message.attachments.where((a) => !a.isImage).map((att) =>
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 6),
+                                    child: GestureDetector(
+                                      onTap: () => launchUrl(Uri.parse(att.fileUrl), mode: LaunchMode.externalApplication),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: widget.isMe ? Colors.white.withOpacity(0.15) : Colors.grey.withOpacity(0.08),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.insert_drive_file, size: 18,
+                                              color: widget.isMe ? Colors.white70 : const Color(0xFF7C3AED)),
+                                            const SizedBox(width: 8),
+                                            Flexible(
+                                              child: Text(
+                                                att.fileName,
+                                                style: TextStyle(
+                                                  color: widget.isMe ? Colors.white : const Color(0xFF2D2252),
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Icon(Icons.download, size: 14,
+                                              color: widget.isMe ? Colors.white54 : Colors.grey),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // Text content
+                                if (widget.message.content.isNotEmpty)
+                                  Padding(
+                                    padding: widget.message.attachments.any((a) => a.isImage)
+                                        ? const EdgeInsets.fromLTRB(12, 6, 12, 6)
+                                        : EdgeInsets.zero,
+                                    child: Text(
+                                      widget.message.content,
+                                      style: TextStyle(
+                                        color: widget.isMe
+                                            ? Colors.white
+                                            : ThemeProvider().isDarkMode ? Colors.white : const Color(0xFF2D2252),
+                                        fontSize: 14.5,
+                                        height: 1.45,
+                                        fontWeight: FontWeight.w400,
+                                        letterSpacing: 0.1,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+
+                          // Reaction badges — floating below the bubble
+                          if (hasReactions)
+                            Positioned(
+                              bottom: -16,
+                              left: widget.isMe ? null : 12,
+                              right: widget.isMe ? 12 : null,
+                              child: _ReactionBadges(
+                                reactions: widget.message.reactions,
+                                currentUserId: widget.currentUserId,
+                                onTap: (emoji) {
+                                  context.read<MessagesBloc>().add(
+                                    MessageReactionToggled(
+                                      conversationId: widget.conversationId,
+                                      messageId: widget.message.id,
+                                      emoji: emoji,
+                                      userId: widget.currentUserId,
+                                    ),
+                                  );
+                                },
                               ),
-                        boxShadow: [
-                          if (widget.isMe) ...[
-                            BoxShadow(
-                              color: const Color(0xFF7C3AED)
-                                  .withOpacity(_isHovered ? 0.35 : 0.22),
-                              blurRadius: _isHovered ? 20 : 14,
-                              offset: const Offset(0, 4),
                             ),
-                            BoxShadow(
-                              color: const Color(0xFF7C3AED)
-                                  .withOpacity(_isHovered ? 0.15 : 0.08),
-                              blurRadius: 28,
-                              offset: const Offset(0, 8),
-                              spreadRadius: -4,
-                            ),
-                          ] else ...[
-                            BoxShadow(
-                              color: Colors.black
-                                  .withOpacity(_isHovered ? 0.07 : 0.04),
-                              blurRadius: _isHovered ? 14 : 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
                         ],
                       ),
-                      child: Text(
-                        widget.message.content,
-                        style: TextStyle(
-                          color: widget.isMe
-                              ? Colors.white
-                              : ThemeProvider().isDarkMode ? Colors.white : const Color(0xFF2D2252),
-                          fontSize: 14.5,
-                          height: 1.45,
-                          fontWeight: FontWeight.w400,
-                          letterSpacing: 0.1,
-                        ),
-                      ),
-                    ),
 
-                    // Timestamp — only shown on the last message in a group
-                    if (widget.isLastInGroup) ...[
-                      const SizedBox(height: 5),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: AnimatedOpacity(
-                          opacity: _isHovered ? 1.0 : 0.65,
-                          duration: const Duration(milliseconds: 200),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                _formatTime(widget.message.createdAt),
-                                style: TextStyle(
-                                  color: const Color(0xFFA78BFA),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
+                      // Timestamp — only shown on the last message in a group
+                      if (widget.isLastInGroup) ...[
+                        const SizedBox(height: 5),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: AnimatedOpacity(
+                            opacity: _isHovered ? 1.0 : 0.65,
+                            duration: const Duration(milliseconds: 200),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _formatTime(widget.message.createdAt),
+                                  style: const TextStyle(
+                                    color: Color(0xFFA78BFA),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
-                              ),
-                              if (widget.isMe) ...[
-                                const SizedBox(width: 5),
-                                Icon(
-                                  widget.message.isRead
-                                      ? Icons.done_all_rounded
-                                      : Icons.done_rounded,
-                                  size: 14,
-                                  color: widget.message.isRead
-                                      ? const Color(0xFF10B981)
-                                      : const Color(0xFFB4A3CC),
-                                ),
+                                if (widget.isMe) ...[
+                                  const SizedBox(width: 5),
+                                  Icon(
+                                    widget.message.isRead
+                                        ? Icons.done_all_rounded
+                                        : Icons.done_rounded,
+                                    size: 14,
+                                    color: widget.message.isRead
+                                        ? const Color(0xFF10B981)
+                                        : const Color(0xFFB4A3CC),
+                                  ),
+                                ],
                               ],
-                            ],
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
-                ),
-              ),
-
-              // Menu button right (sent)
-              if (widget.isMe && _isHovered)
-                Padding(
-                  padding: const EdgeInsets.only(left: 6, bottom: 4),
-                  child: MessageMenu(
-                    message: widget.message,
-                    isMe: widget.isMe,
-                    conversationId: widget.conversationId,
                   ),
                 ),
 
-              // No avatar for sent messages
-              if (widget.isMe) ...[
-                const SizedBox(width: 8),
+                if (widget.isMe) ...[
+                  const SizedBox(width: 8),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildAvatar() {
-    final colors = widget.isMe
-        ? [const Color(0xFF8B5CF6), const Color(0xFF7C3AED)]
-        : [const Color(0xFF10B981), const Color(0xFF059669)];
-
-    return Container(
-      width: 36,
-      height: 36,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: colors,
-        ),
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: colors[0].withOpacity(0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Text(
-          widget.isMe ? 'VA' : 'CL',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.5,
-          ),
+  void _showImageDialog(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(16),
+        child: Stack(
+          children: [
+            Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(imageUrl, fit: BoxFit.contain),
+              ),
+            ),
+            Positioned(
+              top: 8, right: 8,
+              child: IconButton(
+                onPressed: () => Navigator.pop(ctx),
+                icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                style: IconButton.styleFrom(backgroundColor: Colors.black54),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -321,5 +428,84 @@ class _MessageBubbleState extends State<MessageBubble> {
 
   String _formatTime(DateTime dateTime) {
     return DateFormat('h:mm a').format(dateTime);
+  }
+}
+
+/// Compact row of reaction badges shown below a message bubble.
+class _ReactionBadges extends StatelessWidget {
+  final Map<String, List<String>> reactions;
+  final String currentUserId;
+  final void Function(String emoji) onTap;
+
+  const _ReactionBadges({
+    required this.reactions,
+    required this.currentUserId,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = ThemeProvider().isDarkMode;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: reactions.entries.map((entry) {
+        final emoji = entry.key;
+        final users = entry.value;
+        final iMeReacted = users.contains(currentUserId);
+
+        return Padding(
+          padding: const EdgeInsets.only(right: 4),
+          child: GestureDetector(
+            onTap: () => onTap(emoji),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: iMeReacted
+                    ? const Color(0xFF7C3AED).withOpacity(isDark ? 0.35 : 0.15)
+                    : isDark
+                        ? const Color(0xFF252838)
+                        : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: iMeReacted
+                      ? const Color(0xFF7C3AED).withOpacity(0.5)
+                      : isDark
+                          ? const Color(0xFF353848)
+                          : Colors.grey.shade300,
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(emoji, style: const TextStyle(fontSize: 13)),
+                  if (users.length > 1) ...[
+                    const SizedBox(width: 3),
+                    Text(
+                      '${users.length}',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600,
+                        color: iMeReacted
+                            ? const Color(0xFF7C3AED)
+                            : isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
   }
 }

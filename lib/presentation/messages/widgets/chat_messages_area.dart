@@ -127,15 +127,17 @@ class _ChatMessagesAreaState extends State<ChatMessagesArea>
       listener: (context, state) {
         if (state is ConversationMessagesLoaded) {
           if (state.conversationId == widget.conversation.id) {
-            if (state.messages.length != _messages.length ||
+            final hasNewMessages = state.messages.length != _messages.length ||
                 (state.messages.isNotEmpty &&
                     _messages.isNotEmpty &&
-                    state.messages.last.id != _messages.last.id)) {
-              setState(() {
-                _messages = state.messages;
-                _isLoaded = true;
-              });
-              _saveCachedMessages(state.messages);
+                    state.messages.last.id != _messages.last.id);
+            // Always update messages to pick up attachment/field changes
+            setState(() {
+              _messages = state.messages;
+              _isLoaded = true;
+            });
+            _saveCachedMessages(state.messages);
+            if (hasNewMessages) {
               _scrollToBottom();
               _animationController.forward(from: 0.0);
             }
@@ -284,6 +286,7 @@ class _ChatMessagesAreaState extends State<ChatMessagesArea>
               message: message,
               isMe: isMe,
               conversationId: widget.conversation.id,
+              currentUserId: widget.currentUserId,
               isFirstInGroup: isFirstInGroup,
               isLastInGroup: isLastInGroup,
             );

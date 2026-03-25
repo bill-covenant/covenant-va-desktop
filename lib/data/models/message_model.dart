@@ -1,3 +1,51 @@
+class MessageAttachment {
+  final String fileName;
+  final String fileUrl;
+  final int fileSize;
+  final String mimeType;
+
+  MessageAttachment({
+    required this.fileName,
+    required this.fileUrl,
+    this.fileSize = 0,
+    this.mimeType = '',
+  });
+
+  factory MessageAttachment.fromMap(Map<String, dynamic> map) {
+    return MessageAttachment(
+      fileName: map['fileName'] as String? ?? '',
+      fileUrl: map['fileUrl'] as String? ?? '',
+      fileSize: (map['fileSize'] as num?)?.toInt() ?? 0,
+      mimeType: map['mimeType'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'fileName': fileName,
+    'fileUrl': fileUrl,
+    'fileSize': fileSize,
+    'mimeType': mimeType,
+  };
+
+  bool get isImage => mimeType.startsWith('image/');
+}
+
+class MessageReaction {
+  final String emoji;
+  final List<String> userIds;
+
+  const MessageReaction({required this.emoji, required this.userIds});
+
+  factory MessageReaction.fromEntry(String emoji, dynamic userIds) {
+    return MessageReaction(
+      emoji: emoji,
+      userIds: List<String>.from(userIds as List? ?? []),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {emoji: userIds};
+}
+
 class MessageModel {
   final String id;
   final String conversationId;
@@ -6,6 +54,8 @@ class MessageModel {
   final bool isRead;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final List<MessageAttachment> attachments;
+  final Map<String, List<String>> reactions; // emoji -> list of userIds
 
   MessageModel({
     required this.id,
@@ -15,6 +65,8 @@ class MessageModel {
     required this.isRead,
     required this.createdAt,
     required this.updatedAt,
+    this.attachments = const [],
+    this.reactions = const {},
   });
 
   factory MessageModel.fromFirestore(dynamic doc) {
@@ -28,6 +80,20 @@ class MessageModel {
     }
     // Firestore messages are in a subcollection — conversationId is the parent doc id
     final convId = doc.reference.parent.parent?.id as String? ?? '';
+    final rawAttachments = data['attachments'] as List<dynamic>? ?? [];
+    if (rawAttachments.isNotEmpty) {
+      print('📎 Message ${doc.id} has ${rawAttachments.length} attachments: $rawAttachments');
+    }
+    final attachments = rawAttachments
+        .map((a) => MessageAttachment.fromMap(Map<String, dynamic>.from(a as Map)))
+        .toList();
+
+    // Parse reactions: { "👍": ["userId1", "userId2"], "❤️": ["userId3"] }
+    final rawReactions = data['reactions'] as Map<String, dynamic>? ?? {};
+    final reactions = rawReactions.map<String, List<String>>(
+      (key, value) => MapEntry(key, List<String>.from(value as List? ?? [])),
+    );
+
     return MessageModel(
       id: doc.id as String,
       conversationId: convId,
@@ -36,10 +102,17 @@ class MessageModel {
       isRead: data['isRead'] as bool? ?? false,
       createdAt: createdAtDate,
       updatedAt: createdAtDate,
+      attachments: attachments,
+      reactions: reactions,
     );
   }
 
   factory MessageModel.fromJson(Map<String, dynamic> json) {
+    final rawAttachments = json['attachments'] as List<dynamic>? ?? [];
+    final rawReactions = json['reactions'] as Map<String, dynamic>? ?? {};
+    final reactions = rawReactions.map<String, List<String>>(
+      (key, value) => MapEntry(key, List<String>.from(value as List? ?? [])),
+    );
     return MessageModel(
       id: json['id'] as String,
       conversationId: json['conversationId'] as String,
@@ -48,6 +121,10 @@ class MessageModel {
       isRead: json['isRead'] as bool? ?? false,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
+      attachments: rawAttachments
+          .map((a) => MessageAttachment.fromMap(Map<String, dynamic>.from(a as Map)))
+          .toList(),
+      reactions: reactions,
     );
   }
 
@@ -55,7 +132,6 @@ class MessageModel {
     return senderId == currentUserId;
   }
 
-  // ADDED: copyWith method for state updates
   MessageModel copyWith({
     String? id,
     String? conversationId,
@@ -64,6 +140,8 @@ class MessageModel {
     bool? isRead,
     DateTime? createdAt,
     DateTime? updatedAt,
+    List<MessageAttachment>? attachments,
+    Map<String, List<String>>? reactions,
   }) {
     return MessageModel(
       id: id ?? this.id,
@@ -73,10 +151,11 @@ class MessageModel {
       isRead: isRead ?? this.isRead,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      attachments: attachments ?? this.attachments,
+      reactions: reactions ?? this.reactions,
     );
   }
 
-  // ADDED: toJson method
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -86,6 +165,8 @@ class MessageModel {
       'isRead': isRead,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
+      'attachments': attachments.map((a) => a.toJson()).toList(),
+      'reactions': reactions,
     };
   }
 
@@ -106,7 +187,8 @@ class MessageModel {
       other.conversationId == conversationId &&
       other.senderId == senderId &&
       other.content == content &&
-      other.isRead == isRead;
+      other.isRead == isRead &&
+      other.reactions.length == reactions.length;
   }
 
   @override
@@ -115,6 +197,7 @@ class MessageModel {
       conversationId.hashCode ^
       senderId.hashCode ^
       content.hashCode ^
-      isRead.hashCode;
+      isRead.hashCode ^
+      reactions.length.hashCode;
   }
 }

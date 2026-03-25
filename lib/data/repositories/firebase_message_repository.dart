@@ -32,14 +32,17 @@ class FirebaseMessageRepository {
             .toList());
   }
 
-  /// Send a message to a conversation.
+  /// Send a message to a conversation, optionally with attachments.
   Future<void> sendMessage({
     required String conversationId,
     required String senderId,
     required String content,
     required String senderName,
+    List<Map<String, dynamic>> attachments = const [],
   }) async {
-    if (content.trim().isEmpty) throw Exception('Message cannot be empty');
+    if (content.trim().isEmpty && attachments.isEmpty) {
+      throw Exception('Message cannot be empty');
+    }
 
     final convRef = _firestore.collection('conversations').doc(conversationId);
     final messagesRef = convRef.collection('messages');
@@ -54,18 +57,33 @@ class FirebaseMessageRepository {
       orElse: () => '',
     );
 
-    await messagesRef.add({
+    final messageData = <String, dynamic>{
       'senderId': senderId,
       'senderName': senderName,
       'content': content.trim(),
       'isRead': false,
       'createdAt': FieldValue.serverTimestamp(),
-    });
+    };
+
+    if (attachments.isNotEmpty) {
+      messageData['attachments'] = attachments;
+    }
+
+    await messagesRef.add(messageData);
+
+    // Build last message preview
+    String lastMessage = content.trim();
+    if (lastMessage.isEmpty && attachments.isNotEmpty) {
+      final count = attachments.length;
+      lastMessage = count == 1
+          ? '📎 ${attachments.first['fileName']}'
+          : '📎 $count files';
+    }
 
     await convRef.update({
-      'lastMessage': content.trim().length > 100
-          ? '${content.trim().substring(0, 100)}...'
-          : content.trim(),
+      'lastMessage': lastMessage.length > 100
+          ? '${lastMessage.substring(0, 100)}...'
+          : lastMessage,
       'lastMessageAt': FieldValue.serverTimestamp(),
       if (recipientId.isNotEmpty)
         'unreadCounts.$recipientId': FieldValue.increment(1),
@@ -83,6 +101,41 @@ class FirebaseMessageRepository {
         .collection('messages')
         .doc(messageId)
         .delete();
+  }
+
+  /// Toggle a reaction on a message. Adds if not present, removes if already reacted.
+  Future<void> toggleReaction({
+    required String conversationId,
+    required String messageId,
+    required String emoji,
+    required String userId,
+  }) async {
+    final docRef = _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('messages')
+        .doc(messageId);
+
+    final doc = await docRef.get();
+    if (!doc.exists) return;
+
+    final data = doc.data()!;
+    final reactions = Map<String, dynamic>.from(data['reactions'] as Map? ?? {});
+    final users = List<String>.from(reactions[emoji] as List? ?? []);
+
+    if (users.contains(userId)) {
+      users.remove(userId);
+      if (users.isEmpty) {
+        reactions.remove(emoji);
+      } else {
+        reactions[emoji] = users;
+      }
+    } else {
+      users.add(userId);
+      reactions[emoji] = users;
+    }
+
+    await docRef.update({'reactions': reactions});
   }
 
   /// Mark all messages in a conversation as read for the given user.

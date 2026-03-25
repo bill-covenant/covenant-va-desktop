@@ -56,6 +56,7 @@ class MessageSendRequested extends MessagesEvent {
   final String senderId;
   final String clientName;
   final String vaName;
+  final List<Map<String, dynamic>> attachments;
 
   const MessageSendRequested({
     required this.conversationId,
@@ -63,10 +64,11 @@ class MessageSendRequested extends MessagesEvent {
     required this.senderId,
     this.clientName = '',
     this.vaName = '',
+    this.attachments = const [],
   });
 
   @override
-  List<Object> get props => [conversationId, content, senderId, clientName, vaName];
+  List<Object> get props => [conversationId, content, senderId, clientName, vaName, attachments];
 }
 
 // ============================================
@@ -92,6 +94,27 @@ class MessageDeleteRequested extends MessagesEvent {
 
 class UnreadCountLoadRequested extends MessagesEvent {
   const UnreadCountLoadRequested();
+}
+
+// ============================================
+// REACTION EVENT
+// ============================================
+
+class MessageReactionToggled extends MessagesEvent {
+  final String conversationId;
+  final String messageId;
+  final String emoji;
+  final String userId;
+
+  const MessageReactionToggled({
+    required this.conversationId,
+    required this.messageId,
+    required this.emoji,
+    required this.userId,
+  });
+
+  @override
+  List<Object> get props => [conversationId, messageId, emoji, userId];
 }
 
 // ============================================
