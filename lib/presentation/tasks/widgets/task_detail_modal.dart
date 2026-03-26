@@ -20,7 +20,7 @@ class TaskDetailModal extends StatelessWidget {
       backgroundColor: Colors.transparent,
       elevation: 0,
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 520, maxHeight: 700),
+        constraints: const BoxConstraints(maxWidth: 620, maxHeight: 780),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1A1D2E) : Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -104,32 +104,15 @@ class TaskDetailModal extends StatelessWidget {
             child: const Icon(Icons.task_alt, color: Colors.white, size: 22),
           ),
           const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Task Details',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.75),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  task.title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.3,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+          const Expanded(
+            child: Text(
+              'Task Details',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.3,
+              ),
             ),
           ),
           const SizedBox(width: 8),
@@ -202,11 +185,10 @@ class TaskDetailModal extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionLabel(Icons.description, 'Description'),
-        const SizedBox(height: 12),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(18),
+          constraints: const BoxConstraints(minHeight: 120),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: isDark
                 ? Colors.white.withOpacity(0.05)
@@ -219,18 +201,11 @@ class TaskDetailModal extends StatelessWidget {
             ),
           ),
           child: Text(
-            task.description?.isNotEmpty == true
-                ? task.description!
-                : 'No description provided.',
+            task.title,
             style: TextStyle(
-              fontSize: 14,
-              color: task.description?.isNotEmpty == true
-                  ? (isDark ? Colors.white : const Color(0xFF374151))
-                  : (isDark ? Colors.white54 : const Color(0xFF9CA3AF)),
-              height: 1.5,
-              fontStyle: task.description?.isNotEmpty == true
-                  ? FontStyle.normal
-                  : FontStyle.italic,
+              fontSize: 15,
+              color: isDark ? Colors.white : const Color(0xFF374151),
+              height: 1.6,
             ),
           ),
         ),

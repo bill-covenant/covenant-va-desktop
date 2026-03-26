@@ -337,8 +337,8 @@ class _DaySummaryDialogState extends State<DaySummaryDialog>
               controller: _notesController,
               maxLines: 5,
               minLines: 4,
-              style: TextStyle(
-                color: Colors.black,
+              style: const TextStyle(
+                color: Colors.white,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
                 height: 1.6,
