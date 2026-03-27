@@ -4,6 +4,7 @@ import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/conversation_model.dart';
 import '../../../data/models/client_model.dart';
 import '../../../data/repositories/client_repository.dart';
+import '../../../data/repositories/firebase_message_repository.dart';
 import '../../../data/providers/storage_provider.dart';
 import '../../../core/di/service_locator.dart';
 import 'conversation_list_item.dart';
@@ -476,6 +477,14 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
                 _buildHeader(),
                 _buildSearchBar(),
                 Expanded(child: _buildConversationList()),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Divider(
+                    color: const Color(0xFF7C3AED).withOpacity(0.15),
+                    height: 1,
+                  ),
+                ),
+                _buildSupportButton(),
               ],
             ),
           ],
@@ -588,6 +597,142 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
               _searchQuery = value;
             });
           },
+        ),
+      ),
+    );
+  }
+
+  // CVA Support admin ID — primary support contact
+  static const String _supportAdminId = '39108981-7354-4a6c-bf75-665bd8584443';
+  static const String _supportAdminName = 'CVA Support';
+
+  Future<void> _openSupportChat() async {
+    // First check if support conversation already exists
+    final supportConv = widget.conversations.cast<ConversationModel?>().firstWhere(
+      (conv) => conv!.clientId == _supportAdminId,
+      orElse: () => null,
+    );
+
+    if (supportConv != null) {
+      widget.onConversationSelected(supportConv);
+      return;
+    }
+
+    // Create a new support conversation
+    try {
+      final messageRepo = getIt<FirebaseMessageRepository>();
+      final vaName = '$_currentVaFirstName $_currentVaLastName'.trim();
+
+      await messageRepo.getOrCreateConversation(
+        clientId: _supportAdminId,
+        vaId: widget.currentUserId,
+        clientName: _supportAdminName,
+        vaName: vaName.isNotEmpty ? vaName : 'VA',
+      );
+
+      // Refresh conversations to pick up the new one
+      widget.onRefresh();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Support chat created! You can now message CVA Support.'),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to open support chat: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildSupportButton() {
+    final dark = ThemeProvider().isDarkMode;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _openSupportChat,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: dark
+                    ? [const Color(0xFF10B981).withOpacity(0.15), const Color(0xFF059669).withOpacity(0.10)]
+                    : [const Color(0xFF10B981).withOpacity(0.12), const Color(0xFF059669).withOpacity(0.08)],
+              ),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: const Color(0xFF10B981).withOpacity(0.2),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF10B981), Color(0xFF059669)],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF10B981).withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.headset_mic_rounded, color: Colors.white, size: 18),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'CVA Support',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: dark ? Colors.white : const Color(0xFF1F2937),
+                        ),
+                      ),
+                      Text(
+                        'Chat with admin support',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: dark ? Colors.white54 : const Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: dark ? Colors.white30 : const Color(0xFF9CA3AF),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

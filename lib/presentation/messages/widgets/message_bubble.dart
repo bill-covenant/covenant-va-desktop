@@ -450,7 +450,7 @@ class _MessageBubbleState extends State<MessageBubble> {
   Widget _buildLinkifiedText(String text, bool isMe) {
     final matches = _urlRegex.allMatches(text).toList();
     if (matches.isEmpty) {
-      return Text(
+      return SelectableText(
         text,
         style: _textStyle(isMe),
       );
@@ -490,7 +490,7 @@ class _MessageBubbleState extends State<MessageBubble> {
       ));
     }
 
-    return RichText(text: TextSpan(children: spans));
+    return SelectableText.rich(TextSpan(children: spans));
   }
 
   TextStyle _textStyle(bool isMe) {
