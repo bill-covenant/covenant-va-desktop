@@ -46,10 +46,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _stats = _cachedStats;
       _isInitialLoad = false;
       _isLoading = false;
-      
-      if (_lastFetchTime == null || 
-          DateTime.now().difference(_lastFetchTime!) > const Duration(seconds: 30)) {
-        _loadUserData(showLoading: false);
+
+      if (_lastFetchTime == null ||
+          DateTime.now().difference(_lastFetchTime!) > const Duration(seconds: 10)) {
+        _loadUserData(showLoading: false, forceRefresh: true);
       }
     } else {
       _isLoading = true;
@@ -57,7 +57,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _loadUserData({bool showLoading = true}) async {
+  Future<void> _loadUserData({bool showLoading = true, bool forceRefresh = false}) async {
     if (showLoading && mounted) {
       setState(() {
         _isLoading = true;
@@ -67,10 +67,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     try {
       print('📋 ProfileScreen: Starting to load user data...');
-      
+
       final results = await Future.wait([
-        _userRepository.getCurrentUser(),
-        _userRepository.getUserStats(),
+        _userRepository.getCurrentUser(forceRefresh: forceRefresh),
+        _userRepository.getUserStats(forceRefresh: forceRefresh),
       ]);
 
       print('📋 ProfileScreen: Data loaded successfully');
@@ -555,17 +555,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 24),
           ExtendedProfileCard(
             user: _user!,
-            onUpdated: () => _loadUserData(showLoading: false),
+            onUpdated: () => _loadUserData(showLoading: false, forceRefresh: true),
           ),
           const SizedBox(height: 24),
           SkillsExperienceCard(
             user: _user!,
-            onUpdated: () => _loadUserData(showLoading: false),
+            onUpdated: () => _loadUserData(showLoading: false, forceRefresh: true),
           ),
           const SizedBox(height: 24),
           DeviceSpecsCard(
             user: _user!,
-            onUpdated: () => _loadUserData(showLoading: false),
+            onUpdated: () => _loadUserData(showLoading: false, forceRefresh: true),
           ),
         ],
       ),

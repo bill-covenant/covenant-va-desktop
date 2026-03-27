@@ -27,13 +27,14 @@ class UserRepository {
   // ============================================
 
   /// Get current user profile
-  Future<UserModel> getCurrentUser() async {
-    print('📋 UserRepository: getCurrentUser called');
-    
+  Future<UserModel> getCurrentUser({bool forceRefresh = false}) async {
+    print('📋 UserRepository: getCurrentUser called (forceRefresh: $forceRefresh)');
+
     try {
       final response = await _apiProvider.get(
         '/auth/me',
         requiresAuth: true,
+        forceRefresh: forceRefresh,
       );
 
       print('📋 UserRepository: Response received');
@@ -204,13 +205,14 @@ class UserRepository {
   }
 
   /// Get user statistics
-  Future<Map<String, dynamic>> getUserStats() async {
-    print('📋 UserRepository: getUserStats called');
-    
+  Future<Map<String, dynamic>> getUserStats({bool forceRefresh = false}) async {
+    print('📋 UserRepository: getUserStats called (forceRefresh: $forceRefresh)');
+
     try {
       final response = await _apiProvider.get(
         '/auth/stats',
         requiresAuth: true,
+        forceRefresh: forceRefresh,
       );
 
       print('✅ UserRepository: Stats received');

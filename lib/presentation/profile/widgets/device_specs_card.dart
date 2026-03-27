@@ -46,6 +46,22 @@ class _DeviceSpecsCardState extends State<DeviceSpecsCard> {
   }
 
   @override
+  void didUpdateWidget(covariant DeviceSpecsCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.user != widget.user) {
+      final ds = widget.user.profile?.deviceSpecs ?? {};
+      _laptopCtrl.text = ds['laptopModel'] ?? '';
+      _processorCtrl.text = ds['processor'] ?? '';
+      _ramCtrl.text = ds['ram'] ?? '';
+      _storageCtrl.text = ds['storage'] ?? '';
+      _osCtrl.text = ds['os'] ?? '';
+      _internetCtrl.text = ds['internetSpeed'] ?? '';
+      _monitorCtrl.text = ds['monitor'] ?? '';
+      _headsetCtrl.text = ds['headset'] ?? '';
+    }
+  }
+
+  @override
   void dispose() {
     _laptopCtrl.dispose();
     _processorCtrl.dispose();

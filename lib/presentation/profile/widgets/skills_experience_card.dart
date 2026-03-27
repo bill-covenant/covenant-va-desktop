@@ -35,6 +35,17 @@ class _SkillsExperienceCardState extends State<SkillsExperienceCard> {
   }
 
   @override
+  void didUpdateWidget(covariant SkillsExperienceCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.user != widget.user && !_saving) {
+      setState(() {
+        _skills = List<String>.from(widget.user.profile?.skills ?? []);
+        _languages = List<String>.from(widget.user.profile?.languages ?? []);
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _skillCtrl.dispose();
     _langCtrl.dispose();
@@ -42,9 +53,20 @@ class _SkillsExperienceCardState extends State<SkillsExperienceCard> {
   }
 
   Future<void> _save() async {
+    // Add any pending text from input fields before saving
+    if (_skillCtrl.text.trim().isNotEmpty) {
+      _skills.add(_skillCtrl.text.trim());
+      _skillCtrl.clear();
+    }
+    if (_langCtrl.text.trim().isNotEmpty) {
+      _languages.add(_langCtrl.text.trim());
+      _langCtrl.clear();
+    }
     setState(() => _saving = true);
     try {
       await _repo.updateProfile(skills: _skills, languages: _languages);
+      // Update local state immediately so UI stays in sync
+      setState(() {});
       widget.onUpdated();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -118,17 +140,6 @@ class _SkillsExperienceCardState extends State<SkillsExperienceCard> {
     );
   }
 
-  @override
-  void didUpdateWidget(covariant SkillsExperienceCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.user != widget.user) {
-      setState(() {
-        _skills = List<String>.from(widget.user.profile?.skills ?? []);
-        _languages = List<String>.from(widget.user.profile?.languages ?? []);
-      });
-    }
-  }
-
   Widget _buildCard({
     required bool dark,
     required IconData icon,
@@ -178,16 +189,17 @@ class _SkillsExperienceCardState extends State<SkillsExperienceCard> {
                 Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: dark ? Colors.white : const Color(0xFF1F2937))),
                 const Spacer(),
                 _saving
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                    : GestureDetector(
-                        onTap: _save,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: iconColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text('Save', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: iconColor)),
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    : ElevatedButton.icon(
+                        onPressed: _save,
+                        icon: const Icon(Icons.save_rounded, size: 16),
+                        label: const Text('Save', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: iconColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
                         ),
                       ),
               ],

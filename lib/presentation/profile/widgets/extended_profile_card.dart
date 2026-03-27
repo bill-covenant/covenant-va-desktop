@@ -63,6 +63,25 @@ class _ExtendedProfileCardState extends State<ExtendedProfileCard> {
   }
 
   @override
+  void didUpdateWidget(covariant ExtendedProfileCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.user != widget.user) {
+      final p = widget.user.profile;
+      _secondaryEmailCtrl.text = p?.secondaryEmail ?? '';
+      _whatsappCtrl.text = p?.whatsapp ?? '';
+      _dateOfBirth = p?.dateOfBirth;
+      _gender = p?.gender;
+      _nationalityCtrl.text = p?.nationality ?? '';
+      _emergNameCtrl.text = p?.emergencyContactName ?? '';
+      _emergPhoneCtrl.text = p?.emergencyContactPhone ?? '';
+      _emergRelCtrl.text = p?.emergencyContactRelationship ?? '';
+      _bioCtrl.text = p?.bio ?? '';
+      _skills = List<String>.from(p?.skills ?? []);
+      _languages = List<String>.from(p?.languages ?? []);
+    }
+  }
+
+  @override
   void dispose() {
     _secondaryEmailCtrl.dispose();
     _whatsappCtrl.dispose();
