@@ -202,7 +202,7 @@ class CallService extends ChangeNotifier {
 
   void _startCallPolling() {
     _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) async {
+    _pollTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
       if (_authToken == null) return;
       if (_callState == CallState.connected) return;
 
