@@ -246,22 +246,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_user == null) return 0;
     final p = _user!.profile;
     final fields = [
+      // Basic info
       _user!.firstName.isNotEmpty,
       _user!.lastName.isNotEmpty,
-      _user!.email.isNotEmpty,
-      p?.phone != null && p!.phone!.isNotEmpty,
       p?.avatar != null && p!.avatar!.isNotEmpty,
+      // Contact
+      p?.phone != null && p!.phone!.isNotEmpty,
       p?.secondaryEmail != null && p!.secondaryEmail!.isNotEmpty,
       p?.whatsapp != null && p!.whatsapp!.isNotEmpty,
+      // Demographics
       p?.dateOfBirth != null,
       p?.gender != null && p!.gender!.isNotEmpty,
       p?.nationality != null && p!.nationality!.isNotEmpty,
+      // Emergency
       p?.emergencyContactName != null && p!.emergencyContactName!.isNotEmpty,
       p?.emergencyContactPhone != null && p!.emergencyContactPhone!.isNotEmpty,
-      p?.emergencyContactRelationship != null && p!.emergencyContactRelationship!.isNotEmpty,
+      // Professional
       p?.bio != null && p!.bio!.isNotEmpty,
       p?.skills != null && p!.skills.isNotEmpty,
       p?.languages != null && p!.languages.isNotEmpty,
+      // Device
       p?.deviceSpecs != null && p!.deviceSpecs!.values.any((v) => v != null && v.toString().isNotEmpty),
     ];
     final filled = fields.where((f) => f).length;

@@ -114,6 +114,9 @@ class _MainLayoutState extends State<MainLayout> {
 
         _lastKnownUnread = totalUnread;
         if (mounted) setState(() => _messagesBadge = totalUnread);
+      }, onError: (e) {
+        // Silently handle permission errors during logout
+        print('⚠️ Firestore stream error (expected during logout): $e');
       });
     } catch (e) {
       print('⚠️ Failed to listen to messages stream: $e');

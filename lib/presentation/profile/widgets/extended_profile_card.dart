@@ -23,6 +23,7 @@ class _ExtendedProfileCardState extends State<ExtendedProfileCard> {
   bool _saving = false;
 
   // Contact
+  late TextEditingController _phoneCtrl;
   late TextEditingController _secondaryEmailCtrl;
   late TextEditingController _whatsappCtrl;
 
@@ -47,6 +48,7 @@ class _ExtendedProfileCardState extends State<ExtendedProfileCard> {
   void initState() {
     super.initState();
     final p = widget.user.profile;
+    _phoneCtrl = TextEditingController(text: p?.phone ?? '');
     _secondaryEmailCtrl = TextEditingController(text: p?.secondaryEmail ?? '');
     _whatsappCtrl = TextEditingController(text: p?.whatsapp ?? '');
     _dateOfBirth = p?.dateOfBirth;
@@ -67,6 +69,7 @@ class _ExtendedProfileCardState extends State<ExtendedProfileCard> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.user != widget.user) {
       final p = widget.user.profile;
+      _phoneCtrl.text = p?.phone ?? '';
       _secondaryEmailCtrl.text = p?.secondaryEmail ?? '';
       _whatsappCtrl.text = p?.whatsapp ?? '';
       _dateOfBirth = p?.dateOfBirth;
@@ -83,6 +86,7 @@ class _ExtendedProfileCardState extends State<ExtendedProfileCard> {
 
   @override
   void dispose() {
+    _phoneCtrl.dispose();
     _secondaryEmailCtrl.dispose();
     _whatsappCtrl.dispose();
     _nationalityCtrl.dispose();
@@ -100,6 +104,7 @@ class _ExtendedProfileCardState extends State<ExtendedProfileCard> {
     try {
       // Build the call dynamically based on keys
       await _repo.updateProfile(
+        phone: fields['phone'],
         secondaryEmail: fields['secondaryEmail'],
         whatsapp: fields['whatsapp'],
         dateOfBirth: fields['dateOfBirth'] as DateTime?,
@@ -159,11 +164,14 @@ class _ExtendedProfileCardState extends State<ExtendedProfileCard> {
                 iconColor: const Color(0xFF3B82F6),
                 title: 'Contact Info',
                 onSave: () => _saveSection({
+                  'phone': _phoneCtrl.text,
                   'secondaryEmail': _secondaryEmailCtrl.text,
                   'whatsapp': _whatsappCtrl.text,
                 }),
                 children: [
                   _buildReadOnlyField(dark, 'Primary Email', widget.user.email, Icons.email_rounded),
+                  const SizedBox(height: 10),
+                  _buildTextField(dark, 'Phone Number', _phoneCtrl, Icons.phone_rounded),
                   const SizedBox(height: 10),
                   _buildTextField(dark, 'Secondary Email', _secondaryEmailCtrl, Icons.email_outlined),
                   const SizedBox(height: 10),
@@ -214,7 +222,7 @@ class _ExtendedProfileCardState extends State<ExtendedProfileCard> {
                 children: [
                   _buildTextField(dark, 'Contact Name', _emergNameCtrl, Icons.person_rounded),
                   const SizedBox(height: 10),
-                  _buildTextField(dark, 'Contact Phone', _emergPhoneCtrl, Icons.phone_rounded),
+                  _buildTextField(dark, 'Emergency Phone', _emergPhoneCtrl, Icons.phone_rounded),
                   const SizedBox(height: 10),
                   _buildTextField(dark, 'Relationship', _emergRelCtrl, Icons.people_rounded),
                 ],
@@ -229,15 +237,9 @@ class _ExtendedProfileCardState extends State<ExtendedProfileCard> {
                 title: 'Professional Details',
                 onSave: () => _saveSection({
                   'bio': _bioCtrl.text,
-                  'skills': _skills,
-                  'languages': _languages,
                 }),
                 children: [
-                  _buildTextField(dark, 'Bio / About', _bioCtrl, Icons.info_outline_rounded, maxLines: 2),
-                  const SizedBox(height: 10),
-                  _buildChipInput(dark, 'Skills', _skills, _skillInputCtrl),
-                  const SizedBox(height: 10),
-                  _buildChipInput(dark, 'Languages', _languages, _langInputCtrl),
+                  _buildTextField(dark, 'Bio / About', _bioCtrl, Icons.info_outline_rounded, maxLines: 3),
                 ],
               ),
             ),
