@@ -40,7 +40,7 @@ class _MainLayoutState extends State<MainLayout> {
   int _announcementBadge = 0;
   Timer? _badgeTimer;
   StreamSubscription? _messagesStreamSub;
-  int _lastKnownUnread = 0;
+  static int _lastKnownUnread = -1; // -1 means first load, don't trigger notification
 
   static final String _apiBaseUrl = ApiConstants.baseUrl;
 
