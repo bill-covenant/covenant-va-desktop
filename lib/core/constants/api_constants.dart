@@ -1,6 +1,6 @@
 class ApiConstants {
   // Toggle this for dev/production
-  static const bool isProduction = false; // ⚠️ SWITCHED TO LOCAL FOR TESTING
+  static const bool isProduction = true; // ✅ PRODUCTION
   
   // Base URL - switches based on environment
   static String get baseUrl => isProduction 

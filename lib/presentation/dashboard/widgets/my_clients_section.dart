@@ -3,6 +3,7 @@ import '../../../data/models/client_model.dart';
 import '../../../data/repositories/client_repository.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../services/socket_service.dart';
+import '../../shared/widgets/avatar_image.dart';
 
 class MyClientsSection extends StatefulWidget {
   const MyClientsSection({super.key});
@@ -392,15 +393,11 @@ class _ClientCardState extends State<_ClientCard>
                     ],
                   ),
                   child: widget.client.avatar != null
-                      ? ClipOval(
-                          child: Image.network(
-                            widget.client.avatar!,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: double.infinity,
-                            errorBuilder: (_, __, ___) => Center(
-                              child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
-                            ),
+                      ? AvatarImage(
+                          source: widget.client.avatar!,
+                          size: _isHovered ? 56 : 52,
+                          fallback: Center(
+                            child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
                           ),
                         )
                       : Stack(

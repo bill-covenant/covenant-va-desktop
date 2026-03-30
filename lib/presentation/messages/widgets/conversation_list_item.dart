@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/conversation_model.dart';
 import 'package:intl/intl.dart';
+import '../../shared/widgets/avatar_image.dart';
 
 class ConversationListItem extends StatefulWidget {
   final ConversationModel conversation;
@@ -236,13 +237,11 @@ class _ConversationListItemState extends State<ConversationListItem> {
               ],
             ),
             child: avatar != null
-                ? ClipOval(
-                    child: Image.network(
-                      avatar,
-                      fit: BoxFit.cover, width: 48, height: 48,
-                      errorBuilder: (_, __, ___) => Center(
-                        child: Text(_getInitials(name), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
-                      ),
+                ? AvatarImage(
+                    source: avatar,
+                    size: 48,
+                    fallback: Center(
+                      child: Text(_getInitials(name), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
                     ),
                   )
                 : Center(

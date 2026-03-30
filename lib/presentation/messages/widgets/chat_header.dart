@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/conversation_model.dart';
+import '../../shared/widgets/avatar_image.dart';
 
 class ChatHeader extends StatelessWidget {
   final ConversationModel conversation;
@@ -75,13 +76,11 @@ class ChatHeader extends StatelessWidget {
                     ),
                   ),
                   child: avatar != null
-                      ? ClipOval(
-                          child: Image.network(
-                            avatar,
-                            fit: BoxFit.cover, width: 46, height: 46,
-                            errorBuilder: (_, __, ___) => Center(
-                              child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
-                            ),
+                      ? AvatarImage(
+                          source: avatar,
+                          size: 46,
+                          fallback: Center(
+                            child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
                           ),
                         )
                       : Center(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/theme/card_decoration.dart';
 import '../../../data/repositories/client_repository.dart';
+import '../../shared/widgets/avatar_image.dart';
 
 class CompactClientsPreview extends StatefulWidget {
   const CompactClientsPreview({super.key});
@@ -115,13 +116,11 @@ class _CompactClientsPreviewState extends State<CompactClientsPreview> {
                         boxShadow: [BoxShadow(color: colors[0].withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3))],
                       ),
                       child: (client as dynamic).avatar != null
-                          ? ClipOval(
-                              child: Image.network(
-                                (client as dynamic).avatar,
-                                fit: BoxFit.cover, width: 44, height: 44,
-                                errorBuilder: (_, __, ___) => Center(
-                                  child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
-                                ),
+                          ? AvatarImage(
+                              source: (client as dynamic).avatar,
+                              size: 44,
+                              fallback: Center(
+                                child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
                               ),
                             )
                           : Center(

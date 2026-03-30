@@ -9,6 +9,7 @@ import '../../../data/providers/storage_provider.dart';
 import '../../../core/di/service_locator.dart';
 import 'conversation_list_item.dart';
 import '../../../services/socket_service.dart';
+import '../../shared/widgets/avatar_image.dart';
 
 class ConversationListPanel extends StatefulWidget {
   final List<ConversationModel> conversations;
@@ -84,6 +85,19 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
               ? conv.client!.lastName
               : match.lastName,
           avatar: match.avatar,
+        ),
+      );
+    }
+
+    // CVA Support conversation — use app logo as avatar
+    if (conv.clientId == _supportAdminId) {
+      return conv.copyWith(
+        client: UserInfo(
+          id: _supportAdminId,
+          email: '',
+          firstName: 'CVA',
+          lastName: 'Support',
+          avatar: 'asset:assets/images/fav3.png',
         ),
       );
     }
@@ -338,13 +352,11 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
                                   shape: BoxShape.circle,
                                 ),
                                 child: client.avatar != null
-                                    ? ClipOval(
-                                        child: Image.network(
-                                          client.avatar!,
-                                          fit: BoxFit.cover, width: 48, height: 48,
-                                          errorBuilder: (_, __, ___) => Center(
-                                              child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
-                                        ),
+                                    ? AvatarImage(
+                                        source: client.avatar!,
+                                        size: 48,
+                                        fallback: Center(
+                                            child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
                                       )
                                     : Center(
                                         child: Text(initials,

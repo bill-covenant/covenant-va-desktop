@@ -10,32 +10,10 @@ class LayoutSidebarHeader extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Row(
         children: [
-          Container(
+          Image.asset(
+            'assets/images/fav3.png',
             width: 48,
             height: 48,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF9333EA),
-                  Color(0xFFEC4899),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withOpacity(0.4),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.workspace_premium,
-              color: Colors.white,
-              size: 28,
-            ),
           ),
           const SizedBox(width: 12),
           const Column(

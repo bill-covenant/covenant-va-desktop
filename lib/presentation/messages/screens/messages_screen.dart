@@ -138,16 +138,19 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
   void _onConversationSelected(ConversationModel conversation) {
     print('🎯 Conversation selected: ${conversation.id}');
     if (!mounted) return;
-    
-    // ✅ Don't reload if same conversation is already selected
-    if (_selectedConversation?.id == conversation.id) {
-      print('⏭️ Same conversation already selected, skipping reload');
-      return;
-    }
-    
+
+    final isSameConversation = _selectedConversation?.id == conversation.id;
+
+    // Always update the conversation (to pick up enriched avatar data)
     setState(() {
       _selectedConversation = conversation;
     });
+
+    // But don't reload messages if same conversation
+    if (isSameConversation) {
+      print('⏭️ Same conversation, updated data but skipping message reload');
+      return;
+    }
     
     if (!conversation.id.startsWith('new_')) {
       print('📨 Dispatching ConversationMessagesLoadRequested');
