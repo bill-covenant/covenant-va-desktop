@@ -14,6 +14,11 @@ import 'archive_screen.dart';
 class MyTasksScreen extends StatefulWidget {
   const MyTasksScreen({super.key});
 
+  static void clearCache() {
+    _MyTasksScreenState._cachedTasks = null;
+    _MyTasksScreenState._lastFetchTime = null;
+  }
+
   @override
   State<MyTasksScreen> createState() => _MyTasksScreenState();
 }
@@ -53,20 +58,22 @@ class _MyTasksScreenState extends State<MyTasksScreen> {
       _loadAllTasks(showLoading: true);
     }
     
+    // Set task update callback while this screen is active
+    // (main_layout also has a fallback that clears cache when not on this screen)
     SocketService().onTaskUpdate = _handleTaskUpdate;
   }
 
   @override
   void dispose() {
-    SocketService().onTaskUpdate = null;
+    // Don't null out - main_layout has its own fallback callback
     super.dispose();
   }
 
   void _handleTaskUpdate() {
-    _loadAllTasks(showLoading: false); // ✅ Background refresh
+    _loadAllTasks(showLoading: false, forceRefresh: true);
   }
 
-  Future<void> _loadAllTasks({bool showLoading = true}) async {
+  Future<void> _loadAllTasks({bool showLoading = true, bool forceRefresh = false}) async {
     if (!mounted) return;
     
     // ✅ Only show loading if explicitly requested
@@ -82,8 +89,8 @@ class _MyTasksScreenState extends State<MyTasksScreen> {
 
       // Fetch active + archived tasks in parallel
       final results = await Future.wait([
-        taskRepository.getAllTasks(),
-        taskRepository.getAllTasks(status: 'ARCHIVED'),
+        taskRepository.getAllTasks(forceRefresh: forceRefresh),
+        taskRepository.getAllTasks(status: 'ARCHIVED', forceRefresh: forceRefresh),
       ]);
 
       final tasks = results[0];

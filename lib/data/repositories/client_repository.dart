@@ -7,11 +7,12 @@ class ClientRepository {
   ClientRepository(this._apiProvider);
 
   /// Get all clients assigned to the current VA
-  Future<List<ClientModel>> getAssignedClients() async {
+  Future<List<ClientModel>> getAssignedClients({bool forceRefresh = false}) async {
     try {
       final response = await _apiProvider.get(
         '/va/assigned-clients',
-        requiresAuth: true,  // ← ADD THIS
+        requiresAuth: true,
+        forceRefresh: forceRefresh,
       );
       
       if (response['data'] != null) {

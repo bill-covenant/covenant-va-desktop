@@ -207,11 +207,17 @@ class _ChangePasswordDialog3DState extends State<ChangePasswordDialog3D> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: TextFormField(
         controller: controller,
         obscureText: obscure,
+        style: const TextStyle(
+          color: Color(0xFF1F2937),
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+        ),
         decoration: InputDecoration(
           labelText: label,
           labelStyle: const TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600),

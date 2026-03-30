@@ -2,9 +2,18 @@ import 'package:flutter/material.dart';
 import '../../../data/models/client_model.dart';
 import '../../../data/repositories/client_repository.dart';
 import '../../../core/di/service_locator.dart';
+import '../../../services/socket_service.dart';
 
 class MyClientsSection extends StatefulWidget {
   const MyClientsSection({super.key});
+
+  static List<ClientModel>? _cachedClients;
+  static DateTime? _lastFetchTime;
+
+  static void clearCache() {
+    _cachedClients = null;
+    _lastFetchTime = null;
+  }
 
   @override
   State<MyClientsSection> createState() => _MyClientsSectionState();
@@ -17,18 +26,15 @@ class _MyClientsSectionState extends State<MyClientsSection> {
   bool _isInitialLoad = true;
   String? _error;
 
-  static List<ClientModel>? _cachedClients;
-  static DateTime? _lastFetchTime;
-
   @override
   void initState() {
     super.initState();
-    if (_cachedClients != null) {
-      _clients = _cachedClients!;
+    if (MyClientsSection._cachedClients != null) {
+      _clients = MyClientsSection._cachedClients!;
       _isInitialLoad = false;
       _isLoading = false;
-      if (_lastFetchTime == null ||
-          DateTime.now().difference(_lastFetchTime!) >
+      if (MyClientsSection._lastFetchTime == null ||
+          DateTime.now().difference(MyClientsSection._lastFetchTime!) >
               const Duration(seconds: 30)) {
         _loadClients(showLoading: false);
       }
@@ -36,9 +42,14 @@ class _MyClientsSectionState extends State<MyClientsSection> {
       _isLoading = true;
       _loadClients(showLoading: true);
     }
+
+    // Listen for assignment changes to refresh client list
+    SocketService().onAssignmentUpdate = () {
+      _loadClients(showLoading: false, forceRefresh: true);
+    };
   }
 
-  Future<void> _loadClients({bool showLoading = true}) async {
+  Future<void> _loadClients({bool showLoading = true, bool forceRefresh = false}) async {
     if (showLoading && mounted) {
       setState(() {
         _isLoading = true;
@@ -46,10 +57,10 @@ class _MyClientsSectionState extends State<MyClientsSection> {
       });
     }
     try {
-      final clients = await _clientRepository.getAssignedClients();
+      final clients = await _clientRepository.getAssignedClients(forceRefresh: forceRefresh);
       if (mounted) {
-        _cachedClients = clients;
-        _lastFetchTime = DateTime.now();
+        MyClientsSection._cachedClients = clients;
+        MyClientsSection._lastFetchTime = DateTime.now();
         setState(() {
           _clients = clients;
           _isLoading = false;
@@ -183,7 +194,7 @@ class _MyClientsSectionState extends State<MyClientsSection> {
                 textAlign: TextAlign.center),
             const SizedBox(height: 16),
             ElevatedButton(
-                onPressed: () => _loadClients(showLoading: true),
+                onPressed: () => _loadClients(showLoading: true, forceRefresh: true),
                 child: const Text('Retry')),
           ],
         ),

@@ -15,6 +15,7 @@ import '../widgets/layout/layout_sidebar_footer.dart';
 import '../widgets/layout/layout_notification_overlay.dart';
 import '../widgets/layout/layout_update_section.dart';
 import '../widgets/layout/layout_dark_mode_toggle.dart';
+import '../../tasks/screens/my_tasks_screen.dart';
 
 class MainLayout extends StatefulWidget {
   final Widget child;
@@ -64,6 +65,15 @@ class _MainLayoutState extends State<MainLayout> {
     // Refresh badges when announcements arrive via socket
     socketService.onAnnouncementUpdate = () {
       if (mounted) _fetchBadgeCounts();
+    };
+
+    // Keep task update callback always active for real-time task refresh
+    socketService.onTaskUpdate = () {
+      if (mounted) {
+        _fetchBadgeCounts();
+        // Clear task cache so next visit to My Tasks shows fresh data
+        MyTasksScreen.clearCache();
+      }
     };
 
     _fetchBadgeCounts();

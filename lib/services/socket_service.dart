@@ -19,6 +19,9 @@ class SocketService {
   // Callback for announcement updates
   Function()? onAnnouncementUpdate;
 
+  // Callback for assignment changes (assign/unassign)
+  Function()? onAssignmentUpdate;
+
   // ✅ Stream for real-time incoming messages
   final _newMessageController = StreamController<MessageModel>.broadcast();
   Stream<MessageModel> get onNewMessage => _newMessageController.stream;
@@ -115,6 +118,28 @@ class SocketService {
       print('📢 ========== NEW ANNOUNCEMENT ==========');
       print('📢 Raw data: $data');
       _handleNewAnnouncement(data);
+    });
+
+    // ✅ Listen for real-time notifications (assignments, system alerts, etc.)
+    _socket!.on('notification', (data) {
+      print('🔔 ========== NOTIFICATION RECEIVED ==========');
+      print('🔔 Raw data: $data');
+      try {
+        final Map<String, dynamic> notification =
+            data['notification'] is Map<String, dynamic>
+                ? data['notification']
+                : {};
+        final title = notification['title']?.toString() ?? 'Notification';
+        final message = notification['message']?.toString() ?? '';
+        _showNotification(title: title, body: message);
+
+        // Trigger assignment update callback for assign/unassign notifications
+        if (title.contains('Assigned') || title.contains('Unassigned')) {
+          onAssignmentUpdate?.call();
+        }
+      } catch (e) {
+        print('❌ Error parsing notification: $e');
+      }
     });
 
     // ✅ Receive full list of currently online users on connect

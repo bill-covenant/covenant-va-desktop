@@ -31,7 +31,7 @@ class _LoginScreenState extends State<LoginScreen>
 
     _rotateController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 10000),
+      duration: const Duration(milliseconds: 3000),
     )..repeat();
 
     _pulseScale = Tween<double>(begin: 1.0, end: 1.06).animate(
@@ -118,45 +118,54 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                             ),
 
-                            // Card
-                            Container(
-                              width: 480,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(32),
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    Colors.white.withOpacity(0.92),
-                                    Colors.white.withOpacity(0.75),
-                                  ],
+                            // Card with spinning border
+                            SizedBox(
+                              width: 484,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(34),
                                 ),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.5),
-                                  width: 2,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
-                                    blurRadius: 30,
-                                    offset: const Offset(0, 10),
+                                child: CustomPaint(
+                                  painter: _SpinningBorderPainter(
+                                    angle: _rotateController.value * 2 * math.pi,
+                                    borderRadius: 34,
+                                    strokeWidth: 4,
                                   ),
-                                ],
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(32),
-                                child: Container(
-                                  padding: const EdgeInsets.all(48),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: [
-                                        Colors.white.withOpacity(0.2),
-                                        Colors.white.withOpacity(0.05),
-                                      ],
-                                    ),
-                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(3),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(31),
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: [
+                                            Colors.white.withOpacity(0.92),
+                                            Colors.white.withOpacity(0.75),
+                                          ],
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.1),
+                                            blurRadius: 30,
+                                            offset: const Offset(0, 10),
+                                          ),
+                                        ],
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(31),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(48),
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                              colors: [
+                                                Colors.white.withOpacity(0.2),
+                                                Colors.white.withOpacity(0.05),
+                                              ],
+                                            ),
+                                          ),
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
@@ -260,6 +269,7 @@ class _LoginScreenState extends State<LoginScreen>
                                                 ),
                                               ),
                                             ),
+
                                           ],
                                         ),
                                       ),
@@ -294,12 +304,16 @@ class _LoginScreenState extends State<LoginScreen>
                                       ),
                                       const SizedBox(height: 48),
 
-                                      const LoginForm(),
-                                    ],
+                                          const LoginForm(),
+                                        ],
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
+                          ),
+                        ),
                           ],
                         ),
                       ),
@@ -539,5 +553,52 @@ class _LoginScreenState extends State<LoginScreen>
         ),
       );
     });
+  }
+}
+
+class _SpinningBorderPainter extends CustomPainter {
+  final double angle;
+  final double borderRadius;
+  final double strokeWidth;
+
+  _SpinningBorderPainter({
+    required this.angle,
+    required this.borderRadius,
+    required this.strokeWidth,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final rrect = RRect.fromRectAndRadius(rect, Radius.circular(borderRadius));
+
+    final paint = Paint()
+      ..shader = SweepGradient(
+        startAngle: 0,
+        endAngle: 2 * math.pi,
+        transform: GradientRotation(angle),
+        colors: const [
+          Color(0x00FFFFFF), // transparent
+          Color(0xFFFFFFFF), // white
+          Color(0xFFE9D5FF), // purple-200
+          Color(0xFFF0ABFC), // fuchsia-300
+          Color(0x00F0ABFC), // transparent
+          Color(0x00F0ABFC), // transparent
+          Color(0xFFF0ABFC), // fuchsia-300
+          Color(0xFFE9D5FF), // purple-200
+          Color(0xFFFFFFFF), // white
+          Color(0x00FFFFFF), // transparent
+        ],
+        stops: const [0.0, 0.1, 0.15, 0.2, 0.3, 0.7, 0.8, 0.85, 0.9, 1.0],
+      ).createShader(rect)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+
+    canvas.drawRRect(rrect, paint);
+  }
+
+  @override
+  bool shouldRepaint(_SpinningBorderPainter oldDelegate) {
+    return oldDelegate.angle != angle;
   }
 }

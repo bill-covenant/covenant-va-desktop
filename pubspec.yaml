@@ -1,7 +1,7 @@
 name: covenant_va_desktop
 description: "Covenant VA Desktop Application"
 publish_to: 'none'
-version: 1.0.28+29
+version: 1.0.29+30
 
 environment:
   sdk: ^3.8.1
@@ -48,6 +48,12 @@ flutter:
     - assets/images/fav2.png
     - assets/images/fav3.png
     - assets/images/fav.ico
+    - assets/images/mascot/idle.png
+    - assets/images/mascot/typing.png
+    - assets/images/mascot/peeking.png
+    - assets/images/mascot/loading.png
+    - assets/images/mascot/success.png
+    - assets/images/mascot/error.png
 
   fonts:
     - family: NotoColorEmoji

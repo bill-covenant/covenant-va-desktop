@@ -8,6 +8,7 @@ import '../bloc/dashboard_bloc.dart';
 import '../bloc/dashboard_event.dart';
 import '../bloc/dashboard_state.dart';
 import 'clients_preview.dart';
+import 'my_clients_section.dart';
 import 'dashboard_widgets.dart';
 import 'greeting_header.dart';
 import 'live_timer_card.dart';
@@ -65,12 +66,14 @@ class DashboardContent extends StatelessWidget {
       children: [
         GreetingHeader(
           trailing: RefreshFAB(onRefresh: () async {
+            MyClientsSection.clearCache();
             context.read<DashboardBloc>().add(const DashboardRefreshRequested());
           }),
         ),
         Expanded(
           child: RefreshIndicator(
             onRefresh: () async {
+              MyClientsSection.clearCache();
               context.read<DashboardBloc>().add(const DashboardRefreshRequested());
             },
             child: ScrollConfiguration(

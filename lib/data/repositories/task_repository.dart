@@ -14,6 +14,7 @@ class TaskRepository {
     String? status,
     String? priority,
     String? search,
+    bool forceRefresh = false,
   }) async {
     try {
       final queryParams = <String, String>{};
@@ -32,6 +33,7 @@ class TaskRepository {
       final response = await _apiProvider.get(
         endpoint,
         requiresAuth: true,
+        forceRefresh: forceRefresh,
       );
 
       final tasksJson = response['tasks'] as List;
