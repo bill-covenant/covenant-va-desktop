@@ -391,7 +391,19 @@ class _ClientCardState extends State<_ClientCard>
                       ),
                     ],
                   ),
-                  child: Stack(
+                  child: widget.client.avatar != null
+                      ? ClipOval(
+                          child: Image.network(
+                            widget.client.avatar!,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
+                            errorBuilder: (_, __, ___) => Center(
+                              child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+                            ),
+                          ),
+                        )
+                      : Stack(
                     children: [
                       Positioned(
                         top: 5,

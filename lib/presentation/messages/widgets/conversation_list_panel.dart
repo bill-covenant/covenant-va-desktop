@@ -325,19 +325,28 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
                               Container(
                                 width: 48,
                                 height: 48,
-                                decoration: const BoxDecoration(
-                                  gradient: LinearGradient(colors: [
+                                decoration: BoxDecoration(
+                                  gradient: client.avatar == null ? const LinearGradient(colors: [
                                     Color(0xFF7C3AED),
                                     Color(0xFFEC4899)
-                                  ]),
+                                  ]) : null,
                                   shape: BoxShape.circle,
                                 ),
-                                child: Center(
-                                    child: Text(initials,
-                                        style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold))),
+                                child: client.avatar != null
+                                    ? ClipOval(
+                                        child: Image.network(
+                                          client.avatar!,
+                                          fit: BoxFit.cover, width: 48, height: 48,
+                                          errorBuilder: (_, __, ___) => Center(
+                                              child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
+                                        ),
+                                      )
+                                    : Center(
+                                        child: Text(initials,
+                                            style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold))),
                               ),
                               const SizedBox(width: 16),
                               Expanded(

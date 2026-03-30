@@ -5,6 +5,7 @@ class ClientModel {
   final String lastName;
   final String? phone;
   final String? company;
+  final String? avatar;
 
   ClientModel({
     required this.id,
@@ -13,6 +14,7 @@ class ClientModel {
     required this.lastName,
     this.phone,
     this.company,
+    this.avatar,
   });
 
   String get fullName => '$firstName $lastName';
@@ -25,6 +27,7 @@ class ClientModel {
       lastName: json['lastName'] as String,
       phone: json['profile']?['phone'] as String?,
       company: json['profile']?['company'] as String?,
+      avatar: json['profile']?['avatar'] as String?,
     );
   }
 
@@ -37,6 +40,7 @@ class ClientModel {
       'profile': {
         'phone': phone,
         'company': company,
+        'avatar': avatar,
       },
     };
   }

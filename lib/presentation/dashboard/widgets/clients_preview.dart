@@ -111,12 +111,22 @@ class _CompactClientsPreviewState extends State<CompactClientsPreview> {
                       width: 44, height: 44,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: LinearGradient(colors: colors),
+                        gradient: (client as dynamic).avatar == null ? LinearGradient(colors: colors) : null,
                         boxShadow: [BoxShadow(color: colors[0].withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3))],
                       ),
-                      child: Center(
-                        child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
-                      ),
+                      child: (client as dynamic).avatar != null
+                          ? ClipOval(
+                              child: Image.network(
+                                (client as dynamic).avatar,
+                                fit: BoxFit.cover, width: 44, height: 44,
+                                errorBuilder: (_, __, ___) => Center(
+                                  child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
+                                ),
+                              ),
+                            )
+                          : Center(
+                              child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
+                            ),
                     ),
                     const SizedBox(height: 6),
                     SizedBox(
