@@ -196,6 +196,7 @@ class _ConversationListItemState extends State<ConversationListItem> {
   }
 
   Widget _buildAvatar(String name) {
+    final avatar = widget.conversation.getOtherParticipantAvatar(widget.currentUserId);
     return Container(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
@@ -214,14 +215,14 @@ class _ConversationListItemState extends State<ConversationListItem> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
+              gradient: avatar == null ? const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
                   Color(0xFFB24FE0),
                   Color(0xFF8B2FC9),
                 ],
-              ),
+              ) : null,
               shape: BoxShape.circle,
               border: widget.isSelected
                   ? Border.all(color: Colors.white, width: 2.5)
@@ -234,17 +235,27 @@ class _ConversationListItemState extends State<ConversationListItem> {
                 ),
               ],
             ),
-            child: Center(
-              child: Text(
-                _getInitials(name),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
+            child: avatar != null
+                ? ClipOval(
+                    child: Image.network(
+                      avatar,
+                      fit: BoxFit.cover, width: 48, height: 48,
+                      errorBuilder: (_, __, ___) => Center(
+                        child: Text(_getInitials(name), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  )
+                : Center(
+                    child: Text(
+                      _getInitials(name),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
           ),
           // Online indicator
           Positioned(

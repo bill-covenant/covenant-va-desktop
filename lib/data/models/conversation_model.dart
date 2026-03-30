@@ -117,10 +117,10 @@ class ConversationModel {
     return otherUser?.fullName ?? 'Unknown User';
   }
 
-  // ADDED: Get other participant avatar (for future use)
+  // Get other participant avatar
   String? getOtherParticipantAvatar(String currentUserId) {
-    // Currently UserInfo doesn't have avatar, but we'll add support
-    return null;
+    final otherUser = getOtherUser(currentUserId);
+    return otherUser?.avatar;
   }
 
   // ADDED: copyWith method for state updates
@@ -177,12 +177,14 @@ class UserInfo {
   final String email;
   final String firstName;
   final String lastName;
+  final String? avatar;
 
   UserInfo({
     required this.id,
     required this.email,
     required this.firstName,
     required this.lastName,
+    this.avatar,
   });
 
   String get fullName => '$firstName $lastName';
@@ -193,6 +195,7 @@ class UserInfo {
       email: json['email'] as String,
       firstName: json['firstName'] as String,
       lastName: json['lastName'] as String,
+      avatar: json['avatar'] as String?,
     );
   }
 
@@ -203,6 +206,7 @@ class UserInfo {
       'email': email,
       'firstName': firstName,
       'lastName': lastName,
+      'avatar': avatar,
     };
   }
 

@@ -82,6 +82,7 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
         email: match.email,
         firstName: match.firstName,
         lastName: match.lastName,
+        avatar: match.avatar,
       ),
     );
   }

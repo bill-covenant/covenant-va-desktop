@@ -23,6 +23,7 @@ class ChatHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final otherUserName = conversation.getOtherParticipantName(currentUserId);
     final initials = _getInitials(otherUserName);
+    final avatar = conversation.getOtherParticipantAvatar(currentUserId);
 
     return ClipRect(
       child: BackdropFilter(
@@ -62,28 +63,38 @@ class ChatHeader extends StatelessWidget {
                   width: 46,
                   height: 46,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
+                    gradient: avatar == null ? const LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [Color(0xFF10B981), Color(0xFF059669)],
-                    ),
+                    ) : null,
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: Colors.white,
                       width: 2.5,
                     ),
                   ),
-                  child: Center(
-                    child: Text(
-                      initials,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
+                  child: avatar != null
+                      ? ClipOval(
+                          child: Image.network(
+                            avatar,
+                            fit: BoxFit.cover, width: 46, height: 46,
+                            errorBuilder: (_, __, ___) => Center(
+                              child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+                            ),
+                          ),
+                        )
+                      : Center(
+                          child: Text(
+                            initials,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
                 ),
               ),
 
