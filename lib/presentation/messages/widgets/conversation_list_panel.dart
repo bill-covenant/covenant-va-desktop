@@ -66,25 +66,29 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
   /// Returns the conversation enriched with the client's real name
   /// when Firestore has an empty clientName (legacy conversations).
   ConversationModel _enrichConversation(ConversationModel conv) {
-    final hasClientName = conv.client?.firstName.isNotEmpty == true ||
-        conv.client?.lastName.isNotEmpty == true;
-    if (hasClientName) return conv;
-
     final match = _clients.firstWhere(
       (c) => c.id == conv.clientId,
       orElse: () => ClientModel(id: '', firstName: '', lastName: '', email: ''),
     );
-    if (match.id.isEmpty) return conv;
 
-    return conv.copyWith(
-      client: UserInfo(
-        id: match.id,
-        email: match.email,
-        firstName: match.firstName,
-        lastName: match.lastName,
-        avatar: match.avatar,
-      ),
-    );
+    // If we have a matching client, always enrich with avatar (and name if missing)
+    if (match.id.isNotEmpty) {
+      return conv.copyWith(
+        client: UserInfo(
+          id: match.id,
+          email: match.email,
+          firstName: conv.client?.firstName.isNotEmpty == true
+              ? conv.client!.firstName
+              : match.firstName,
+          lastName: conv.client?.lastName.isNotEmpty == true
+              ? conv.client!.lastName
+              : match.lastName,
+          avatar: match.avatar,
+        ),
+      );
+    }
+
+    return conv;
   }
 
   @override
