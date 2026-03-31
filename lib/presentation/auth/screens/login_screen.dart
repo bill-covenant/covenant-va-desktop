@@ -67,14 +67,13 @@ class _LoginScreenState extends State<LoginScreen>
         child: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
               colors: [
-                Color(0xFF7C3AED),
-                Color(0xFF9333EA),
-                Color(0xFFEC4899),
+                Color(0xFF0F0520),
+                Color(0xFF1A0A35),
+                Color(0xFF12082A),
               ],
-              stops: [0.0, 0.5, 1.0],
             ),
           ),
           child: CrossHatchPatternOverlay(
@@ -136,19 +135,17 @@ class _LoginScreenState extends State<LoginScreen>
                                     child: Container(
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(31),
-                                        gradient: LinearGradient(
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                          colors: [
-                                            Colors.white.withOpacity(0.92),
-                                            Colors.white.withOpacity(0.75),
-                                          ],
-                                        ),
+                                        color: const Color(0xFFEDE5F5),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black.withOpacity(0.1),
-                                            blurRadius: 30,
-                                            offset: const Offset(0, 10),
+                                            color: const Color(0xFF8C78AA).withOpacity(0.45),
+                                            blurRadius: 28,
+                                            offset: const Offset(12, 12),
+                                          ),
+                                          const BoxShadow(
+                                            color: Color(0xFFFFFFFF),
+                                            blurRadius: 28,
+                                            offset: Offset(-12, -12),
                                           ),
                                         ],
                                       ),
@@ -156,16 +153,6 @@ class _LoginScreenState extends State<LoginScreen>
                                         borderRadius: BorderRadius.circular(31),
                                         child: Container(
                                           padding: const EdgeInsets.all(48),
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              begin: Alignment.topLeft,
-                                              end: Alignment.bottomRight,
-                                              colors: [
-                                                Colors.white.withOpacity(0.2),
-                                                Colors.white.withOpacity(0.05),
-                                              ],
-                                            ),
-                                          ),
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
@@ -198,7 +185,7 @@ class _LoginScreenState extends State<LoginScreen>
                                                   margin: const EdgeInsets.all(2),
                                                   decoration: const BoxDecoration(
                                                     shape: BoxShape.circle,
-                                                    color: Colors.transparent,
+                                                    color: Color(0xFFEDE5F5),
                                                   ),
                                                 ),
                                               ),
@@ -238,12 +225,12 @@ class _LoginScreenState extends State<LoginScreen>
                                                     end: Alignment.bottomRight,
                                                     colors: [
                                                       Colors.white.withOpacity(0.9),
-                                                      Colors.white.withOpacity(0.4),
+                                                      Colors.white.withOpacity(0.6),
                                                     ],
                                                   ),
                                                   border: Border.all(
                                                     color: Colors.white.withOpacity(0.6),
-                                                    width: 3,
+                                                    width: 2,
                                                   ),
                                                   boxShadow: [
                                                     BoxShadow(
@@ -329,66 +316,30 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   List<Widget> _buildBackgroundOrbs() {
-    final size = MediaQuery.of(context).size;
     return [
-      // Large top-left orb — deep purple
+      // Top-left — deep purple glow
       Positioned(
-        top: -60,
-        left: -80,
+        top: -120,
+        left: -100,
         child: Container(
-          width: 380,
-          height: 380,
+          width: 450,
+          height: 450,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: RadialGradient(
               colors: [
-                const Color(0xFF5B21B6).withOpacity(0.7),
-                const Color(0xFF7C3AED).withOpacity(0.3),
+                const Color(0xFF7C3AED).withOpacity(0.25),
+                const Color(0xFF5B21B6).withOpacity(0.08),
                 Colors.transparent,
               ],
-              stops: const [0.0, 0.5, 1.0],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF5B21B6).withOpacity(0.4),
-                blurRadius: 80,
-                spreadRadius: 20,
-              ),
-            ],
           ),
         ),
       ),
-      // Large top-right orb — pink/magenta
+      // Top-right — soft indigo
       Positioned(
-        top: -100,
-        right: -100,
-        child: Container(
-          width: 420,
-          height: 420,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [
-                const Color(0xFFDB2777).withOpacity(0.6),
-                const Color(0xFFEC4899).withOpacity(0.25),
-                Colors.transparent,
-              ],
-              stops: const [0.0, 0.45, 1.0],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFEC4899).withOpacity(0.35),
-                blurRadius: 80,
-                spreadRadius: 15,
-              ),
-            ],
-          ),
-        ),
-      ),
-      // Bottom-left orb — warm pink
-      Positioned(
-        bottom: -100,
-        left: -80,
+        top: -80,
+        right: -120,
         child: Container(
           width: 400,
           height: 400,
@@ -396,26 +347,37 @@ class _LoginScreenState extends State<LoginScreen>
             shape: BoxShape.circle,
             gradient: RadialGradient(
               colors: [
-                const Color(0xFFEC4899).withOpacity(0.55),
-                const Color(0xFFF472B6).withOpacity(0.2),
+                const Color(0xFF4F46E5).withOpacity(0.2),
+                const Color(0xFF6366F1).withOpacity(0.05),
                 Colors.transparent,
               ],
-              stops: const [0.0, 0.5, 1.0],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFEC4899).withOpacity(0.3),
-                blurRadius: 60,
-                spreadRadius: 10,
-              ),
-            ],
           ),
         ),
       ),
-      // Bottom-right orb — indigo
+      // Bottom-left — fuchsia accent
+      Positioned(
+        bottom: -100,
+        left: -60,
+        child: Container(
+          width: 380,
+          height: 380,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              colors: [
+                const Color(0xFFA855F7).withOpacity(0.15),
+                const Color(0xFFC084FC).withOpacity(0.05),
+                Colors.transparent,
+              ],
+            ),
+          ),
+        ),
+      ),
+      // Bottom-right — subtle blue
       Positioned(
         bottom: -80,
-        right: -60,
+        right: -80,
         child: Container(
           width: 350,
           height: 350,
@@ -423,89 +385,28 @@ class _LoginScreenState extends State<LoginScreen>
             shape: BoxShape.circle,
             gradient: RadialGradient(
               colors: [
-                const Color(0xFF4F46E5).withOpacity(0.6),
-                const Color(0xFF6366F1).withOpacity(0.2),
+                const Color(0xFF3B82F6).withOpacity(0.12),
                 Colors.transparent,
               ],
-              stops: const [0.0, 0.5, 1.0],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF4F46E5).withOpacity(0.3),
-                blurRadius: 60,
-                spreadRadius: 10,
-              ),
-            ],
-          ),
-        ),
-      ),
-      // Center ambient glow — soft white
-      Positioned(
-        top: size.height * 0.3,
-        left: size.width * 0.25,
-        child: Container(
-          width: 500,
-          height: 500,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [
-                Colors.white.withOpacity(0.12),
-                Colors.white.withOpacity(0.03),
-                Colors.transparent,
-              ],
-              stops: const [0.0, 0.4, 1.0],
             ),
           ),
         ),
       ),
-      // Small accent orb — mid-left
-      Positioned(
-        top: size.height * 0.4,
-        left: 40,
-        child: Container(
-          width: 120,
-          height: 120,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [
-                const Color(0xFFA855F7).withOpacity(0.5),
-                Colors.transparent,
-              ],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFA855F7).withOpacity(0.3),
-                blurRadius: 30,
-                spreadRadius: 5,
+      // Center — subtle warm glow behind card
+      Positioned.fill(
+        child: Center(
+          child: Container(
+            width: 600,
+            height: 600,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  const Color(0xFF7C3AED).withOpacity(0.08),
+                  Colors.transparent,
+                ],
               ),
-            ],
-          ),
-        ),
-      ),
-      // Small accent orb — mid-right
-      Positioned(
-        top: size.height * 0.55,
-        right: 60,
-        child: Container(
-          width: 100,
-          height: 100,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [
-                const Color(0xFFF472B6).withOpacity(0.45),
-                Colors.transparent,
-              ],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFF472B6).withOpacity(0.25),
-                blurRadius: 25,
-                spreadRadius: 5,
-              ),
-            ],
           ),
         ),
       ),
