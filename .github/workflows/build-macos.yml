@@ -24,6 +24,9 @@ jobs:
       - name: Enable macOS desktop
         run: flutter config --enable-macos-desktop
 
+      - name: Create Firebase options
+        run: echo "${{ secrets.FIREBASE_OPTIONS_DART }}" > lib/firebase_options.dart
+
       - name: Get dependencies
         run: flutter pub get
 

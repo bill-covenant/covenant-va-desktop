@@ -21,6 +21,9 @@ jobs:
           flutter-version: '3.32.2'
           channel: 'stable'
 
+      - name: Create Firebase options
+        run: echo "${{ secrets.FIREBASE_OPTIONS_DART }}" > lib/firebase_options.dart
+
       - name: Get dependencies
         run: flutter pub get
 
