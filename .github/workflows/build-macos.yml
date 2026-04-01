@@ -25,35 +25,10 @@ jobs:
         run: flutter config --enable-macos-desktop
 
       - name: Create Firebase options
+        env:
+          FB_KEY: ${{ secrets.FIREBASE_API_KEY }}
         run: |
-          cat > lib/firebase_options.dart << 'DART_EOF'
-          import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
-          import 'package:flutter/foundation.dart'
-              show defaultTargetPlatform, kIsWeb, TargetPlatform;
-
-          class DefaultFirebaseOptions {
-            static FirebaseOptions get currentPlatform {
-              if (kIsWeb) return web;
-              switch (defaultTargetPlatform) {
-                case TargetPlatform.windows:
-                case TargetPlatform.linux:
-                case TargetPlatform.macOS:
-                  return web;
-                default:
-                  return web;
-              }
-            }
-
-            static const FirebaseOptions web = FirebaseOptions(
-              apiKey: '${{ secrets.FIREBASE_API_KEY }}',
-              authDomain: 'covenant-va-platform.firebaseapp.com',
-              projectId: 'covenant-va-platform',
-              storageBucket: 'covenant-va-platform.firebasestorage.app',
-              messagingSenderId: '906532241820',
-              appId: '1:906532241820:web:9c30ed46528dcded5f0859',
-            );
-          }
-          DART_EOF
+          printf "import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;\nimport 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, TargetPlatform;\n\nclass DefaultFirebaseOptions {\n  static FirebaseOptions get currentPlatform {\n    return web;\n  }\n\n  static const FirebaseOptions web = FirebaseOptions(\n    apiKey: '${FB_KEY}',\n    authDomain: 'covenant-va-platform.firebaseapp.com',\n    projectId: 'covenant-va-platform',\n    storageBucket: 'covenant-va-platform.firebasestorage.app',\n    messagingSenderId: '906532241820',\n    appId: '1:906532241820:web:9c30ed46528dcded5f0859',\n  );\n}\n" > lib/firebase_options.dart
 
       - name: Get dependencies
         run: flutter pub get
