@@ -27,6 +27,11 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Fix macOS deployment target
+        run: |
+          sed -i '' "s/platform :osx, '10.14'/platform :osx, '10.15'/" macos/Podfile || true
+          sed -i '' "s/platform :osx, '10.13'/platform :osx, '10.15'/" macos/Podfile || true
+
       - name: Build macOS
         run: flutter build macos --release
 
