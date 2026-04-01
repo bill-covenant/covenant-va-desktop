@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
@@ -22,8 +23,8 @@ class UpdateInfo {
 
 class UpdateService {
   // ⚠️ Update this every time you release a new version
-  static const String currentVersion = '1.0.32';
-  static const int currentBuildNumber = 33;
+  static const String currentVersion = '1.0.33';
+  static const int currentBuildNumber = 34;
 
   static Future<UpdateInfo?> checkForUpdate(String apiBaseUrl) async {
     try {
@@ -43,7 +44,9 @@ class UpdateService {
           return UpdateInfo(
             version: latestVersion,
             buildNumber: latestBuild,
-            downloadUrl: data['downloadUrl'] ?? '',
+            downloadUrl: Platform.isMacOS
+                ? (data['macDownloadUrl'] ?? data['downloadUrl'] ?? '')
+                : (data['downloadUrl'] ?? ''),
             releaseNotes: data['releaseNotes'] ?? '',
             forceUpdate: data['forceUpdate'] ?? false,
             updateAvailable: updateAvailable,

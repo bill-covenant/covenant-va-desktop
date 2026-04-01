@@ -1,6 +1,6 @@
 [Setup]
 AppName=CVA Desktop
-AppVersion=1.0.32
+AppVersion=1.0.33
 AppPublisher=Covenant VA
 AppPublisherURL=https://covenant-va.com
 DefaultDirName={autopf}\CVA Desktop

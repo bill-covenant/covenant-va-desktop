@@ -1,0 +1,65 @@
+name: Build macOS Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.2'
+          channel: 'stable'
+
+      - name: Enable macOS desktop
+        run: flutter config --enable-macos-desktop
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build macOS
+        run: flutter build macos --release
+
+      - name: Create DMG
+        run: |
+          APP_PATH="build/macos/Build/Products/Release/covenant_va_desktop.app"
+          DMG_NAME="covenant-va-desktop-macos-${{ github.ref_name }}.dmg"
+
+          # Create a temporary directory for DMG contents
+          mkdir -p dmg_contents
+          cp -R "$APP_PATH" dmg_contents/
+          ln -s /Applications dmg_contents/Applications
+
+          # Create DMG
+          hdiutil create -volname "Covenant VA Desktop" \
+            -srcfolder dmg_contents \
+            -ov -format UDZO \
+            "$DMG_NAME"
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: covenant-va-desktop-macos-${{ github.ref_name }}.dmg
+          name: Covenant VA Desktop ${{ github.ref_name }}
+          body: |
+            ## Covenant VA Desktop ${{ github.ref_name }}
+
+            ### macOS Installation
+            1. Download the DMG file below
+            2. Open the DMG
+            3. Drag Covenant VA Desktop to Applications
+            4. Open from Applications (right-click > Open on first launch)
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
