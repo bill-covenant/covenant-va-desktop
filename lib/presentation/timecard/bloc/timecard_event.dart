@@ -11,15 +11,19 @@ abstract class TimecardEvent extends Equatable {
 
 class LoadTimecardData extends TimecardEvent {
   final String clientId;
-  final String month;
+  final String? month;
+  final DateTime? startDate;
+  final DateTime? endDate;
 
   const LoadTimecardData({
     required this.clientId,
-    required this.month,
+    this.month,
+    this.startDate,
+    this.endDate,
   });
 
   @override
-  List<Object?> get props => [clientId, month];
+  List<Object?> get props => [clientId, month, startDate, endDate];
 }
 
 class LogHours extends TimecardEvent {
@@ -50,13 +54,17 @@ class DeleteTimeEntry extends TimecardEvent {
 
 class RefreshTimecard extends TimecardEvent {
   final String clientId;
-  final String month;
+  final String? month;
+  final DateTime? startDate;
+  final DateTime? endDate;
 
   const RefreshTimecard({
     required this.clientId,
-    required this.month,
+    this.month,
+    this.startDate,
+    this.endDate,
   });
 
   @override
-  List<Object?> get props => [clientId, month];
+  List<Object?> get props => [clientId, month, startDate, endDate];
 }

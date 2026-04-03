@@ -432,7 +432,7 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
       backgroundColor: Colors.transparent,
       child: Container(
         width: 700,
-        constraints: const BoxConstraints(maxHeight: 520),
+        constraints: const BoxConstraints(maxHeight: 560),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             begin: Alignment.topLeft,

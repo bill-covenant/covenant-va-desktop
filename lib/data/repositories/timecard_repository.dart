@@ -56,11 +56,35 @@ class TimecardRepository {
   /// Fetch entries + summary in parallel instead of sequentially
   Future<({List<TimeEntry> entries, MonthlySummary summary})> loadTimecardData({
     String? clientId,
-    required String month,
+    String? month,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
+    // If date range provided, fetch entries by range and compute summary locally
+    if (startDate != null && endDate != null) {
+      final entries = await getTimeEntries(
+        clientId: clientId,
+        startDate: startDate,
+        endDate: endDate,
+      );
+      final totalHours = entries.fold<double>(0, (s, e) => s + e.hoursWorked);
+      final uniqueDays = entries.map((e) => '${e.date.year}-${e.date.month}-${e.date.day}').toSet().length;
+      final summary = MonthlySummary(
+        month: month ?? '${startDate.year}-${startDate.month.toString().padLeft(2, '0')}',
+        totalHours: double.parse(totalHours.toStringAsFixed(2)),
+        daysLogged: uniqueDays,
+        avgPerDay: uniqueDays > 0 ? double.parse((totalHours / uniqueDays).toStringAsFixed(2)) : 0,
+        estimatedEarnings: 0, // Not applicable for date range view
+        entries: entries,
+      );
+      return (entries: entries, summary: summary);
+    }
+
+    // Default: monthly fetch in parallel
+    final effectiveMonth = month ?? '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}';
     final results = await Future.wait([
-      getTimeEntries(clientId: clientId, month: month),
-      getMonthlySummary(month: month, clientId: clientId),
+      getTimeEntries(clientId: clientId, month: effectiveMonth),
+      getMonthlySummary(month: effectiveMonth, clientId: clientId),
     ]);
 
     return (

@@ -333,25 +333,29 @@ class _DaySummaryDialogState extends State<DaySummaryDialog>
               ),
               border: Border.all(color: Colors.white.withOpacity(0.12), width: 1.5),
             ),
-            child: TextField(
-              controller: _notesController,
-              maxLines: 5,
-              minLines: 4,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                height: 1.6,
-              ),
-              decoration: InputDecoration(
-                hintText: 'Share what you accomplished or how you helped today...',
-                hintStyle: TextStyle(
-                  color: Colors.white.withOpacity(0.2),
+            child: Theme(
+              data: ThemeData.dark(),
+              child: TextField(
+                controller: _notesController,
+                maxLines: 5,
+                minLines: 4,
+                cursorColor: const Color(0xFF8B5CF6),
+                style: const TextStyle(
+                  color: Colors.white,
                   fontSize: 14,
-                  fontWeight: FontWeight.w400,
+                  fontWeight: FontWeight.w500,
+                  height: 1.6,
                 ),
-                contentPadding: const EdgeInsets.all(20),
-                border: InputBorder.none,
+                decoration: InputDecoration(
+                  hintText: 'Share what you accomplished or how you helped today...',
+                  hintStyle: TextStyle(
+                    color: Colors.white.withOpacity(0.2),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                  ),
+                  contentPadding: const EdgeInsets.all(20),
+                  border: InputBorder.none,
+                ),
               ),
             ),
           ),

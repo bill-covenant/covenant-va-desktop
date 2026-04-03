@@ -28,6 +28,8 @@ class TimecardBloc extends Bloc<TimecardEvent, TimecardState> {
       final data = await timecardRepository.loadTimecardData(
         clientId: event.clientId,
         month: event.month,
+        startDate: event.startDate,
+        endDate: event.endDate,
       );
 
       emit(TimecardLoaded(
@@ -99,6 +101,8 @@ class TimecardBloc extends Bloc<TimecardEvent, TimecardState> {
       final data = await timecardRepository.loadTimecardData(
         clientId: event.clientId,
         month: event.month,
+        startDate: event.startDate,
+        endDate: event.endDate,
       );
 
       emit(TimecardLoaded(
