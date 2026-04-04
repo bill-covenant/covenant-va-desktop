@@ -1,17 +1,8 @@
 /*
-  Cache-Control: public, max-age=3600
-
-/main.dart.js
-  Cache-Control: public, max-age=86400
+  Cache-Control: no-cache
 
 /canvaskit/*
   Cache-Control: public, max-age=604800, immutable
 
-/assets/*
-  Cache-Control: public, max-age=604800, immutable
-
 /icons/*
-  Cache-Control: public, max-age=604800, immutable
-
-/*.wasm
   Cache-Control: public, max-age=604800, immutable
