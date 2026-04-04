@@ -20,7 +20,7 @@
   <title>CVA Desktop — Covenant VA Portal</title>
   <link rel="manifest" href="manifest.json">
 
-  <!-- Preconnect to backend for faster API calls -->
+  <!-- Preconnect to backend -->
   <link rel="preconnect" href="https://covenant-va-backend.onrender.com" crossorigin>
   <link rel="dns-prefetch" href="https://covenant-va-backend.onrender.com">
 
@@ -29,10 +29,9 @@
       margin: 0;
       padding: 0;
       overflow: hidden;
-      background-color: #1a0a2e;
+      background-color: #1a0533;
     }
 
-    /* Loading splash screen */
     .loading-screen {
       position: fixed;
       inset: 0;
@@ -40,67 +39,226 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #1a0a2e 0%, #2a0a4a 50%, #1a0a2e 100%);
+      background: linear-gradient(135deg, #1a0533 0%, #2d1b69 50%, #1a0533 100%);
       z-index: 9999;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.4s ease;
+      overflow: hidden;
     }
     .loading-screen.fade-out {
       opacity: 0;
       pointer-events: none;
     }
-    .loading-logo {
-      width: 80px;
-      height: 80px;
-      margin-bottom: 24px;
-      animation: pulse 1.5s ease-in-out infinite;
-    }
-    .loading-text {
-      color: rgba(255,255,255,0.8);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      font-size: 18px;
-      font-weight: 700;
-      letter-spacing: -0.3px;
-    }
-    .loading-sub {
-      color: rgba(255,255,255,0.4);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      font-size: 13px;
-      margin-top: 8px;
-    }
-    .loading-spinner {
-      width: 32px;
-      height: 32px;
-      margin-top: 24px;
-      border: 3px solid rgba(139, 92, 246, 0.2);
-      border-top-color: #8B5CF6;
+
+    /* Background orbs */
+    .orb {
+      position: absolute;
       border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+      pointer-events: none;
     }
-    @keyframes spin {
+    .orb-1 {
+      top: -80px;
+      right: -80px;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(124,58,237,0.3), transparent);
+    }
+    .orb-2 {
+      bottom: -100px;
+      left: -100px;
+      width: 350px;
+      height: 350px;
+      background: radial-gradient(circle, rgba(236,72,153,0.25), transparent);
+    }
+    .orb-3 {
+      top: 30%;
+      left: 30%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(124,58,237,0.12), transparent);
+    }
+
+    /* Floating particles */
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      animation: float-particle 6s ease-in-out infinite;
+    }
+
+    /* Logo container */
+    .logo-wrapper {
+      position: relative;
+      width: 240px;
+      height: 240px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 40px;
+    }
+
+    /* Rotating ring */
+    .rotating-ring {
+      position: absolute;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: conic-gradient(
+        from 0deg,
+        rgba(124,58,237,0) 0%,
+        rgba(124,58,237,0.8) 30%,
+        rgba(236,72,153,0.8) 70%,
+        rgba(236,72,153,0) 100%
+      );
+      animation: rotate-ring 8s linear infinite;
+      opacity: 0.6;
+    }
+    .rotating-ring::after {
+      content: '';
+      position: absolute;
+      inset: 2px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1a0533, #2d1b69);
+    }
+
+    /* Glow behind logo */
+    .logo-glow {
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      box-shadow:
+        0 0 60px rgba(124,58,237,0.5),
+        0 0 80px rgba(236,72,153,0.3);
+      animation: pulse-glow 1.5s ease-in-out infinite alternate;
+    }
+
+    /* Logo image */
+    .logo-img {
+      position: relative;
+      z-index: 2;
+      width: 120px;
+      height: 120px;
+      object-fit: contain;
+      animation: logo-pulse 1.5s ease-in-out infinite alternate;
+    }
+
+    /* Title */
+    .splash-title {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 42px;
+      font-weight: 900;
+      background: linear-gradient(90deg, #E0D0FF, #FFFFFF, #FFD0E8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -1.5px;
+      margin: 0;
+      animation: fade-slide-up 0.8s ease-out 0.5s both;
+    }
+
+    .splash-subtitle {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.5);
+      letter-spacing: 4px;
+      margin-top: 12px;
+      animation: fade-slide-up 0.8s ease-out 0.7s both;
+    }
+
+    /* Progress bar */
+    .progress-container {
+      margin-top: 60px;
+      width: 200px;
+      animation: fade-slide-up 0.8s ease-out 0.9s both;
+    }
+    .progress-track {
+      height: 3px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      border-radius: 2px;
+      background: linear-gradient(90deg, #7C3AED, #EC4899);
+      box-shadow: 0 0 8px rgba(124,58,237,0.6);
+      animation: progress-fill 3.5s ease-in-out forwards;
+    }
+    .progress-text {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 12px;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 2px;
+      text-align: center;
+      margin-top: 16px;
+    }
+
+    @keyframes rotate-ring {
       to { transform: rotate(360deg); }
     }
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.05); opacity: 0.8; }
+    @keyframes pulse-glow {
+      from { transform: scale(1); opacity: 0.8; }
+      to { transform: scale(1.08); opacity: 1; }
+    }
+    @keyframes logo-pulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.05); }
+    }
+    @keyframes fade-slide-up {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes progress-fill {
+      0% { width: 0%; }
+      100% { width: 95%; }
+    }
+    @keyframes float-particle {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-15px) scale(1.2); }
     }
   </style>
 </head>
 <body>
-  <!-- Loading screen shown while Flutter initializes -->
   <div id="loading-screen" class="loading-screen">
-    <img src="favicon.png" class="loading-logo" alt="">
-    <div class="loading-text">Covenant VA</div>
-    <div class="loading-sub">Loading your portal...</div>
-    <div class="loading-spinner"></div>
+    <!-- Background orbs -->
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <!-- Floating particles -->
+    <div class="particle" style="width:3px;height:3px;background:#7C3AED;top:15%;left:20%;animation-delay:0s;box-shadow:0 0 6px rgba(124,58,237,0.5);"></div>
+    <div class="particle" style="width:2px;height:2px;background:#EC4899;top:25%;right:25%;animation-delay:1s;box-shadow:0 0 6px rgba(236,72,153,0.5);"></div>
+    <div class="particle" style="width:4px;height:4px;background:#7C3AED;top:60%;left:15%;animation-delay:2s;box-shadow:0 0 6px rgba(124,58,237,0.5);"></div>
+    <div class="particle" style="width:2px;height:2px;background:#EC4899;top:70%;right:20%;animation-delay:0.5s;box-shadow:0 0 6px rgba(236,72,153,0.5);"></div>
+    <div class="particle" style="width:3px;height:3px;background:#7C3AED;top:40%;left:80%;animation-delay:1.5s;box-shadow:0 0 6px rgba(124,58,237,0.5);"></div>
+    <div class="particle" style="width:2px;height:2px;background:#EC4899;top:80%;left:40%;animation-delay:3s;box-shadow:0 0 6px rgba(236,72,153,0.5);"></div>
+    <div class="particle" style="width:3px;height:3px;background:#7C3AED;top:10%;left:60%;animation-delay:2.5s;box-shadow:0 0 6px rgba(124,58,237,0.5);"></div>
+    <div class="particle" style="width:2px;height:2px;background:#EC4899;top:50%;right:10%;animation-delay:4s;box-shadow:0 0 6px rgba(236,72,153,0.5);"></div>
+
+    <!-- Logo -->
+    <div class="logo-wrapper">
+      <div class="rotating-ring"></div>
+      <div class="logo-glow"></div>
+      <img src="favicon.png" class="logo-img" alt="">
+    </div>
+
+    <h1 class="splash-title">CVA Desktop</h1>
+    <p class="splash-subtitle">Virtual Assistant Portal</p>
+
+    <div class="progress-container">
+      <div class="progress-track">
+        <div class="progress-bar"></div>
+      </div>
+      <div class="progress-text">Loading...</div>
+    </div>
   </div>
 
   <script>
-    // Remove loading screen once Flutter is ready
     window.addEventListener('flutter-first-frame', function() {
       var loader = document.getElementById('loading-screen');
       if (loader) {
         loader.classList.add('fade-out');
-        setTimeout(function() { loader.remove(); }, 300);
+        setTimeout(function() { loader.remove(); }, 400);
       }
     });
   </script>

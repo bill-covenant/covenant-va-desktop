@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -215,7 +216,7 @@ class _AppContentState extends State<_AppContent> {
           child: child ?? const SizedBox.shrink(),
         );
       },
-      initialRoute: '/splash',
+      initialRoute: kIsWeb ? '/home' : '/splash',
       routes: {
         '/splash': (context) => const SplashScreen(),
         '/home': (context) {

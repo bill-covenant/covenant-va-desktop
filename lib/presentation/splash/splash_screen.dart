@@ -392,18 +392,7 @@ class _SplashScreenState extends State<SplashScreen>
                   bottom: 24,
                   left: 0,
                   right: 0,
-                  child: Opacity(
-                    opacity: _progressOpacity.value,
-                    child: Text(
-                      'v1.0.34',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.white.withOpacity(0.2),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
+                  child: const SizedBox.shrink(),
                 ),
               ],
             ),

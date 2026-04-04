@@ -403,9 +403,6 @@ class _MainLayoutState extends State<MainLayout> {
               ),
             ),
           ),
-          // Update button
-          LayoutUpdateSection(apiBaseUrl: _apiBaseUrl),
-          const SizedBox(height: 8),
           // Dark mode toggle
           const LayoutDarkModeToggle(),
           const SizedBox(height: 8),
