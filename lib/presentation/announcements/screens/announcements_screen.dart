@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/announcement_model.dart';
@@ -22,15 +23,18 @@ class AnnouncementsScreen extends StatefulWidget {
 
 class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   List<AnnouncementModel> _announcements = [];
+  Set<String> _hiddenIds = {};
   bool _loading = false;
   String? _error;
 
   static List<AnnouncementModel>? _cachedAnnouncements;
   static DateTime? _lastFetchTime;
+  static const _hiddenKey = 'hidden_announcement_ids';
 
   @override
   void initState() {
     super.initState();
+    _loadHiddenIds();
     if (_cachedAnnouncements != null) {
       _announcements = _cachedAnnouncements!;
       _loading = false;
@@ -41,6 +45,18 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
     } else {
       _fetchAnnouncements(showLoading: false);
     }
+  }
+
+  Future<void> _loadHiddenIds() async {
+    final prefs = await SharedPreferences.getInstance();
+    final ids = prefs.getStringList(_hiddenKey) ?? [];
+    if (mounted) setState(() => _hiddenIds = ids.toSet());
+  }
+
+  Future<void> _hideAnnouncement(String id) async {
+    setState(() => _hiddenIds.add(id));
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_hiddenKey, _hiddenIds.toList());
   }
 
   Future<void> _fetchAnnouncements({bool showLoading = false}) async {
@@ -220,12 +236,13 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
             const spacing = 20.0;
             final cardWidth = (constraints.maxWidth - spacing * (crossAxisCount - 1)) / crossAxisCount;
 
+            final visible = _announcements.where((a) => !_hiddenIds.contains(a.id)).toList();
             final rows = <Widget>[];
-            for (int i = 0; i < _announcements.length; i += crossAxisCount) {
+            for (int i = 0; i < visible.length; i += crossAxisCount) {
               final rowItems = <Widget>[];
               for (int j = 0; j < crossAxisCount; j++) {
-                if (i + j < _announcements.length) {
-                  rowItems.add(SizedBox(width: cardWidth, child: _buildAnnouncementCard(_announcements[i + j])));
+                if (i + j < visible.length) {
+                  rowItems.add(SizedBox(width: cardWidth, child: _buildAnnouncementCard(visible[i + j])));
                 } else {
                   rowItems.add(SizedBox(width: cardWidth));
                 }
@@ -360,6 +377,26 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                             fontWeight: FontWeight.w700,
                             color: colors.accent,
                             letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Hide button
+                      GestureDetector(
+                        onTap: () => _hideAnnouncement(announcement.id),
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: dark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.close,
+                              size: 16,
+                              color: dark ? Colors.white.withOpacity(0.4) : Colors.black.withOpacity(0.3),
+                            ),
                           ),
                         ),
                       ),
