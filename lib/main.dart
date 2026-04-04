@@ -216,7 +216,7 @@ class _AppContentState extends State<_AppContent> {
           child: child ?? const SizedBox.shrink(),
         );
       },
-      initialRoute: kIsWeb ? '/home' : '/splash',
+      initialRoute: '/home',
       routes: {
         '/splash': (context) => const SplashScreen(),
         '/home': (context) {
