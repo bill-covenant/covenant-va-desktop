@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/announcement_model.dart';
 import '../../../data/repositories/announcement_repository.dart';
@@ -379,9 +380,9 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(
+                  _buildLinkedContent(
                     announcement.content,
-                    style: TextStyle(
+                    TextStyle(
                       fontSize: 14,
                       color: dark ? Colors.white.withOpacity(0.7) : const Color(0xFF4B5563),
                       height: 1.65,
@@ -414,6 +415,44 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildLinkedContent(String text, TextStyle baseStyle) {
+    final urlRegex = RegExp(r'(https?://[^\s]+)');
+    final matches = urlRegex.allMatches(text);
+
+    if (matches.isEmpty) {
+      return Text(text, style: baseStyle);
+    }
+
+    final spans = <TextSpan>[];
+    int lastEnd = 0;
+
+    for (final match in matches) {
+      if (match.start > lastEnd) {
+        spans.add(TextSpan(text: text.substring(lastEnd, match.start)));
+      }
+      final url = match.group(0)!;
+      spans.add(TextSpan(
+        text: url,
+        style: const TextStyle(
+          color: Color(0xFF8B5CF6),
+          decoration: TextDecoration.underline,
+          decorationColor: Color(0xFF8B5CF6),
+        ),
+        recognizer: TapGestureRecognizer()
+          ..onTap = () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+      ));
+      lastEnd = match.end;
+    }
+
+    if (lastEnd < text.length) {
+      spans.add(TextSpan(text: text.substring(lastEnd)));
+    }
+
+    return RichText(
+      text: TextSpan(style: baseStyle, children: spans),
     );
   }
 
