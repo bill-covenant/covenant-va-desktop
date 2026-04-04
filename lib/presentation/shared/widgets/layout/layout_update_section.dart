@@ -1,7 +1,5 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
 import '../../../../services/update_service.dart';
 
 class LayoutUpdateSection extends StatefulWidget {
@@ -22,7 +20,7 @@ class _LayoutUpdateSectionState extends State<LayoutUpdateSection> {
   @override
   void initState() {
     super.initState();
-    _checkForUpdate();
+    if (!kIsWeb) _checkForUpdate();
   }
 
   Future<void> _checkForUpdate() async {
@@ -46,59 +44,8 @@ class _LayoutUpdateSectionState extends State<LayoutUpdateSection> {
   }
 
   Future<void> _downloadAndInstall(UpdateInfo info) async {
-    if (info.downloadUrl.isEmpty) return;
-
-    final url = info.downloadUrl;
-    if (url.endsWith('.exe') || url.endsWith('.msi') || url.endsWith('.zip')) {
-      setState(() { _isDownloading = true; _downloadProgress = 0; });
-      try {
-        final tempDir = await getTemporaryDirectory();
-        final fileName = url.split('/').last;
-        final filePath = '${tempDir.path}${Platform.pathSeparator}$fileName';
-        final file = File(filePath);
-
-        final request = http.Request('GET', Uri.parse(url));
-        final client = http.Client();
-        final response = await client.send(request);
-        final totalBytes = response.contentLength ?? 0;
-        int receivedBytes = 0;
-        final sink = file.openWrite();
-
-        // Download the file using await for (properly awaits completion)
-        await for (final chunk in response.stream) {
-          sink.add(chunk);
-          receivedBytes += chunk.length;
-          if (totalBytes > 0 && mounted) {
-            setState(() => _downloadProgress = receivedBytes / totalBytes);
-          }
-        }
-
-        await sink.flush();
-        await sink.close();
-        client.close();
-
-        if (!mounted) return;
-
-        // Show installing state briefly
-        setState(() => _downloadProgress = 1.0);
-
-        // Launch installer and exit
-        try {
-          await Process.start(filePath, [], mode: ProcessStartMode.detached);
-          exit(0);
-        } catch (e) {
-          // If auto-launch fails, open the file location instead
-          if (mounted) {
-            setState(() { _isDownloading = false; _downloadProgress = 0; });
-            await Process.start('explorer.exe', ['/select,', filePath]);
-          }
-        }
-      } catch (e) {
-        if (mounted) setState(() { _isDownloading = false; _downloadProgress = 0; });
-      }
-    } else {
-      await UpdateService.openDownloadLink(url);
-    }
+    if (kIsWeb || info.downloadUrl.isEmpty) return;
+    await UpdateService.openDownloadLink(info.downloadUrl);
   }
 
   @override

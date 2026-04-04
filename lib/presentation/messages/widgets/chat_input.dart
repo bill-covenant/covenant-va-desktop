@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:ui';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -173,7 +173,7 @@ class _ChatInputState extends State<ChatInput>
       request.files.add(
         http.MultipartFile.fromBytes(
           'file',
-          File(file.path!).readAsBytesSync(),
+          file.bytes ?? [],
           filename: file.name,
           contentType: MediaType.parse(mimeType),
         ),
@@ -889,11 +889,11 @@ class _ChatInputState extends State<ChatInput>
                 return Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    if (isImg && file.path != null)
+                    if (isImg && file.bytes != null)
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: Image.file(
-                          File(file.path!),
+                        child: Image.memory(
+                          file.bytes!,
                           width: 72,
                           height: 72,
                           fit: BoxFit.cover,

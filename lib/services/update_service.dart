@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
@@ -44,8 +44,8 @@ class UpdateService {
           return UpdateInfo(
             version: latestVersion,
             buildNumber: latestBuild,
-            downloadUrl: Platform.isMacOS
-                ? (data['macDownloadUrl'] ?? data['downloadUrl'] ?? '')
+            downloadUrl: kIsWeb
+                ? ''
                 : (data['downloadUrl'] ?? ''),
             releaseNotes: data['releaseNotes'] ?? '',
             forceUpdate: data['forceUpdate'] ?? false,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../../data/models/user_model.dart';
@@ -39,7 +39,7 @@ class ProfileCard extends StatelessWidget {
       print('📸 Image selected: ${image.path}');
 
       // Read file
-      final bytes = await File(image.path).readAsBytes();
+      final bytes = await image.readAsBytes();
       print('📦 File size: ${bytes.length} bytes');
 
       // Check file size (max 2MB)
