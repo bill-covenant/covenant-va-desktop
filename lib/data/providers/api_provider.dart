@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/api_constants.dart';
 
 class _CacheEntry {
@@ -115,12 +116,28 @@ class ApiProvider {
     required bool requiresAuth,
   }) async {
     try {
+      // If auth required but no token, try restoring from storage first
+      if (requiresAuth && _token == null) {
+        await _tryRestoreToken();
+      }
+
       final response = await _client
           .get(
             Uri.parse(fullUrl),
             headers: _getHeaders(includeAuth: requiresAuth),
           )
           .timeout(const Duration(seconds: 30));
+
+      // On 401, try restoring token and retry once
+      if (response.statusCode == 401 && requiresAuth) {
+        final restored = await _tryRestoreToken();
+        if (restored) {
+          final retryResponse = await _client
+              .get(Uri.parse(fullUrl), headers: _getHeaders(includeAuth: true))
+              .timeout(const Duration(seconds: 30));
+          return _handleResponse(retryResponse);
+        }
+      }
 
       return _handleResponse(response);
     } on TimeoutException {
@@ -137,6 +154,7 @@ class ApiProvider {
     bool requiresAuth = false,
   }) async {
     try {
+      if (requiresAuth && _token == null) await _tryRestoreToken();
       final fullUrl = _buildUrl(endpoint);
 
       final response = await _client
@@ -165,6 +183,7 @@ class ApiProvider {
     bool requiresAuth = false,
   }) async {
     try {
+      if (requiresAuth && _token == null) await _tryRestoreToken();
       final fullUrl = _buildUrl(endpoint);
 
       final response = await _client
@@ -191,6 +210,7 @@ class ApiProvider {
     bool requiresAuth = false,
   }) async {
     try {
+      if (requiresAuth && _token == null) await _tryRestoreToken();
       final fullUrl = _buildUrl(endpoint);
 
       final response = await _client
@@ -240,6 +260,20 @@ class ApiProvider {
     for (final ep in endpoints) {
       get(ep, requiresAuth: requiresAuth).catchError((_) => <String, dynamic>{});
     }
+  }
+
+  /// Try to restore token from storage if current token is missing
+  Future<bool> _tryRestoreToken() async {
+    if (_token != null) return false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final storedToken = prefs.getString('auth_token');
+      if (storedToken != null) {
+        _token = storedToken;
+        return true;
+      }
+    } catch (_) {}
+    return false;
   }
 
   Map<String, dynamic> _handleResponse(http.Response response) {
