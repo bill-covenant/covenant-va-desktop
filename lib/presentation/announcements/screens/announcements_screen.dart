@@ -59,6 +59,12 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
     await prefs.setStringList(_hiddenKey, _hiddenIds.toList());
   }
 
+  Future<void> _showAllAnnouncements() async {
+    setState(() => _hiddenIds.clear());
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_hiddenKey);
+  }
+
   Future<void> _fetchAnnouncements({bool showLoading = false}) async {
     if (showLoading) {
       setState(() {
@@ -192,6 +198,9 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
       );
     }
 
+    final visible = _announcements.where((a) => !_hiddenIds.contains(a.id)).toList();
+    final hasHidden = _hiddenIds.isNotEmpty && _announcements.isNotEmpty && visible.length < _announcements.length;
+
     if (_announcements.isEmpty) {
       return Center(
         child: Column(
@@ -220,6 +229,46 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
       );
     }
 
+    if (visible.isEmpty && hasHidden) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.visibility_off_rounded, color: dark ? Colors.white.withOpacity(0.2) : const Color(0xFFD1D5DB), size: 64),
+            const SizedBox(height: 16),
+            Text(
+              'All announcements hidden',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: dark ? Colors.white.withOpacity(0.5) : const Color(0xFF6B7280),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${_announcements.length} announcement${_announcements.length == 1 ? '' : 's'} hidden',
+              style: TextStyle(
+                fontSize: 13,
+                color: dark ? Colors.white.withOpacity(0.3) : const Color(0xFF9CA3AF),
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _showAllAnnouncements,
+              icon: const Icon(Icons.visibility_rounded, size: 16),
+              label: const Text('Show All'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6366F1),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return ScrollConfiguration(
       behavior: ScrollConfiguration.of(context).copyWith(
         dragDevices: {
@@ -236,7 +285,6 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
             const spacing = 20.0;
             final cardWidth = (constraints.maxWidth - spacing * (crossAxisCount - 1)) / crossAxisCount;
 
-            final visible = _announcements.where((a) => !_hiddenIds.contains(a.id)).toList();
             final rows = <Widget>[];
             for (int i = 0; i < visible.length; i += crossAxisCount) {
               final rowItems = <Widget>[];
@@ -249,7 +297,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                 if (j < crossAxisCount - 1) rowItems.add(const SizedBox(width: spacing));
               }
               rows.add(Row(crossAxisAlignment: CrossAxisAlignment.start, children: rowItems));
-              if (i + crossAxisCount < _announcements.length) rows.add(const SizedBox(height: spacing));
+              if (i + crossAxisCount < visible.length) rows.add(const SizedBox(height: spacing));
             }
 
             return Column(children: rows);
