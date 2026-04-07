@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/theme/theme_provider.dart';
@@ -440,10 +441,19 @@ class _TimecardScreenState extends State<TimecardScreen> {
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: () async => _silentRefresh(),
-                    child: SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(50, 32, 48, 40),
-                      child: _buildContent(state),
+                    child: ScrollConfiguration(
+                      behavior: ScrollConfiguration.of(context).copyWith(
+                        dragDevices: {
+                          PointerDeviceKind.touch,
+                          PointerDeviceKind.mouse,
+                          PointerDeviceKind.trackpad,
+                        },
+                      ),
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(50, 32, 48, 40),
+                        child: _buildContent(state),
+                      ),
                     ),
                   ),
                 ),
