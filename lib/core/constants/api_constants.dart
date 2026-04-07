@@ -22,4 +22,9 @@ class ApiConstants {
       '$conversations/$conversationId/messages';
   static String get unreadCount => '$baseUrl/unread-count';
   static String deleteMessage(String messageId) => '$baseUrl/messages/$messageId';
+
+  // Announcement endpoints
+  static String get announcements => '$baseUrl/announcements';
+  static String get publishedAnnouncements => '$announcements/published';
+  static String dismissAnnouncement(String id) => '$announcements/$id/dismiss';
 }

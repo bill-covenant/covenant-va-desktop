@@ -1,7 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/announcement_model.dart';
@@ -23,18 +22,15 @@ class AnnouncementsScreen extends StatefulWidget {
 
 class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   List<AnnouncementModel> _announcements = [];
-  Set<String> _hiddenIds = {};
   bool _loading = false;
   String? _error;
 
   static List<AnnouncementModel>? _cachedAnnouncements;
   static DateTime? _lastFetchTime;
-  static const _hiddenKey = 'hidden_announcement_ids';
 
   @override
   void initState() {
     super.initState();
-    _loadHiddenIds();
     if (_cachedAnnouncements != null) {
       _announcements = _cachedAnnouncements!;
       _loading = false;
@@ -47,22 +43,18 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
     }
   }
 
-  Future<void> _loadHiddenIds() async {
-    final prefs = await SharedPreferences.getInstance();
-    final ids = prefs.getStringList(_hiddenKey) ?? [];
-    if (mounted) setState(() => _hiddenIds = ids.toSet());
-  }
-
   Future<void> _hideAnnouncement(String id) async {
-    setState(() => _hiddenIds.add(id));
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_hiddenKey, _hiddenIds.toList());
-  }
+    // Remove from UI immediately
+    setState(() => _announcements.removeWhere((a) => a.id == id));
+    _cachedAnnouncements = List.from(_announcements);
 
-  Future<void> _showAllAnnouncements() async {
-    setState(() => _hiddenIds.clear());
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_hiddenKey);
+    // Persist dismissal server-side
+    try {
+      final repo = GetIt.I<AnnouncementRepository>();
+      await repo.dismissAnnouncement(id);
+    } catch (e) {
+      print('⚠️ Failed to persist dismissal: $e');
+    }
   }
 
   Future<void> _fetchAnnouncements({bool showLoading = false}) async {
@@ -198,9 +190,6 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
       );
     }
 
-    final visible = _announcements.where((a) => !_hiddenIds.contains(a.id)).toList();
-    final hasHidden = _hiddenIds.isNotEmpty && _announcements.isNotEmpty && visible.length < _announcements.length;
-
     if (_announcements.isEmpty) {
       return Center(
         child: Column(
@@ -209,7 +198,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
             Icon(Icons.campaign_rounded, color: dark ? Colors.white.withOpacity(0.2) : const Color(0xFFD1D5DB), size: 64),
             const SizedBox(height: 16),
             Text(
-              'No announcements yet',
+              'No announcements',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -222,46 +211,6 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
               style: TextStyle(
                 fontSize: 13,
                 color: dark ? Colors.white.withOpacity(0.3) : const Color(0xFF9CA3AF),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (visible.isEmpty && hasHidden) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.visibility_off_rounded, color: dark ? Colors.white.withOpacity(0.2) : const Color(0xFFD1D5DB), size: 64),
-            const SizedBox(height: 16),
-            Text(
-              'All announcements hidden',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: dark ? Colors.white.withOpacity(0.5) : const Color(0xFF6B7280),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '${_announcements.length} announcement${_announcements.length == 1 ? '' : 's'} hidden',
-              style: TextStyle(
-                fontSize: 13,
-                color: dark ? Colors.white.withOpacity(0.3) : const Color(0xFF9CA3AF),
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: _showAllAnnouncements,
-              icon: const Icon(Icons.visibility_rounded, size: 16),
-              label: const Text('Show All'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6366F1),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               ),
             ),
           ],
@@ -286,18 +235,18 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
             final cardWidth = (constraints.maxWidth - spacing * (crossAxisCount - 1)) / crossAxisCount;
 
             final rows = <Widget>[];
-            for (int i = 0; i < visible.length; i += crossAxisCount) {
+            for (int i = 0; i < _announcements.length; i += crossAxisCount) {
               final rowItems = <Widget>[];
               for (int j = 0; j < crossAxisCount; j++) {
-                if (i + j < visible.length) {
-                  rowItems.add(SizedBox(width: cardWidth, child: _buildAnnouncementCard(visible[i + j])));
+                if (i + j < _announcements.length) {
+                  rowItems.add(SizedBox(width: cardWidth, child: _buildAnnouncementCard(_announcements[i + j])));
                 } else {
                   rowItems.add(SizedBox(width: cardWidth));
                 }
                 if (j < crossAxisCount - 1) rowItems.add(const SizedBox(width: spacing));
               }
               rows.add(Row(crossAxisAlignment: CrossAxisAlignment.start, children: rowItems));
-              if (i + crossAxisCount < visible.length) rows.add(const SizedBox(height: spacing));
+              if (i + crossAxisCount < _announcements.length) rows.add(const SizedBox(height: spacing));
             }
 
             return Column(children: rows);

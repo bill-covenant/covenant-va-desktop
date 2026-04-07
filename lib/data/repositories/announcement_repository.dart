@@ -17,4 +17,13 @@ class AnnouncementRepository {
         .map((j) => AnnouncementModel.fromJson(j as Map<String, dynamic>))
         .toList();
   }
+
+  /// Dismiss an announcement server-side so it never comes back
+  Future<void> dismissAnnouncement(String id) async {
+    await _apiProvider.post(
+      '/announcements/$id/dismiss',
+      {},
+      requiresAuth: true,
+    );
+  }
 }

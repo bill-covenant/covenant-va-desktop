@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/announcement_model.dart';
 import '../../../data/repositories/announcement_repository.dart';
@@ -14,41 +13,18 @@ class AnnouncementsSection extends StatefulWidget {
 
 class _AnnouncementsSectionState extends State<AnnouncementsSection> {
   List<AnnouncementModel> _announcements = [];
-  Set<String> _dismissed = {};
   bool _loaded = false;
-  bool _dismissedLoaded = false;
-
-  // Shared key with AnnouncementsScreen so dismissals stay in sync
-  static const _dismissedKey = 'hidden_announcement_ids';
 
   @override
   void initState() {
     super.initState();
-    _loadDismissedAndFetch();
-  }
-
-  Future<void> _loadDismissedAndFetch() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    // Migrate from old key if it exists
-    const oldKey = 'dismissed_announcements';
-    final oldDismissed = prefs.getStringList(oldKey);
-    if (oldDismissed != null && oldDismissed.isNotEmpty) {
-      final existing = prefs.getStringList(_dismissedKey) ?? [];
-      final merged = {...existing, ...oldDismissed}.toList();
-      await prefs.setStringList(_dismissedKey, merged);
-      await prefs.remove(oldKey);
-    }
-
-    final dismissed = prefs.getStringList(_dismissedKey) ?? [];
-    _dismissed = dismissed.toSet();
-    _dismissedLoaded = true;
     _fetchAnnouncements();
   }
 
   Future<void> _fetchAnnouncements() async {
     try {
       final repo = GetIt.I<AnnouncementRepository>();
+      // Backend already filters out dismissed announcements for this user
       final announcements = await repo.getPublishedAnnouncements();
       if (mounted) {
         setState(() {
@@ -63,26 +39,27 @@ class _AnnouncementsSectionState extends State<AnnouncementsSection> {
   }
 
   Future<void> _dismiss(String id) async {
-    setState(() => _dismissed.add(id));
-    final prefs = await SharedPreferences.getInstance();
-    // Reload existing list first to avoid overwriting dismissals from AnnouncementsScreen
-    final existing = prefs.getStringList(_dismissedKey) ?? [];
-    final merged = {...existing, id}.toList();
-    await prefs.setStringList(_dismissedKey, merged);
+    // Remove from UI immediately
+    setState(() => _announcements.removeWhere((a) => a.id == id));
+
+    // Persist dismissal server-side (fire and forget)
+    try {
+      final repo = GetIt.I<AnnouncementRepository>();
+      await repo.dismissAnnouncement(id);
+    } catch (e) {
+      print('⚠️ Failed to persist dismissal: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Wait for both dismissed list AND announcements before rendering
-    if (!_loaded || !_dismissedLoaded) return const SizedBox.shrink();
-
-    final visible = _announcements.where((a) => !_dismissed.contains(a.id)).toList();
-    if (visible.isEmpty) return const SizedBox.shrink();
+    if (!_loaded) return const SizedBox.shrink();
+    if (_announcements.isEmpty) return const SizedBox.shrink();
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
-        children: visible.map((a) => _buildAnnouncementCard(a)).toList(),
+        children: _announcements.map((a) => _buildAnnouncementCard(a)).toList(),
       ),
     );
   }
