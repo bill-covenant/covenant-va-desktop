@@ -10,17 +10,28 @@ import '../../../auth/bloc/auth_state.dart';
 Uint8List? _cachedAvatarBytes;
 String? _cachedAvatarSource;
 
-class LayoutSidebarFooter extends StatelessWidget {
+class LayoutSidebarFooter extends StatefulWidget {
   const LayoutSidebarFooter({super.key});
+
+  @override
+  State<LayoutSidebarFooter> createState() => _LayoutSidebarFooterState();
+}
+
+class _LayoutSidebarFooterState extends State<LayoutSidebarFooter> {
+  // Cache the last known user data so it persists through loading states
+  String _lastUserName = '';
+  String _lastUserEmail = '';
+  String _lastUserInitial = '';
+  String? _lastAvatarBase64;
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
-        String userName = 'User';
-        String userEmail = 'user@example.com';
-        String userInitial = 'U';
-        String? avatarBase64;
+        String userName = _lastUserName;
+        String userEmail = _lastUserEmail;
+        String userInitial = _lastUserInitial;
+        String? avatarBase64 = _lastAvatarBase64;
 
         if (state is AuthAuthenticated) {
           final firstName = state.user.firstName ?? '';
@@ -39,6 +50,12 @@ class LayoutSidebarFooter extends StatelessWidget {
 
           userEmail = state.user.email;
           avatarBase64 = state.user.profile?.avatar;
+
+          // Cache for use during transient states
+          _lastUserName = userName;
+          _lastUserEmail = userEmail;
+          _lastUserInitial = userInitial;
+          _lastAvatarBase64 = avatarBase64;
         }
 
         // Cache decoded avatar bytes
