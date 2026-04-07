@@ -17,9 +17,9 @@ class ApiConstants {
   static String get taskStats => '$tasks/stats';
   
   // Message endpoints
-  static String get messages => '$baseUrl/messages';
   static String get conversations => '$baseUrl/conversations';
-  static String conversationMessages(String conversationId) => 
+  static String conversationMessages(String conversationId) =>
       '$conversations/$conversationId/messages';
-  static String get unreadCount => '$messages/unread-count';
+  static String get unreadCount => '$baseUrl/unread-count';
+  static String deleteMessage(String messageId) => '$baseUrl/messages/$messageId';
 }

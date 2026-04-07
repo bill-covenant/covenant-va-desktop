@@ -151,10 +151,10 @@ class _AppContentState extends State<_AppContent> {
         _callService.initialize();
 
         apiProvider.warmUp([
-          '/dashboard/va',
-          '/tasks/my-tasks',
+          '/tasks',
+          '/tasks/stats',
           '/timecard/entries',
-          '/messages',
+          '/conversations',
           '/notifications',
           '/notes',
           '/announcements/published',

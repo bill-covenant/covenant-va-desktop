@@ -52487,7 +52487,7 @@ q=$.dh().$1$0(t.I4)
 p=q.b
 if(p!=null){o.w.d=p
 A.ag("\ud83d\udcde CallService: Auth token set")}o.w.ee(0)
-q.Rq(A.a(["/dashboard/va","/tasks/my-tasks","/timecard/entries","/messages","/notifications","/notes","/announcements/published"],t.s))
+q.Rq(A.a(["/tasks","/tasks/stats","/timecard/entries","/conversations","/notifications","/notes","/announcements/published"],t.s))
 o.auA()
 o.d=A.po(B.fz,new A.aFb(o))}else if(!o){o=this.a
 o.e=!1
