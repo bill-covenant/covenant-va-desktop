@@ -16,8 +16,10 @@ class _AnnouncementsSectionState extends State<AnnouncementsSection> {
   List<AnnouncementModel> _announcements = [];
   Set<String> _dismissed = {};
   bool _loaded = false;
+  bool _dismissedLoaded = false;
 
-  static const _dismissedKey = 'dismissed_announcements';
+  // Shared key with AnnouncementsScreen so dismissals stay in sync
+  static const _dismissedKey = 'hidden_announcement_ids';
 
   @override
   void initState() {
@@ -27,8 +29,20 @@ class _AnnouncementsSectionState extends State<AnnouncementsSection> {
 
   Future<void> _loadDismissedAndFetch() async {
     final prefs = await SharedPreferences.getInstance();
+
+    // Migrate from old key if it exists
+    const oldKey = 'dismissed_announcements';
+    final oldDismissed = prefs.getStringList(oldKey);
+    if (oldDismissed != null && oldDismissed.isNotEmpty) {
+      final existing = prefs.getStringList(_dismissedKey) ?? [];
+      final merged = {...existing, ...oldDismissed}.toList();
+      await prefs.setStringList(_dismissedKey, merged);
+      await prefs.remove(oldKey);
+    }
+
     final dismissed = prefs.getStringList(_dismissedKey) ?? [];
     _dismissed = dismissed.toSet();
+    _dismissedLoaded = true;
     _fetchAnnouncements();
   }
 
@@ -51,12 +65,16 @@ class _AnnouncementsSectionState extends State<AnnouncementsSection> {
   Future<void> _dismiss(String id) async {
     setState(() => _dismissed.add(id));
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_dismissedKey, _dismissed.toList());
+    // Reload existing list first to avoid overwriting dismissals from AnnouncementsScreen
+    final existing = prefs.getStringList(_dismissedKey) ?? [];
+    final merged = {...existing, id}.toList();
+    await prefs.setStringList(_dismissedKey, merged);
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_loaded) return const SizedBox.shrink();
+    // Wait for both dismissed list AND announcements before rendering
+    if (!_loaded || !_dismissedLoaded) return const SizedBox.shrink();
 
     final visible = _announcements.where((a) => !_dismissed.contains(a.id)).toList();
     if (visible.isEmpty) return const SizedBox.shrink();
