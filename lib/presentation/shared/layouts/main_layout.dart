@@ -5,9 +5,12 @@ import 'package:covenant_va_desktop/presentation/shared/widgets/cross_hatch_patt
 import 'package:covenant_va_desktop/services/update_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../services/socket_service.dart';
+import '../../auth/bloc/auth_bloc.dart';
+import '../../auth/bloc/auth_state.dart';
 import '../../../core/constants/api_constants.dart';
 import '../widgets/layout/layout_sidebar_header.dart';
 import '../widgets/layout/layout_sidebar_nav_item.dart';
@@ -262,6 +265,19 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
+    // Auth guard: redirect to login if not authenticated
+    final authState = context.watch<AuthBloc>().state;
+    if (authState is! AuthAuthenticated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+        }
+      });
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return ListenableBuilder(
       listenable: ThemeProvider(),
       builder: (context, _) {
