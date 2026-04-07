@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/conversation_model.dart';
@@ -26,6 +27,21 @@ class ChatPanel extends StatefulWidget {
 
 class _ChatPanelState extends State<ChatPanel> {
   MessageModel? _replyingTo;
+  bool _isOtherUserOnline = false;
+  StreamSubscription? _statusSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _statusSub = SocketService().onUserStatusChanged.listen(_onStatusChanged);
+    _updateOnlineStatus();
+  }
+
+  @override
+  void dispose() {
+    _statusSub?.cancel();
+    super.dispose();
+  }
 
   @override
   void didUpdateWidget(ChatPanel oldWidget) {
@@ -33,6 +49,25 @@ class _ChatPanelState extends State<ChatPanel> {
     // Clear reply when conversation changes
     if (oldWidget.conversation?.id != widget.conversation?.id) {
       _replyingTo = null;
+      _updateOnlineStatus();
+    }
+  }
+
+  void _updateOnlineStatus() {
+    if (widget.conversation == null) return;
+    final otherUserId = widget.conversation!.getOtherUserId(widget.currentUserId);
+    final online = SocketService().isUserOnline(otherUserId);
+    if (online != _isOtherUserOnline) {
+      setState(() => _isOtherUserOnline = online);
+    }
+  }
+
+  void _onStatusChanged(Map<String, dynamic> event) {
+    if (widget.conversation == null || !mounted) return;
+    final otherUserId = widget.conversation!.getOtherUserId(widget.currentUserId);
+    final changedUserId = event['userId'] as String?;
+    if (changedUserId == otherUserId) {
+      setState(() => _isOtherUserOnline = event['status'] == 'online');
     }
   }
 
@@ -49,7 +84,7 @@ class _ChatPanelState extends State<ChatPanel> {
         ChatHeader(
           conversation: widget.conversation!,
           currentUserId: widget.currentUserId,
-          isOtherUserOnline: SocketService().isUserOnline(widget.conversation!.getOtherUserId(widget.currentUserId)),
+          isOtherUserOnline: _isOtherUserOnline,
           onAudioCall: widget.callService != null ? () {
             final otherUserId = widget.conversation!.getOtherUserId(widget.currentUserId);
             final otherUserName = widget.conversation!.getOtherParticipantName(widget.currentUserId);

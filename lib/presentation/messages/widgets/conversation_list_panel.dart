@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../core/theme/theme_provider.dart';
@@ -39,12 +40,24 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
   String _currentVaFirstName = '';
   String _currentVaLastName = '';
   List<ClientModel> _clients = [];
+  StreamSubscription? _statusSub;
 
   @override
   void initState() {
     super.initState();
     _loadCurrentVaName();
     _loadClients();
+    // Rebuild conversation list when any user's online status changes
+    _statusSub = SocketService().onUserStatusChanged.listen((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _statusSub?.cancel();
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadCurrentVaName() async {
@@ -103,12 +116,6 @@ class _ConversationListPanelState extends State<ConversationListPanel> {
     }
 
     return conv;
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 
   // ──────────────────────────────────────────────
