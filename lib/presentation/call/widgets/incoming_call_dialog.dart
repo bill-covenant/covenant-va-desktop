@@ -65,16 +65,10 @@ class _IncomingCallDialogState extends State<IncomingCallDialog>
     final isVideo = callType == 'video';
 
     return Material(
-      color: Colors.black54,
-      child: Center(
-        child: AnimatedBuilder(
-          animation: _pulseAnimation,
-          builder: (context, child) {
-            return Transform.scale(
-              scale: _pulseAnimation.value,
-              child: child,
-            );
-          },
+      type: MaterialType.transparency,
+      child: Container(
+        color: Colors.black54,
+        child: Center(
           child: Container(
             width: 380,
             padding: const EdgeInsets.all(32),
@@ -206,24 +200,15 @@ class _IncomingCallDialogState extends State<IncomingCallDialog>
                     const SizedBox(width: 40),
 
                     // Accept
-                    AnimatedBuilder(
-                      animation: _bounceAnimation,
-                      builder: (context, child) {
-                        return Transform.translate(
-                          offset: Offset(0, _bounceAnimation.value),
-                          child: child,
-                        );
+                    _buildCallButton(
+                      icon: isVideo
+                          ? Icons.videocam_rounded
+                          : Icons.call_rounded,
+                      color: const Color(0xFF22C55E),
+                      label: 'Accept',
+                      onTap: () {
+                        widget.callService.acceptCall();
                       },
-                      child: _buildCallButton(
-                        icon: isVideo
-                            ? Icons.videocam_rounded
-                            : Icons.call_rounded,
-                        color: const Color(0xFF22C55E),
-                        label: 'Accept',
-                        onTap: () {
-                          widget.callService.acceptCall();
-                        },
-                      ),
                     ),
                   ],
                 ),
@@ -244,23 +229,27 @@ class _IncomingCallDialogState extends State<IncomingCallDialog>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        GestureDetector(
-          onTap: onTap,
-          child: Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: color.withOpacity(0.5),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
+        MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap,
+            child: Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withOpacity(0.5),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Icon(icon, color: Colors.white, size: 28),
             ),
-            child: Icon(icon, color: Colors.white, size: 28),
           ),
         ),
         const SizedBox(height: 10),
