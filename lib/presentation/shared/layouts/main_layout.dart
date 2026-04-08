@@ -282,17 +282,90 @@ class _MainLayoutState extends State<MainLayout> {
       listenable: ThemeProvider(),
       builder: (context, _) {
     final isDark = ThemeProvider().isDarkMode;
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDark
-                ? [const Color(0xFF0F1117), const Color(0xFF1A1025)]
-                : [const Color(0xFF7C3AED), const Color(0xFFEC4899)],
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+
+    final gradient = BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: isDark
+            ? [const Color(0xFF0F1117), const Color(0xFF1A1025)]
+            : [const Color(0xFF7C3AED), const Color(0xFFEC4899)],
+      ),
+    );
+
+    if (isMobile) {
+      return Scaffold(
+        drawer: Drawer(
+          width: 280,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: isDark
+                    ? [const Color(0xFF0F1117), const Color(0xFF1A1025)]
+                    : [const Color(0xFF7C3AED), const Color(0xFFEC4899)],
+              ),
+            ),
+            child: _buildSidebarContent(),
           ),
         ),
+        body: Container(
+          decoration: gradient,
+          child: CrossHatchPatternOverlay(
+            child: Column(
+              children: [
+                // Mobile top bar
+                Container(
+                  padding: EdgeInsets.only(
+                    top: MediaQuery.of(context).padding.top + 8,
+                    left: 12,
+                    right: 12,
+                    bottom: 8,
+                  ),
+                  child: Row(
+                    children: [
+                      Builder(
+                        builder: (ctx) => IconButton(
+                          onPressed: () => Scaffold.of(ctx).openDrawer(),
+                          icon: const Icon(Icons.menu_rounded, color: Colors.white, size: 26),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.white.withOpacity(0.15),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _getRouteLabel(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                UpdateBanner(apiBaseUrl: _apiBaseUrl),
+                Expanded(child: widget.child),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Desktop layout — fixed sidebar
+    return Scaffold(
+      body: Container(
+        decoration: gradient,
         child: CrossHatchPatternOverlay(
           child: Row(
             children: [
@@ -314,6 +387,108 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
+  String _getRouteLabel() {
+    const labels = {
+      'dashboard': 'Dashboard',
+      'tasks': 'My Tasks',
+      'notes': 'Notes',
+      'messages': 'Messages',
+      'timecard': 'Timecard',
+      'archive': 'Archive',
+      'announcements': 'Announcements',
+      'profile': 'Profile',
+    };
+    return labels[_selectedRoute] ?? 'Dashboard';
+  }
+
+  Widget _buildSidebarContent() {
+    return Column(
+      children: [
+        const LayoutSidebarHeader(),
+        const SizedBox(height: 32),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: [
+                LayoutSidebarNavItem(
+                  icon: Icons.dashboard,
+                  label: 'Dashboard',
+                  route: 'dashboard',
+                  isSelected: _selectedRoute == 'dashboard',
+                  onTap: () => _navigateTo('dashboard'),
+                ),
+                const SizedBox(height: 8),
+                LayoutSidebarNavItem(
+                  icon: Icons.task_alt,
+                  label: 'My Tasks',
+                  route: 'tasks',
+                  isSelected: _selectedRoute == 'tasks',
+                  badge: _tasksBadge > 0 ? _tasksBadge : null,
+                  onTap: () => _navigateTo('tasks'),
+                ),
+                const SizedBox(height: 8),
+                LayoutSidebarNavItem(
+                  icon: Icons.sticky_note_2_rounded,
+                  label: 'Notes',
+                  route: 'notes',
+                  isSelected: _selectedRoute == 'notes',
+                  onTap: () => _navigateTo('notes'),
+                ),
+                const SizedBox(height: 8),
+                LayoutSidebarNavItem(
+                  icon: Icons.message,
+                  label: 'Messages',
+                  route: 'messages',
+                  isSelected: _selectedRoute == 'messages',
+                  badge: _messagesBadge > 0 ? _messagesBadge : null,
+                  onTap: () => _navigateTo('messages'),
+                ),
+                const SizedBox(height: 8),
+                LayoutSidebarNavItem(
+                  icon: Icons.access_time_rounded,
+                  label: 'Timecard',
+                  route: 'timecard',
+                  isSelected: _selectedRoute == 'timecard',
+                  badge: _timecardBadge > 0 ? _timecardBadge : null,
+                  onTap: () => _navigateTo('timecard'),
+                ),
+                const SizedBox(height: 8),
+                LayoutSidebarNavItem(
+                  icon: Icons.archive_rounded,
+                  label: 'Archive',
+                  route: 'archive',
+                  isSelected: _selectedRoute == 'archive',
+                  onTap: () => _navigateTo('archive'),
+                ),
+                const SizedBox(height: 8),
+                LayoutSidebarNavItem(
+                  icon: Icons.campaign_rounded,
+                  label: 'Announcements',
+                  route: 'announcements',
+                  isSelected: _selectedRoute == 'announcements',
+                  badge: _announcementBadge > 0 ? _announcementBadge : null,
+                  onTap: () => _navigateTo('announcements'),
+                ),
+                const SizedBox(height: 8),
+                LayoutSidebarNavItem(
+                  icon: Icons.person,
+                  label: 'Profile',
+                  route: 'profile',
+                  isSelected: _selectedRoute == 'profile',
+                  onTap: () => _navigateTo('profile'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const LayoutDarkModeToggle(),
+        const SizedBox(height: 8),
+        const LayoutSidebarFooter(),
+      ],
+    );
+  }
+
   Widget _buildSidebar() {
     final isDark = ThemeProvider().isDarkMode;
     return Container(
@@ -323,14 +498,8 @@ class _MainLayoutState extends State<MainLayout> {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: isDark
-              ? [
-                  const Color(0xFF0F1117),
-                  const Color(0xFF1A1025),
-                ]
-              : [
-                  Colors.white.withOpacity(0.15),
-                  Colors.white.withOpacity(0.05),
-                ],
+              ? [const Color(0xFF0F1117), const Color(0xFF1A1025)]
+              : [Colors.white.withOpacity(0.15), Colors.white.withOpacity(0.05)],
         ),
         border: Border(
           right: BorderSide(
@@ -339,96 +508,15 @@ class _MainLayoutState extends State<MainLayout> {
           ),
         ),
       ),
-      child: Column(
-        children: [
-          const LayoutSidebarHeader(),
-          const SizedBox(height: 32),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                children: [
-                  LayoutSidebarNavItem(
-                    icon: Icons.dashboard,
-                    label: 'Dashboard',
-                    route: 'dashboard',
-                    isSelected: _selectedRoute == 'dashboard',
-                    onTap: () => _navigateTo('dashboard'),
-                  ),
-                  const SizedBox(height: 8),
-                  LayoutSidebarNavItem(
-                    icon: Icons.task_alt,
-                    label: 'My Tasks',
-                    route: 'tasks',
-                    isSelected: _selectedRoute == 'tasks',
-                    badge: _tasksBadge > 0 ? _tasksBadge : null,
-                    onTap: () => _navigateTo('tasks'),
-                  ),
-                  const SizedBox(height: 8),
-                  LayoutSidebarNavItem(
-                    icon: Icons.sticky_note_2_rounded,
-                    label: 'Notes',
-                    route: 'notes',
-                    isSelected: _selectedRoute == 'notes',
-                    onTap: () => _navigateTo('notes'),
-                  ),
-                  const SizedBox(height: 8),
-                  LayoutSidebarNavItem(
-                    icon: Icons.message,
-                    label: 'Messages',
-                    route: 'messages',
-                    isSelected: _selectedRoute == 'messages',
-                    badge: _messagesBadge > 0 ? _messagesBadge : null,
-                    onTap: () => _navigateTo('messages'),
-                  ),
-                  const SizedBox(height: 8),
-                  LayoutSidebarNavItem(
-                    icon: Icons.access_time_rounded,
-                    label: 'Timecard',
-                    route: 'timecard',
-                    isSelected: _selectedRoute == 'timecard',
-                    badge: _timecardBadge > 0 ? _timecardBadge : null,
-                    onTap: () => _navigateTo('timecard'),
-                  ),
-                  const SizedBox(height: 8),
-                  LayoutSidebarNavItem(
-                    icon: Icons.archive_rounded,
-                    label: 'Archive',
-                    route: 'archive',
-                    isSelected: _selectedRoute == 'archive',
-                    onTap: () => _navigateTo('archive'),
-                  ),
-                  const SizedBox(height: 8),
-                  LayoutSidebarNavItem(
-                    icon: Icons.campaign_rounded,
-                    label: 'Announcements',
-                    route: 'announcements',
-                    isSelected: _selectedRoute == 'announcements',
-                    badge: _announcementBadge > 0 ? _announcementBadge : null,
-                    onTap: () => _navigateTo('announcements'),
-                  ),
-                  const SizedBox(height: 8),
-                  LayoutSidebarNavItem(
-                    icon: Icons.person,
-                    label: 'Profile',
-                    route: 'profile',
-                    isSelected: _selectedRoute == 'profile',
-                    onTap: () => _navigateTo('profile'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // Dark mode toggle
-          const LayoutDarkModeToggle(),
-          const SizedBox(height: 8),
-          const LayoutSidebarFooter(),
-        ],
-      ),
+      child: _buildSidebarContent(),
     );
   }
 
   void _navigateTo(String route) {
+    // Close drawer on mobile before navigating
+    if (Scaffold.maybeOf(context)?.isDrawerOpen ?? false) {
+      Navigator.of(context).pop();
+    }
     setState(() => _selectedRoute = route);
     _clearBadge(route);
     Navigator.pushReplacementNamed(context, '/$route');
