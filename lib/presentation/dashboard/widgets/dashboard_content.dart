@@ -83,18 +83,26 @@ class DashboardContent extends StatelessWidget {
                   PointerDeviceKind.mouse,
                 },
               ),
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(32, 16, 32, 32),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const AnnouncementsSection(),
-                    _buildTopRow(state),
-                    const SizedBox(height: 24),
-                    _buildBottomRow(state),
-                  ],
-                ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isMobile = constraints.maxWidth < 700;
+                  final padding = isMobile
+                      ? const EdgeInsets.fromLTRB(16, 12, 16, 24)
+                      : const EdgeInsets.fromLTRB(32, 16, 32, 32);
+                  return SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: padding,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const AnnouncementsSection(),
+                        _buildTopRow(state, isMobile),
+                        const SizedBox(height: 20),
+                        _buildBottomRow(state, isMobile),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -107,7 +115,22 @@ class DashboardContent extends StatelessWidget {
   // TOP ROW: Stats + Clients + Timer
   // ═══════════════════════════════════════
 
-  Widget _buildTopRow(DashboardLoaded state) {
+  Widget _buildTopRow(DashboardLoaded state, [bool isMobile = false]) {
+    if (isMobile) {
+      return Column(
+        children: [
+          _buildStatsCard(state, isMobile),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: SizedBox(height: 180, child: _buildClientsPreviewCard())),
+              const SizedBox(width: 12),
+              Expanded(child: SizedBox(height: 180, child: _buildTimerCard(state))),
+            ],
+          ),
+        ],
+      );
+    }
     return SizedBox(
       height: 210,
       child: Row(
@@ -122,49 +145,57 @@ class DashboardContent extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsCard(DashboardLoaded state) {
+  Widget _buildStatsCard(DashboardLoaded state, [bool isMobile = false]) {
     final total = state.stats.total;
     final completed = state.stats.completed;
     final inProgress = state.stats.inProgress;
     final completedPct = total > 0 ? completed / total : 0.0;
     final inProgressPct = total > 0 ? inProgress / total : 0.0;
 
+    final circleSize = isMobile ? 64.0 : 90.0;
+    final circleStroke = isMobile ? 6.0 : 8.0;
+    final circleFontSize = isMobile ? 18.0 : 24.0;
+    final totalFontSize = isMobile ? 28.0 : 36.0;
+
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
       decoration: _cardDecoration(),
       child: Row(
         children: [
           _buildCircularStat(
             value: completed, label: 'Completed', percentage: completedPct,
             color: const Color(0xFF8B5CF6), bgColor: const Color(0xFFF3E8FF),
+            size: circleSize, strokeWidth: circleStroke, fontSize: circleFontSize,
           ),
-          const SizedBox(width: 24),
+          SizedBox(width: isMobile ? 12 : 24),
           _buildCircularStat(
             value: inProgress, label: 'In Progress', percentage: inProgressPct,
             color: const Color(0xFF3B82F6), bgColor: const Color(0xFFDBEAFE),
+            size: circleSize, strokeWidth: circleStroke, fontSize: circleFontSize,
           ),
           const Spacer(),
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Row(
-                children: List.generate(
-                  total.clamp(0, 5),
-                  (i) => Container(
-                    width: 12, height: 12,
-                    margin: const EdgeInsets.only(right: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF8B5CF6),
-                      borderRadius: BorderRadius.circular(4),
-                      boxShadow: [BoxShadow(color: const Color(0xFF8B5CF6).withOpacity(0.3), blurRadius: 4)],
+              if (!isMobile)
+                Row(
+                  children: List.generate(
+                    total.clamp(0, 5),
+                    (i) => Container(
+                      width: 12, height: 12,
+                      margin: const EdgeInsets.only(right: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF8B5CF6),
+                        borderRadius: BorderRadius.circular(4),
+                        boxShadow: [BoxShadow(color: const Color(0xFF8B5CF6).withOpacity(0.3), blurRadius: 4)],
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text('$total', style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: _textPrimary())),
-              Text('Total Tasks', style: TextStyle(fontSize: 12, color: _textSecondary(), fontWeight: FontWeight.w600)),
+              if (!isMobile) const SizedBox(height: 12),
+              Text('$total', style: TextStyle(fontSize: totalFontSize, fontWeight: FontWeight.w900, color: _textPrimary())),
+              Text('Total Tasks', style: TextStyle(fontSize: isMobile ? 10 : 12, color: _textSecondary(), fontWeight: FontWeight.w600)),
               if (state.stats.pending > 0) ...[
                 const SizedBox(height: 6),
                 Container(
@@ -183,26 +214,27 @@ class DashboardContent extends StatelessWidget {
   Widget _buildCircularStat({
     required int value, required String label, required double percentage,
     required Color color, required Color bgColor,
+    double size = 90, double strokeWidth = 8, double fontSize = 24,
   }) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         SizedBox(
-          width: 90, height: 90,
+          width: size, height: size,
           child: Stack(
             alignment: Alignment.center,
             children: [
               SizedBox(
-                width: 90, height: 90,
+                width: size, height: size,
                 child: CircularProgressIndicator(
                   value: percentage,
-                  strokeWidth: 8,
+                  strokeWidth: strokeWidth,
                   backgroundColor: _isDark() ? bgColor.withOpacity(0.2) : bgColor,
                   valueColor: AlwaysStoppedAnimation<Color>(color),
                   strokeCap: StrokeCap.round,
                 ),
               ),
-              Text('$value', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: color)),
+              Text('$value', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w900, color: color)),
             ],
           ),
         ),
@@ -233,8 +265,7 @@ class DashboardContent extends StatelessWidget {
   // BOTTOM ROW: Tasks + Calendar/Activity
   // ═══════════════════════════════════════
 
-  Widget _buildBottomRow(DashboardLoaded state) {
-    // Show all tasks sorted: non-completed first, then by priority
+  Widget _buildBottomRow(DashboardLoaded state, [bool isMobile = false]) {
     final priorityOrder = ['URGENT', 'HIGH', 'MEDIUM', 'LOW'];
     final sorted = List<TaskModel>.from(state.allTasks);
     sorted.sort((a, b) {
@@ -244,9 +275,20 @@ class DashboardContent extends StatelessWidget {
       return (ai == -1 ? 99 : ai).compareTo(bi == -1 ? 99 : bi);
     });
 
+    if (isMobile) {
+      return Column(
+        children: [
+          _buildCalendarCard(),
+          const SizedBox(height: 12),
+          RecentActivityCard(recentEntries: state.recentEntries, todayTasks: state.todayTasks),
+          const SizedBox(height: 12),
+          _buildRecentTasksSection(sorted),
+        ],
+      );
+    }
+
     return Column(
       children: [
-        // Row 1: Calendar + Recent Activity side by side (matched height)
         IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -258,11 +300,7 @@ class DashboardContent extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        // Row 2: Recent Tasks full width
         _buildRecentTasksSection(sorted),
-        if (false) ...[
-          // Recent Activity moved to row 1
-        ],
       ],
     );
   }
@@ -308,7 +346,7 @@ class DashboardContent extends StatelessWidget {
           else
             LayoutBuilder(
               builder: (context, constraints) {
-                final cols = constraints.maxWidth > 800 ? 3 : 2;
+                final cols = constraints.maxWidth > 800 ? 3 : constraints.maxWidth > 500 ? 2 : 1;
                 final cardWidth = (constraints.maxWidth - (16.0 * (cols - 1))) / cols;
                 return Wrap(
                   spacing: 16,
