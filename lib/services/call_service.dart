@@ -767,6 +767,7 @@ class CallService extends ChangeNotifier {
       final offerMap = {'sdp': offer.sdp, 'type': offer.type};
       _httpSendSignal(_remoteUserId!, 'webrtc-offer', {'offer': offerMap});
       _socket.sendWebRTCOffer(_remoteUserId!, offerMap);
+      _isNegotiating = false;
     } catch (e) {
       print('Error creating offer: $e');
       _isNegotiating = false;
@@ -778,6 +779,11 @@ class CallService extends ChangeNotifier {
 
   Future<void> _handleReceiveOffer(Map<String, dynamic> offer) async {
     if (_callState == CallState.idle) return;
+    // Skip if already connected or negotiating
+    if (_peerConnection != null && _callState == CallState.connected) {
+      print('⚠️ Already connected, skipping duplicate offer');
+      return;
+    }
     if (_isNegotiating) {
       print('⚠️ Already negotiating, skipping duplicate offer handling');
       return;
@@ -803,7 +809,7 @@ class CallService extends ChangeNotifier {
       _socket.sendWebRTCAnswer(_remoteUserId!, answerMap);
 
       _callState = CallState.connected;
-      // Keep _isNegotiating = true to block duplicate offers from HTTP polling
+      _isNegotiating = false;
       _startDurationTimer();
       notifyListeners();
     } catch (e) {
