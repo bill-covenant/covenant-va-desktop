@@ -673,6 +673,7 @@ class CallService extends ChangeNotifier {
           'credential': 'mHj+thls0x0TEtv3',
         },
       ],
+      'iceCandidatePoolSize': 10,
     };
 
     final pc = await createPeerConnection(config);
@@ -733,9 +734,20 @@ class CallService extends ChangeNotifier {
 
     pc.onIceConnectionState = (state) {
       print('ICE Connection State: $state');
-      if (state == RTCIceConnectionState.RTCIceConnectionStateDisconnected ||
-          state == RTCIceConnectionState.RTCIceConnectionStateFailed) {
+      if (state == RTCIceConnectionState.RTCIceConnectionStateFailed) {
         endCall();
+      }
+      if (state == RTCIceConnectionState.RTCIceConnectionStateDisconnected) {
+        print('⚠️ ICE disconnected — waiting for recovery...');
+        Future.delayed(const Duration(seconds: 10), () {
+          if (_peerConnection?.iceConnectionState ==
+              RTCIceConnectionState.RTCIceConnectionStateDisconnected ||
+              _peerConnection?.iceConnectionState ==
+              RTCIceConnectionState.RTCIceConnectionStateFailed) {
+            print('❌ ICE did not recover, ending call');
+            endCall();
+          }
+        });
       }
     };
 
