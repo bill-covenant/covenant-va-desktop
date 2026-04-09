@@ -18,7 +18,7 @@ class _LoginFormState extends State<LoginForm> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
-  static const _neuBg = Color(0xFFEDE5F5);
+  static const _neuBg = Color(0xFF1A1030);
 
   @override
   void dispose() {
@@ -52,20 +52,9 @@ class _LoginFormState extends State<LoginForm> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.white.withOpacity(0.08),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF8C78AA).withOpacity(0.3),
-            blurRadius: 8,
-            offset: const Offset(4, 4),
-          ),
-          BoxShadow(
-            color: Colors.white.withOpacity(0.9),
-            blurRadius: 8,
-            offset: const Offset(-4, -4),
-          ),
-        ],
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: TextFormField(
         controller: controller,
@@ -76,14 +65,14 @@ class _LoginFormState extends State<LoginForm> {
         style: const TextStyle(
           fontSize: 15,
           fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary,
+          color: Colors.white,
         ),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: AppColors.textSecondary.withOpacity(0.6), fontWeight: FontWeight.w600),
+          labelStyle: TextStyle(color: Colors.white.withOpacity(0.5), fontWeight: FontWeight.w600),
           hintText: hint,
-          hintStyle: TextStyle(color: AppColors.textSecondary.withOpacity(0.4)),
-          prefixIcon: Icon(icon, color: AppColors.primary.withOpacity(0.6)),
+          hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+          prefixIcon: Icon(icon, color: const Color(0xFF7C3AED).withOpacity(0.7)),
           suffixIcon: suffixIcon,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
@@ -131,7 +120,7 @@ class _LoginFormState extends State<LoginForm> {
             suffixIcon: IconButton(
               icon: Icon(
                 _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                color: AppColors.textSecondary.withOpacity(0.5),
+                color: Colors.white.withOpacity(0.4),
               ),
               onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
             ),
@@ -158,19 +147,14 @@ class _LoginFormState extends State<LoginForm> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF8C78AA).withOpacity(0.5),
-                        blurRadius: 14,
-                        offset: const Offset(6, 6),
-                      ),
-                      const BoxShadow(
-                        color: Color(0xFFFFFFFF),
-                        blurRadius: 10,
-                        offset: Offset(-4, -4),
+                        color: const Color(0xFF7C3AED).withOpacity(0.5),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
                       ),
                       BoxShadow(
-                        color: const Color(0xFF7C3AED).withOpacity(0.4),
-                        blurRadius: 32,
-                        offset: const Offset(0, 8),
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 14,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),

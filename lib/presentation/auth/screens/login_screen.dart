@@ -135,17 +135,17 @@ class _LoginScreenState extends State<LoginScreen>
                                     child: Container(
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(31),
-                                        color: const Color(0xFFEDE5F5),
+                                        color: const Color(0xFF1A1030),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: const Color(0xFF8C78AA).withOpacity(0.45),
+                                            color: const Color(0xFF7C3AED).withOpacity(0.3),
+                                            blurRadius: 40,
+                                            offset: const Offset(0, 12),
+                                          ),
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.5),
                                             blurRadius: 28,
                                             offset: const Offset(12, 12),
-                                          ),
-                                          const BoxShadow(
-                                            color: Color(0xFFFFFFFF),
-                                            blurRadius: 28,
-                                            offset: Offset(-12, -12),
                                           ),
                                         ],
                                       ),
@@ -185,7 +185,7 @@ class _LoginScreenState extends State<LoginScreen>
                                                   margin: const EdgeInsets.all(2),
                                                   decoration: const BoxDecoration(
                                                     shape: BoxShape.circle,
-                                                    color: Color(0xFFEDE5F5),
+                                                    color: Color(0xFF1A1030),
                                                   ),
                                                 ),
                                               ),
@@ -285,7 +285,7 @@ class _LoginScreenState extends State<LoginScreen>
                                         'Virtual Assistant Portal',
                                         style: TextStyle(
                                           fontSize: 16,
-                                          color: AppColors.textSecondary.withOpacity(0.8),
+                                          color: Colors.white.withOpacity(0.5),
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
