@@ -1,11 +1,11 @@
 {
-    "name": "covenant_va_desktop",
-    "short_name": "covenant_va_desktop",
+    "name": "Covenant VA",
+    "short_name": "CVA Portal",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#7C3AED",
+    "theme_color": "#7C3AED",
+    "description": "Covenant VA - Virtual Assistant Portal",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
