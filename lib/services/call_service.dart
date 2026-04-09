@@ -324,16 +324,7 @@ class CallService extends ChangeNotifier {
                     candidate['sdpMid'],
                     candidate['sdpMLineIndex'],
                   );
-                  if (_peerConnection != null && _peerConnection!.getRemoteDescription() != null) {
-                    try {
-                      await _peerConnection!.addCandidate(iceCandidate);
-                    } catch (e) {
-                      print('Error adding ICE candidate: $e');
-                    }
-                  } else {
-                    print('📞 Queuing ICE candidate (no remote description yet)');
-                    _pendingCandidates.add(iceCandidate);
-                  }
+                  await _addOrQueueCandidate(iceCandidate);
                 }
                 break;
             }
@@ -359,6 +350,7 @@ class CallService extends ChangeNotifier {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $_authToken',
         },
+        body: jsonEncode({'callerId': _remoteUserId}),
       );
       print('✅ Call accepted via HTTP');
     } catch (e) {
@@ -491,16 +483,7 @@ class CallService extends ChangeNotifier {
         candidate['sdpMid'],
         candidate['sdpMLineIndex'],
       );
-      if (_peerConnection != null && _peerConnection!.getRemoteDescription() != null) {
-        try {
-          await _peerConnection!.addCandidate(iceCandidate);
-        } catch (e) {
-          print('Error adding ICE candidate: $e');
-        }
-      } else {
-        print('📞 Queuing ICE candidate via socket');
-        _pendingCandidates.add(iceCandidate);
-      }
+      await _addOrQueueCandidate(iceCandidate);
     };
   }
 
@@ -626,6 +609,22 @@ class CallService extends ChangeNotifier {
 
   // Queue for ICE candidates that arrive before remote description is set
   final List<RTCIceCandidate> _pendingCandidates = [];
+
+  /// Add ICE candidate to peer connection if ready, otherwise queue it.
+  Future<void> _addOrQueueCandidate(RTCIceCandidate candidate) async {
+    if (_peerConnection != null) {
+      try {
+        final remoteDesc = await _peerConnection!.getRemoteDescription();
+        if (remoteDesc != null) {
+          await _peerConnection!.addCandidate(candidate);
+          print('📞 Added ICE candidate directly');
+          return;
+        }
+      } catch (_) {}
+    }
+    print('📞 Queuing ICE candidate (peer connection not ready)');
+    _pendingCandidates.add(candidate);
+  }
 
   Future<void> _flushPendingCandidates() async {
     if (_peerConnection == null) return;
