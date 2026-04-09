@@ -286,7 +286,10 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                       const SizedBox(width: 20),
 
                       // End call
-                      GestureDetector(
+                      MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
                         onTap: widget.callService.endCall,
                         child: Container(
                           width: 72,
@@ -309,6 +312,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                             size: 32,
                           ),
                         ),
+                      ),
                       ),
                     ],
                   ),
@@ -420,22 +424,26 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     required bool isActive,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          color: isActive
-              ? Colors.white.withOpacity(0.3)
-              : Colors.white.withOpacity(0.15),
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: Colors.white.withOpacity(isActive ? 0.5 : 0.2),
-            width: 1.5,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            color: isActive
+                ? Colors.white.withOpacity(0.3)
+                : Colors.white.withOpacity(0.15),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white.withOpacity(isActive ? 0.5 : 0.2),
+              width: 1.5,
+            ),
           ),
+          child: Icon(icon, color: Colors.white, size: 24),
         ),
-        child: Icon(icon, color: Colors.white, size: 24),
       ),
     );
   }

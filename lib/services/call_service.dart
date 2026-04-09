@@ -17,6 +17,8 @@ class CallService extends ChangeNotifier {
   final SocketService _socket = SocketService();
   final http.Client _httpClient = http.Client();
   final ToneService _toneService = ToneService();
+  Map<String, dynamic>? _cachedIceConfig;
+  DateTime? _iceCacheTime;
 
   // Auth token for HTTP polling
   String? _authToken;
@@ -638,6 +640,53 @@ class CallService extends ChangeNotifier {
     _pendingCandidates.clear();
   }
 
+  Future<Map<String, dynamic>> _getIceConfig() async {
+    // Return cached config if fresh (< 10 minutes)
+    if (_cachedIceConfig != null && _iceCacheTime != null &&
+        DateTime.now().difference(_iceCacheTime!) < const Duration(minutes: 10)) {
+      return _cachedIceConfig!;
+    }
+
+    try {
+      if (_authToken != null) {
+        final url = '${ApiConstants.baseUrl}/calls/ice-servers';
+        final response = await _httpClient.get(
+          Uri.parse(url),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $_authToken',
+          },
+        ).timeout(const Duration(seconds: 5));
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          _cachedIceConfig = {
+            'iceServers': data['iceServers'],
+            'iceCandidatePoolSize': 10,
+          };
+          _iceCacheTime = DateTime.now();
+          return _cachedIceConfig!;
+        }
+      }
+    } catch (e) {
+      print('⚠️ Failed to fetch ICE servers, using fallback: $e');
+    }
+
+    // Fallback to static credentials
+    return {
+      'iceServers': [
+        {'urls': 'stun:stun.l.google.com:19302'},
+        {'urls': 'stun:stun1.l.google.com:19302'},
+        {'urls': 'stun:stun.relay.metered.ca:80'},
+        {'urls': 'turn:global.relay.metered.ca:80', 'username': 'e8dd65c092d0109410299e70', 'credential': 'mHj+thls0x0TEtv3'},
+        {'urls': 'turn:global.relay.metered.ca:80?transport=tcp', 'username': 'e8dd65c092d0109410299e70', 'credential': 'mHj+thls0x0TEtv3'},
+        {'urls': 'turn:global.relay.metered.ca:443', 'username': 'e8dd65c092d0109410299e70', 'credential': 'mHj+thls0x0TEtv3'},
+        {'urls': 'turns:global.relay.metered.ca:443?transport=tcp', 'username': 'e8dd65c092d0109410299e70', 'credential': 'mHj+thls0x0TEtv3'},
+      ],
+      'iceCandidatePoolSize': 10,
+    };
+  }
+
   Future<RTCPeerConnection> _createPeerConnection() async {
     // Close any existing connection first
     if (_peerConnection != null) {
@@ -646,36 +695,7 @@ class CallService extends ChangeNotifier {
     }
     _pendingCandidates.clear();
 
-    final config = {
-      'iceServers': [
-        {'urls': 'stun:stun.l.google.com:19302'},
-        {'urls': 'stun:stun1.l.google.com:19302'},
-        {'urls': 'stun:stun.relay.metered.ca:80'},
-        // Metered.ca TURN servers for NAT traversal
-        {
-          'urls': 'turn:global.relay.metered.ca:80',
-          'username': 'e8dd65c092d0109410299e70',
-          'credential': 'mHj+thls0x0TEtv3',
-        },
-        {
-          'urls': 'turn:global.relay.metered.ca:80?transport=tcp',
-          'username': 'e8dd65c092d0109410299e70',
-          'credential': 'mHj+thls0x0TEtv3',
-        },
-        {
-          'urls': 'turn:global.relay.metered.ca:443',
-          'username': 'e8dd65c092d0109410299e70',
-          'credential': 'mHj+thls0x0TEtv3',
-        },
-        {
-          'urls': 'turns:global.relay.metered.ca:443?transport=tcp',
-          'username': 'e8dd65c092d0109410299e70',
-          'credential': 'mHj+thls0x0TEtv3',
-        },
-      ],
-      'iceCandidatePoolSize': 10,
-    };
-
+    final config = await _getIceConfig();
     final pc = await createPeerConnection(config);
 
     pc.onIceCandidate = (candidate) {
