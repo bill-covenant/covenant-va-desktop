@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:http/http.dart' as http;
+import 'dart:js_util' as js_util;
+import 'dart:html' as html;
 import 'socket_service.dart';
 import 'tone_service.dart';
 import '../core/constants/api_constants.dart';
@@ -514,9 +517,29 @@ class CallService extends ChangeNotifier {
   Future<void> acceptCall() async {
     if (_remoteUserId == null) return;
     _toneService.stop();
+    // Resume AudioContext on web (browsers require user gesture to enable audio)
+    _resumeAudioContext();
     await _httpAcceptCall();
     _socket.acceptCall(_remoteUserId!);
     _startSignalPolling();
+  }
+
+  /// On web, browsers block AudioContext until a user gesture.
+  /// Call this from acceptCall (which is triggered by a button tap).
+  void _resumeAudioContext() {
+    if (!kIsWeb) return;
+    try {
+      // Resume any suspended AudioContexts
+      final audioCtx = js_util.callConstructor(
+        js_util.getProperty(html.window, 'AudioContext'),
+        [],
+      );
+      js_util.callMethod(audioCtx, 'resume', []);
+      js_util.callMethod(audioCtx, 'close', []);
+      print('🔊 AudioContext resumed for web audio playback');
+    } catch (e) {
+      print('⚠️ AudioContext resume failed: $e');
+    }
   }
 
   void declineCall() {
@@ -721,6 +744,21 @@ class CallService extends ChangeNotifier {
           print('🎥 Remote video track enabled: ${track.id}');
         }
         print('🎥 Remote stream set with ${_remoteStream!.getTracks().length} tracks (key=$_remoteStreamKey)');
+
+        // On web: attach stream to an HTML audio element as backup for audio playback
+        if (kIsWeb) {
+          try {
+            final jsStream = _remoteStream!.jsStream;
+            final audio = html.AudioElement();
+            audio.autoplay = true;
+            audio.srcObject = jsStream;
+            audio.play().catchError((e) => print('⚠️ Audio play error: $e'));
+            print('🔊 Web: attached remote stream to HTML audio element');
+          } catch (e) {
+            print('⚠️ Web audio element fallback failed: $e');
+          }
+        }
+
         // Set audio output device if selected
         if (_selectedAudioOutput != null) {
           remoteRenderer.audioOutput(_selectedAudioOutput!).catchError((e) {
@@ -820,6 +858,8 @@ class CallService extends ChangeNotifier {
       return;
     }
     _isNegotiating = true;
+    // Stop ringtone as soon as we start processing the offer
+    _toneService.stop();
     try {
       // Small delay to let UI settle before accessing media devices
       await Future.delayed(const Duration(milliseconds: 300));
@@ -841,6 +881,7 @@ class CallService extends ChangeNotifier {
 
       _callState = CallState.connected;
       _isNegotiating = false;
+      _toneService.stop(); // Ensure ringtone is stopped
       _startDurationTimer();
       notifyListeners();
     } catch (e) {
