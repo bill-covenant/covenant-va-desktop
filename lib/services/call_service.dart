@@ -517,10 +517,12 @@ class CallService extends ChangeNotifier {
   Future<void> acceptCall() async {
     if (_remoteUserId == null) return;
     _toneService.stop();
-    // Resume AudioContext on web (browsers require user gesture to enable audio)
     _resumeAudioContext();
-    // Pre-get local media stream now (during user gesture) so _handleReceiveOffer is fast
-    await _getLocalStream();
+    // Pre-get local media stream for audio calls (fast, no permission prompt)
+    // For video calls, let _handleReceiveOffer get it (camera permission may need prompt)
+    if (_callType != 'video') {
+      await _getLocalStream();
+    }
     await _httpAcceptCall();
     _socket.acceptCall(_remoteUserId!);
     _startSignalPolling();
@@ -853,7 +855,7 @@ class CallService extends ChangeNotifier {
     try {
       if (_callState == CallState.idle) { _isNegotiating = false; return; }
 
-      // Only get local stream if not already acquired (acceptCall pre-fetches it)
+      // Only get local stream if not already acquired (acceptCall pre-fetches for audio)
       if (_localStream == null) {
         await _getLocalStream();
       }

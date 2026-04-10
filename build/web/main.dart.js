@@ -61311,11 +61311,13 @@ var $async$xL=A.q(function(a,b){if(a===1)return A.r(b,r)
 while(true)switch(s){case 0:if(p.x==null){s=1
 break}p.c.cj(0)
 A.buM()
-s=3
+s=p.w!=="video"?3:4
+break
+case 3:s=5
 return A.l(p.px(),$async$xL)
-case 3:s=4
+case 5:case 4:s=6
 return A.l(p.CH(),$async$xL)
-case 4:o=p.x
+case 6:o=p.x
 o.toString
 p.a.azX(o)
 p.a_w()
