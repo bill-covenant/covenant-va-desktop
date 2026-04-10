@@ -172,27 +172,43 @@ class CallService extends ChangeNotifier {
 
   Future<void> switchVideoInput(String deviceId) async {
     _selectedVideoInput = deviceId;
-    if (_localStream != null && _peerConnection != null) {
+    if (_localStream != null) {
       try {
         final newStream = await navigator.mediaDevices.getUserMedia({
           'audio': false,
           'video': {'deviceId': deviceId, 'width': 1280, 'height': 720},
         });
         final newTrack = newStream.getVideoTracks()[0];
-        final senders = await _peerConnection!.getSenders();
-        RTCRtpSender? videoSender;
-        for (final s in senders) {
-          if (s.track?.kind == 'video') {
-            videoSender = s;
-            break;
+
+        // Replace track in peer connection if active
+        if (_peerConnection != null) {
+          final senders = await _peerConnection!.getSenders();
+          RTCRtpSender? videoSender;
+          for (final s in senders) {
+            if (s.track?.kind == 'video') {
+              videoSender = s;
+              break;
+            }
+          }
+          if (videoSender != null) {
+            await videoSender.replaceTrack(newTrack);
+            print('📞 Replaced video track in peer connection');
+          } else {
+            // No video sender — add the track
+            await _peerConnection!.addTrack(newTrack, newStream);
+            print('📞 Added new video track to peer connection');
           }
         }
-        if (videoSender != null) {
-          final oldTrack = videoSender.track;
-          await videoSender.replaceTrack(newTrack);
-          oldTrack?.stop();
-          print('📞 Switched camera to: $deviceId');
+
+        // Stop old video tracks and update local stream + renderer
+        for (final track in _localStream!.getVideoTracks()) {
+          track.stop();
+          _localStream!.removeTrack(track);
         }
+        _localStream!.addTrack(newTrack);
+        localRenderer.srcObject = _localStream;
+        print('📞 Switched camera to: $deviceId');
+        notifyListeners();
       } catch (e) {
         print('❌ Failed to switch camera: $e');
       }
