@@ -514,21 +514,22 @@ class CallService extends ChangeNotifier {
     // This avoids picking up stale signals from previous calls
   }
 
+  bool _accepting = false;
+
   Future<void> acceptCall() async {
-    if (_remoteUserId == null) return;
+    if (_remoteUserId == null || _accepting) return;
+    _accepting = true;
     _toneService.stop();
     _resumeAudioContext();
-    // Start fetching stream immediately (user gesture enables camera permission)
-    // Don't await — let it run in parallel with HTTP accept so we don't delay signaling
-    final streamFuture = _getLocalStream().catchError((e) {
-      print('⚠️ Pre-fetch stream failed, will retry in offer handler: $e');
-    });
-    // Send accept signals immediately so client starts sending offer
+    try {
+      await _getLocalStream();
+    } catch (e) {
+      print('⚠️ Pre-fetch stream failed: $e');
+    }
     await _httpAcceptCall();
     _socket.acceptCall(_remoteUserId!);
     _startSignalPolling();
-    // Now wait for stream to be ready (needed before _handleReceiveOffer creates peer connection)
-    await streamFuture;
+    _accepting = false;
   }
 
   void _resumeAudioContext() {
@@ -898,6 +899,7 @@ class CallService extends ChangeNotifier {
     _toneService.stop();
     _isNegotiating = false;
     _isCaller = false;
+    _accepting = false;
     _remoteDescriptionSet = false;
     _pendingCandidates.clear();
     _signalPollTimer?.cancel();
