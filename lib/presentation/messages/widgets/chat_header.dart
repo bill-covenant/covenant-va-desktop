@@ -155,22 +155,12 @@ class ChatHeader extends StatelessWidget {
 
               // 3D Action buttons
               _build3DActionButton(
-                icon: Icons.phone_rounded,
+                icon: Icons.call_rounded,
                 gradientColors: [
                   const Color(0xFF10B981),
                   const Color(0xFF059669),
                 ],
                 shadowColor: const Color(0xFF10B981),
-                onTap: onAudioCall,
-              ),
-              const SizedBox(width: 10),
-              _build3DActionButton(
-                icon: Icons.videocam_rounded,
-                gradientColors: [
-                  const Color(0xFF8B5CF6),
-                  const Color(0xFF7C3AED),
-                ],
-                shadowColor: const Color(0xFF7C3AED),
                 onTap: onVideoCall,
               ),
               const SizedBox(width: 10),
