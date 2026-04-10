@@ -518,14 +518,17 @@ class CallService extends ChangeNotifier {
     if (_remoteUserId == null) return;
     _toneService.stop();
     _resumeAudioContext();
-    // Pre-get local media stream for audio calls (fast, no permission prompt)
-    // For video calls, let _handleReceiveOffer get it (camera permission may need prompt)
-    if (_callType != 'video') {
-      await _getLocalStream();
-    }
+    // Start fetching stream immediately (user gesture enables camera permission)
+    // Don't await — let it run in parallel with HTTP accept so we don't delay signaling
+    final streamFuture = _getLocalStream().catchError((e) {
+      print('⚠️ Pre-fetch stream failed, will retry in offer handler: $e');
+    });
+    // Send accept signals immediately so client starts sending offer
     await _httpAcceptCall();
     _socket.acceptCall(_remoteUserId!);
     _startSignalPolling();
+    // Now wait for stream to be ready (needed before _handleReceiveOffer creates peer connection)
+    await streamFuture;
   }
 
   void _resumeAudioContext() {
