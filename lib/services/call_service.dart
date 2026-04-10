@@ -519,6 +519,8 @@ class CallService extends ChangeNotifier {
     _toneService.stop();
     // Resume AudioContext on web (browsers require user gesture to enable audio)
     _resumeAudioContext();
+    // Pre-get local media stream now (during user gesture) so _handleReceiveOffer is fast
+    await _getLocalStream();
     await _httpAcceptCall();
     _socket.acceptCall(_remoteUserId!);
     _startSignalPolling();
@@ -704,7 +706,17 @@ class CallService extends ChangeNotifier {
     }
     _pendingCandidates.clear();
 
-    final config = await _getIceConfig();
+    final config = {
+      'iceServers': [
+        {'urls': 'stun:stun.l.google.com:19302'},
+        {'urls': 'stun:stun.relay.metered.ca:80'},
+        {'urls': 'turn:global.relay.metered.ca:80', 'username': '1e8a2eed6c2a06031d3db848', 'credential': 'uDLx4lO/dbVFJB7a'},
+        {'urls': 'turn:global.relay.metered.ca:80?transport=tcp', 'username': '1e8a2eed6c2a06031d3db848', 'credential': 'uDLx4lO/dbVFJB7a'},
+        {'urls': 'turn:global.relay.metered.ca:443', 'username': '1e8a2eed6c2a06031d3db848', 'credential': 'uDLx4lO/dbVFJB7a'},
+        {'urls': 'turns:global.relay.metered.ca:443?transport=tcp', 'username': '1e8a2eed6c2a06031d3db848', 'credential': 'uDLx4lO/dbVFJB7a'},
+      ],
+      'iceCandidatePoolSize': 10,
+    };
     final pc = await createPeerConnection(config);
 
     pc.onIceCandidate = (candidate) {
@@ -839,11 +851,12 @@ class CallService extends ChangeNotifier {
     // Stop ringtone as soon as we start processing the offer
     _toneService.stop();
     try {
-      // Small delay to let UI settle before accessing media devices
-      await Future.delayed(const Duration(milliseconds: 300));
       if (_callState == CallState.idle) { _isNegotiating = false; return; }
 
-      await _getLocalStream();
+      // Only get local stream if not already acquired (acceptCall pre-fetches it)
+      if (_localStream == null) {
+        await _getLocalStream();
+      }
       final pc = await _createPeerConnection();
       await pc.setRemoteDescription(
         RTCSessionDescription(offer['sdp'], offer['type']),
