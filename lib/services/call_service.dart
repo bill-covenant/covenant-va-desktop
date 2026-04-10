@@ -4,11 +4,10 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:http/http.dart' as http;
-import 'dart:js_util' as js_util;
-import 'dart:html' as html;
 import 'socket_service.dart';
 import 'tone_service.dart';
 import '../core/constants/api_constants.dart';
+import 'call_service_web_helpers.dart' if (dart.library.io) 'call_service_web_helpers_stub.dart';
 
 enum CallState { idle, calling, ringing, connected }
 
@@ -524,22 +523,9 @@ class CallService extends ChangeNotifier {
     _startSignalPolling();
   }
 
-  /// On web, browsers block AudioContext until a user gesture.
-  /// Call this from acceptCall (which is triggered by a button tap).
   void _resumeAudioContext() {
     if (!kIsWeb) return;
-    try {
-      // Resume any suspended AudioContexts
-      final audioCtx = js_util.callConstructor(
-        js_util.getProperty(html.window, 'AudioContext'),
-        [],
-      );
-      js_util.callMethod(audioCtx, 'resume', []);
-      js_util.callMethod(audioCtx, 'close', []);
-      print('🔊 AudioContext resumed for web audio playback');
-    } catch (e) {
-      print('⚠️ AudioContext resume failed: $e');
-    }
+    resumeAudioContext();
   }
 
   void declineCall() {
@@ -747,16 +733,7 @@ class CallService extends ChangeNotifier {
 
         // On web: attach stream to an HTML audio element as backup for audio playback
         if (kIsWeb) {
-          try {
-            final jsStream = _remoteStream!.jsStream;
-            final audio = html.AudioElement();
-            audio.autoplay = true;
-            audio.srcObject = jsStream;
-            audio.play().catchError((e) => print('⚠️ Audio play error: $e'));
-            print('🔊 Web: attached remote stream to HTML audio element');
-          } catch (e) {
-            print('⚠️ Web audio element fallback failed: $e');
-          }
+          attachStreamToAudioElement(_remoteStream!);
         }
 
         // Set audio output device if selected
