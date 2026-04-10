@@ -12,7 +12,8 @@ class ToneService {
   dynamic _osc1;
   dynamic _osc2;
   dynamic _gainNode;
-  Timer? _loopTimer;
+  Timer? _onTimer;
+  Timer? _offTimer;
   bool _isPlaying = false;
 
   bool get isPlaying => _isPlaying;
@@ -48,12 +49,15 @@ class ToneService {
     required int offMs,
     required double volume,
   }) {
+    if (!_isPlaying) return;
     _startTone(freq1, freq2, volume);
 
-    Timer(Duration(milliseconds: onMs), () {
+    _onTimer?.cancel();
+    _onTimer = Timer(Duration(milliseconds: onMs), () {
       _stopOscillators();
       if (!_isPlaying) return;
-      _loopTimer = Timer(Duration(milliseconds: offMs), () {
+      _offTimer?.cancel();
+      _offTimer = Timer(Duration(milliseconds: offMs), () {
         if (!_isPlaying) return;
         _playToneLoop(freq1: freq1, freq2: freq2, onMs: onMs, offMs: offMs, volume: volume);
       });
@@ -102,8 +106,10 @@ class ToneService {
   /// Stop any playing tone
   Future<void> stop() async {
     _isPlaying = false;
-    _loopTimer?.cancel();
-    _loopTimer = null;
+    _onTimer?.cancel();
+    _onTimer = null;
+    _offTimer?.cancel();
+    _offTimer = null;
     _stopOscillators();
   }
 }
