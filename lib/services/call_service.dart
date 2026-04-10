@@ -514,11 +514,12 @@ class CallService extends ChangeNotifier {
     // This avoids picking up stale signals from previous calls
   }
 
-  bool _accepting = false;
-
   Future<void> acceptCall() async {
-    if (_remoteUserId == null || _accepting) return;
-    _accepting = true;
+    if (_remoteUserId == null) return;
+    if (_callState != CallState.ringing) return;
+    // Immediately change state to prevent double-tap
+    _callState = CallState.connected;
+    notifyListeners();
     _toneService.stop();
     _resumeAudioContext();
     try {
@@ -529,7 +530,6 @@ class CallService extends ChangeNotifier {
     await _httpAcceptCall();
     _socket.acceptCall(_remoteUserId!);
     _startSignalPolling();
-    _accepting = false;
   }
 
   void _resumeAudioContext() {
@@ -899,7 +899,6 @@ class CallService extends ChangeNotifier {
     _toneService.stop();
     _isNegotiating = false;
     _isCaller = false;
-    _accepting = false;
     _remoteDescriptionSet = false;
     _pendingCandidates.clear();
     _signalPollTimer?.cancel();
