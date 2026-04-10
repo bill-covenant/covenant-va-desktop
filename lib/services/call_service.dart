@@ -311,7 +311,7 @@ class CallService extends ChangeNotifier {
                     await _peerConnection!.setRemoteDescription(
                       RTCSessionDescription(answer['sdp'], answer['type']),
                     );
-                    // Flush queued ICE candidates
+                    _remoteDescriptionSet = true;
                     await _flushPendingCandidates();
                   } else {
                     print('⚠️ Ignoring duplicate answer (state: ${_peerConnection!.signalingState})');
@@ -473,6 +473,7 @@ class CallService extends ChangeNotifier {
         await _peerConnection!.setRemoteDescription(
           RTCSessionDescription(answer['sdp'], answer['type']),
         );
+        _remoteDescriptionSet = true;
         await _flushPendingCandidates();
       } else {
         print('⚠️ Ignoring duplicate answer via socket');
@@ -618,20 +619,20 @@ class CallService extends ChangeNotifier {
 
   // Queue for ICE candidates that arrive before remote description is set
   final List<RTCIceCandidate> _pendingCandidates = [];
+  bool _remoteDescriptionSet = false;
 
   /// Add ICE candidate to peer connection if ready, otherwise queue it.
   Future<void> _addOrQueueCandidate(RTCIceCandidate candidate) async {
-    if (_peerConnection != null) {
+    if (_peerConnection != null && _remoteDescriptionSet) {
       try {
-        final remoteDesc = await _peerConnection!.getRemoteDescription();
-        if (remoteDesc != null) {
-          await _peerConnection!.addCandidate(candidate);
-          print('📞 Added ICE candidate directly');
-          return;
-        }
-      } catch (_) {}
+        await _peerConnection!.addCandidate(candidate);
+        print('📞 Added ICE candidate directly');
+        return;
+      } catch (e) {
+        print('⚠️ Error adding ICE candidate: $e');
+      }
     }
-    print('📞 Queuing ICE candidate (peer connection not ready)');
+    print('📞 Queuing ICE candidate (remote description not set yet)');
     _pendingCandidates.add(candidate);
   }
 
@@ -847,6 +848,7 @@ class CallService extends ChangeNotifier {
       await pc.setRemoteDescription(
         RTCSessionDescription(offer['sdp'], offer['type']),
       );
+      _remoteDescriptionSet = true;
       await _flushPendingCandidates();
 
       final answer = await pc.createAnswer();
@@ -878,6 +880,7 @@ class CallService extends ChangeNotifier {
     _toneService.stop();
     _isNegotiating = false;
     _isCaller = false;
+    _remoteDescriptionSet = false;
     _pendingCandidates.clear();
     _signalPollTimer?.cancel();
     _signalPollTimer = null;
