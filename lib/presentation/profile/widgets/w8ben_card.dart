@@ -142,6 +142,7 @@ class _StatusBadge extends StatelessWidget {
               color: submitted ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
               fontSize: 11,
               fontWeight: FontWeight.w700,
+              height: 1.0,
             ),
           ),
         ],
