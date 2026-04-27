@@ -54,6 +54,7 @@ class _W8BenCardState extends State<W8BenCard> {
         children: [
           // Header
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
                 width: 40,
@@ -127,6 +128,7 @@ class _StatusBadge extends StatelessWidget {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Icon(
             submitted ? Icons.check_circle_rounded : Icons.schedule_rounded,
