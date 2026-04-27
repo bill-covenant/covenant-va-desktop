@@ -204,6 +204,35 @@ class UserRepository {
     }
   }
 
+  // ============================================
+  // W-8BEN FORM
+  // ============================================
+
+  /// Get the current VA's W-8BEN form status
+  Future<Map<String, dynamic>?> getW8BenForm() async {
+    try {
+      final response = await _apiProvider.get('/va/w8ben', requiresAuth: true);
+      return response['form'] as Map<String, dynamic>?;
+    } catch (e) {
+      if (e.toString().contains('Unauthorized') || e.toString().contains('401')) {
+        throw UnauthorizedException('Invalid token');
+      }
+      rethrow;
+    }
+  }
+
+  /// Submit or update the VA's W-8BEN form
+  Future<void> submitW8BenForm(Map<String, dynamic> formData) async {
+    try {
+      await _apiProvider.post('/va/w8ben', formData, requiresAuth: true);
+    } catch (e) {
+      if (e.toString().contains('Unauthorized') || e.toString().contains('401')) {
+        throw UnauthorizedException('Invalid token');
+      }
+      rethrow;
+    }
+  }
+
   /// Get user statistics
   Future<Map<String, dynamic>> getUserStats({bool forceRefresh = false}) async {
     print('📋 UserRepository: getUserStats called (forceRefresh: $forceRefresh)');

@@ -5,6 +5,7 @@ import 'package:covenant_va_desktop/presentation/profile/widgets/profile_card.da
 import 'package:covenant_va_desktop/presentation/profile/widgets/extended_profile_card.dart';
 import 'package:covenant_va_desktop/presentation/profile/widgets/device_specs_card.dart';
 import 'package:covenant_va_desktop/presentation/profile/widgets/skills_experience_card.dart';
+import 'package:covenant_va_desktop/presentation/profile/widgets/w8ben_card.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -571,6 +572,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             user: _user!,
             onUpdated: () => _loadUserData(showLoading: false, forceRefresh: true),
           ),
+          const SizedBox(height: 24),
+          const W8BenCard(),
         ],
       ),
     ));
