@@ -57,6 +57,8 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
       if (activeClock != null) {
         final localTime = activeClock.toLocal();
         final serverClockIn = TimeOfDay(hour: localTime.hour, minute: localTime.minute);
+        // Always use the clock-in date, not today — covers overnight shifts crossing midnight
+        final clockInDate = DateTime(localTime.year, localTime.month, localTime.day);
         // Only update if different from what we're showing
         if (_clockInTime?.hour != serverClockIn.hour ||
             _clockInTime?.minute != serverClockIn.minute) {
@@ -64,10 +66,12 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
             _clockInDateTime = activeClock;
             _clockInTime = serverClockIn;
             _clockOutTime = null;
+            _selectedDate = clockInDate;
           });
           _notifyClockState();
         } else {
           _clockInDateTime = activeClock;
+          _selectedDate = clockInDate;
         }
       }
       // If no active clock and we don't have parent state, that's fine — UI already shows empty
