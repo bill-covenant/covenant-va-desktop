@@ -182,6 +182,8 @@ class _CrmScreenState extends State<CrmScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     elevation: isDark ? 0 : 2,
                     shadowColor: isDark ? Colors.transparent : Colors.black.withOpacity(0.15),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -260,7 +262,7 @@ class _CrmScreenState extends State<CrmScreen> {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(28, 8, 28, 100),
+      padding: const EdgeInsets.fromLTRB(28, 8, 28, 28),
       itemCount: filtered.length,
       itemBuilder: (context, index) => _buildCustomerCard(context, filtered[index], state, isDark),
     );
