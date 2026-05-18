@@ -1,4 +1,3 @@
-import '../models/crm_branch_model.dart';
 import '../models/crm_customer_model.dart';
 import '../providers/api_provider.dart';
 
@@ -6,12 +5,6 @@ class CrmRepository {
   final ApiProvider _apiProvider;
 
   CrmRepository(this._apiProvider);
-
-  Future<List<CrmBranchModel>> getBranches() async {
-    final response = await _apiProvider.get('/crm/branches', requiresAuth: true, forceRefresh: true);
-    final list = response['branches'] as List;
-    return list.map((j) => CrmBranchModel.fromJson(j as Map<String, dynamic>)).toList();
-  }
 
   Future<List<CrmCustomerModel>> getCustomers() async {
     final response = await _apiProvider.get('/crm/customers', requiresAuth: true, forceRefresh: true);
@@ -25,7 +18,8 @@ class CrmRepository {
     String? email,
     String? phone,
     String? company,
-    String? branchId,
+    String? branchName,
+    String? branchEmail,
     String? orderDetails,
     String? notes,
   }) async {
@@ -35,7 +29,8 @@ class CrmRepository {
       if (email != null) 'email': email,
       if (phone != null) 'phone': phone,
       if (company != null) 'company': company,
-      if (branchId != null) 'branchId': branchId,
+      if (branchName != null) 'branchName': branchName,
+      if (branchEmail != null) 'branchEmail': branchEmail,
       if (orderDetails != null) 'orderDetails': orderDetails,
       if (notes != null) 'notes': notes,
     }, requiresAuth: true);

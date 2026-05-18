@@ -3,13 +3,10 @@ import 'crm_event.dart';
 import 'crm_state.dart';
 import '../../../data/repositories/crm_repository.dart';
 import '../../../data/models/crm_customer_model.dart';
-import '../../../data/models/crm_branch_model.dart';
 
 class CrmBloc extends Bloc<CrmEvent, CrmState> {
   final CrmRepository _crmRepository;
-
   List<CrmCustomerModel> _customers = [];
-  List<CrmBranchModel> _branches = [];
 
   CrmBloc({required CrmRepository crmRepository})
       : _crmRepository = crmRepository,
@@ -22,22 +19,13 @@ class CrmBloc extends Bloc<CrmEvent, CrmState> {
   }
 
   void _emitLoaded(Emitter<CrmState> emit, {String? message}) {
-    emit(CrmLoaded(
-      customers: List.from(_customers),
-      branches: List.from(_branches),
-      actionMessage: message,
-    ));
+    emit(CrmLoaded(customers: List.from(_customers), actionMessage: message));
   }
 
   Future<void> _onLoad(CrmLoadRequested event, Emitter<CrmState> emit) async {
     if (_customers.isEmpty) emit(const CrmLoading());
     try {
-      final results = await Future.wait([
-        _crmRepository.getCustomers(),
-        _crmRepository.getBranches(),
-      ]);
-      _customers = results[0] as List<CrmCustomerModel>;
-      _branches = results[1] as List<CrmBranchModel>;
+      _customers = await _crmRepository.getCustomers();
       _emitLoaded(emit);
     } catch (e) {
       emit(CrmError(e.toString()));
@@ -52,7 +40,8 @@ class CrmBloc extends Bloc<CrmEvent, CrmState> {
         email: event.email,
         phone: event.phone,
         company: event.company,
-        branchId: event.branchId,
+        branchName: event.branchName,
+        branchEmail: event.branchEmail,
         orderDetails: event.orderDetails,
         notes: event.notes,
       );
@@ -91,16 +80,11 @@ class CrmBloc extends Bloc<CrmEvent, CrmState> {
 
   Future<void> _onNotify(CrmNotifyBranchRequested event, Emitter<CrmState> emit) async {
     if (state is CrmLoaded) {
-      emit((state as CrmLoaded).copyWith(
-        isNotifying: true,
-        notifyingCustomerId: event.customerId,
-      ));
+      emit((state as CrmLoaded).copyWith(isNotifying: true, notifyingCustomerId: event.customerId));
     }
     try {
       final message = await _crmRepository.notifyBranch(event.customerId);
-      // Refresh to get updated notifiedAt
-      final updated = await _crmRepository.getCustomers();
-      _customers = updated;
+      _customers = await _crmRepository.getCustomers();
       _emitLoaded(emit, message: message);
     } catch (e) {
       _emitLoaded(emit);

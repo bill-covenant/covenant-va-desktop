@@ -4,7 +4,6 @@ import '../bloc/crm_bloc.dart';
 import '../bloc/crm_event.dart';
 import '../bloc/crm_state.dart';
 import '../../../data/models/crm_customer_model.dart';
-import '../../../data/models/crm_branch_model.dart';
 
 class CrmScreen extends StatefulWidget {
   const CrmScreen({super.key});
@@ -64,9 +63,7 @@ class _CrmScreenState extends State<CrmScreen> {
                   Expanded(child: _buildCustomerList(context, state)),
                 ] else if (state is CrmLoading) ...[
                   const Expanded(
-                    child: Center(
-                      child: CircularProgressIndicator(color: Color(0xFF7C3AED)),
-                    ),
+                    child: Center(child: CircularProgressIndicator(color: Color(0xFF7C3AED))),
                   ),
                 ] else if (state is CrmError) ...[
                   Expanded(
@@ -96,7 +93,7 @@ class _CrmScreenState extends State<CrmScreen> {
           ),
           floatingActionButton: state is CrmLoaded
               ? FloatingActionButton.extended(
-                  onPressed: () => _showCustomerForm(context, state.branches),
+                  onPressed: () => _showCustomerForm(context),
                   backgroundColor: const Color(0xFF7C3AED),
                   icon: const Icon(Icons.person_add_rounded, color: Colors.white),
                   label: const Text('Add Customer', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
@@ -116,17 +113,9 @@ class _CrmScreenState extends State<CrmScreen> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF7C3AED), Color(0xFF9333EA)],
-              ),
+              gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF9333EA)]),
               borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF7C3AED).withOpacity(0.4),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              boxShadow: [BoxShadow(color: const Color(0xFF7C3AED).withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 4))],
             ),
             child: const Icon(Icons.people_rounded, color: Colors.white, size: 26),
           ),
@@ -135,15 +124,7 @@ class _CrmScreenState extends State<CrmScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Flooring Liquidators',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: -0.5,
-                  ),
-                ),
+                const Text('Flooring Liquidators', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
                 Text(
                   state is CrmLoaded
                       ? '${state.customers.length} customer${state.customers.length == 1 ? '' : 's'}'
@@ -175,18 +156,9 @@ class _CrmScreenState extends State<CrmScreen> {
           prefixIcon: Icon(Icons.search_rounded, color: Colors.white.withOpacity(0.4)),
           filled: true,
           fillColor: Colors.white.withOpacity(0.05),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: Color(0xFF7C3AED)),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF7C3AED))),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
       ),
@@ -200,7 +172,7 @@ class _CrmScreenState extends State<CrmScreen> {
       return c.fullName.toLowerCase().contains(q) ||
           (c.email?.toLowerCase().contains(q) ?? false) ||
           (c.company?.toLowerCase().contains(q) ?? false) ||
-          (c.branch?.name.toLowerCase().contains(q) ?? false);
+          (c.branchName?.toLowerCase().contains(q) ?? false);
     }).toList();
 
     if (filtered.isEmpty) {
@@ -216,10 +188,7 @@ class _CrmScreenState extends State<CrmScreen> {
             ),
             if (_search.isEmpty) ...[
               const SizedBox(height: 8),
-              Text(
-                'Tap + Add Customer to log your first customer',
-                style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 13),
-              ),
+              Text('Tap + Add Customer to log your first customer', style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 13)),
             ],
           ],
         ),
@@ -229,9 +198,7 @@ class _CrmScreenState extends State<CrmScreen> {
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(28, 0, 28, 100),
       itemCount: filtered.length,
-      itemBuilder: (context, index) {
-        return _buildCustomerCard(context, filtered[index], state);
-      },
+      itemBuilder: (context, index) => _buildCustomerCard(context, filtered[index], state),
     );
   }
 
@@ -257,9 +224,7 @@ class _CrmScreenState extends State<CrmScreen> {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF7C3AED), Color(0xFF9333EA)],
-                    ),
+                    gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF9333EA)]),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
@@ -274,25 +239,15 @@ class _CrmScreenState extends State<CrmScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        customer.fullName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                        ),
-                      ),
+                      Text(customer.fullName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15)),
                       if (customer.company != null)
-                        Text(
-                          customer.company!,
-                          style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
-                        ),
+                        Text(customer.company!, style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
                     ],
                   ),
                 ),
                 PopupMenuButton<String>(
                   onSelected: (v) {
-                    if (v == 'edit') _showCustomerForm(context, state.branches, customer: customer);
+                    if (v == 'edit') _showCustomerForm(context, customer: customer);
                     if (v == 'delete') _confirmDelete(context, customer);
                   },
                   itemBuilder: (_) => [
@@ -310,23 +265,18 @@ class _CrmScreenState extends State<CrmScreen> {
                 spacing: 8,
                 runSpacing: 4,
                 children: [
-                  if (customer.email != null)
-                    _chip(Icons.email_rounded, customer.email!),
-                  if (customer.phone != null)
-                    _chip(Icons.phone_rounded, customer.phone!),
+                  if (customer.email != null) _chip(Icons.email_rounded, customer.email!),
+                  if (customer.phone != null) _chip(Icons.phone_rounded, customer.phone!),
                 ],
               ),
             ],
-            if (customer.branch != null) ...[
+            if (customer.branchName != null) ...[
               const SizedBox(height: 8),
               Row(
                 children: [
                   Icon(Icons.store_rounded, size: 14, color: const Color(0xFF7C3AED).withOpacity(0.8)),
                   const SizedBox(width: 6),
-                  Text(
-                    customer.branch!.name,
-                    style: TextStyle(color: const Color(0xFF7C3AED).withOpacity(0.9), fontSize: 12, fontWeight: FontWeight.w600),
-                  ),
+                  Text(customer.branchName!, style: TextStyle(color: const Color(0xFF7C3AED).withOpacity(0.9), fontSize: 12, fontWeight: FontWeight.w600)),
                 ],
               ),
             ],
@@ -334,22 +284,14 @@ class _CrmScreenState extends State<CrmScreen> {
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.04),
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                decoration: BoxDecoration(color: Colors.white.withOpacity(0.04), borderRadius: BorderRadius.circular(8)),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(Icons.receipt_long_rounded, size: 14, color: Colors.white.withOpacity(0.4)),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
-                        customer.orderDetails!,
-                        style: TextStyle(color: Colors.white.withOpacity(0.65), fontSize: 12, height: 1.4),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      child: Text(customer.orderDetails!, style: TextStyle(color: Colors.white.withOpacity(0.65), fontSize: 12, height: 1.4), maxLines: 3, overflow: TextOverflow.ellipsis),
                     ),
                   ],
                 ),
@@ -372,10 +314,7 @@ class _CrmScreenState extends State<CrmScreen> {
                         children: [
                           const Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF4ADE80)),
                           const SizedBox(width: 6),
-                          Text(
-                            'Notified ${_formatDate(customer.notifiedAt!)}',
-                            style: const TextStyle(color: Color(0xFF4ADE80), fontSize: 12, fontWeight: FontWeight.w600),
-                          ),
+                          Text('Notified ${_formatDate(customer.notifiedAt!)}', style: const TextStyle(color: Color(0xFF4ADE80), fontSize: 12, fontWeight: FontWeight.w600)),
                         ],
                       ),
                     ),
@@ -384,7 +323,7 @@ class _CrmScreenState extends State<CrmScreen> {
                   const Expanded(child: SizedBox()),
                 if (hasNotified) const SizedBox(width: 8),
                 ElevatedButton.icon(
-                  onPressed: customer.branch == null || isNotifying
+                  onPressed: customer.branchEmail == null || isNotifying
                       ? null
                       : () => _confirmNotify(context, customer),
                   style: ElevatedButton.styleFrom(
@@ -396,14 +335,10 @@ class _CrmScreenState extends State<CrmScreen> {
                     elevation: 0,
                   ),
                   icon: isNotifying
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
+                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : const Icon(Icons.send_rounded, size: 14),
                   label: Text(
-                    customer.branch == null ? 'No Branch' : (hasNotified ? 'Re-notify' : 'Notify Branch'),
+                    customer.branchEmail == null ? 'No Branch Email' : (hasNotified ? 'Re-notify' : 'Notify Branch'),
                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -418,10 +353,7 @@ class _CrmScreenState extends State<CrmScreen> {
   Widget _chip(IconData icon, String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(6),
-      ),
+      decoration: BoxDecoration(color: Colors.white.withOpacity(0.06), borderRadius: BorderRadius.circular(6)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -450,24 +382,17 @@ class _CrmScreenState extends State<CrmScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Notify Branch?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         content: Text(
-          'Send an email to ${customer.branch!.name} (${customer.branch!.email}) with ${customer.fullName}\'s details?',
+          'Send an email to ${customer.branchName ?? customer.branchEmail} with ${customer.fullName}\'s details?',
           style: TextStyle(color: Colors.white.withOpacity(0.7)),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: TextStyle(color: Colors.white.withOpacity(0.5))),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: TextStyle(color: Colors.white.withOpacity(0.5)))),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
               context.read<CrmBloc>().add(CrmNotifyBranchRequested(customerId: customer.id));
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF7C3AED),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7C3AED), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
             child: const Text('Send'),
           ),
         ],
@@ -482,25 +407,15 @@ class _CrmScreenState extends State<CrmScreen> {
         backgroundColor: const Color(0xFF1E1B4B),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Delete Customer?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: Text(
-          'Remove ${customer.fullName} from your CRM? This cannot be undone.',
-          style: TextStyle(color: Colors.white.withOpacity(0.7)),
-        ),
+        content: Text('Remove ${customer.fullName} from your records? This cannot be undone.', style: TextStyle(color: Colors.white.withOpacity(0.7))),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: TextStyle(color: Colors.white.withOpacity(0.5))),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: TextStyle(color: Colors.white.withOpacity(0.5)))),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
               context.read<CrmBloc>().add(CrmCustomerDeleteRequested(id: customer.id));
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEF4444),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
             child: const Text('Delete'),
           ),
         ],
@@ -508,12 +423,11 @@ class _CrmScreenState extends State<CrmScreen> {
     );
   }
 
-  void _showCustomerForm(BuildContext context, List<CrmBranchModel> branches, {CrmCustomerModel? customer}) {
+  void _showCustomerForm(BuildContext context, {CrmCustomerModel? customer}) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => _CustomerFormDialog(
-        branches: branches,
         customer: customer,
         onSave: (data) {
           if (customer == null) {
@@ -523,7 +437,8 @@ class _CrmScreenState extends State<CrmScreen> {
               email: data['email'],
               phone: data['phone'],
               company: data['company'],
-              branchId: data['branchId'],
+              branchName: data['branchName'],
+              branchEmail: data['branchEmail'],
               orderDetails: data['orderDetails'],
               notes: data['notes'],
             ));
@@ -537,15 +452,10 @@ class _CrmScreenState extends State<CrmScreen> {
 }
 
 class _CustomerFormDialog extends StatefulWidget {
-  final List<CrmBranchModel> branches;
   final CrmCustomerModel? customer;
   final void Function(Map<String, dynamic>) onSave;
 
-  const _CustomerFormDialog({
-    required this.branches,
-    required this.onSave,
-    this.customer,
-  });
+  const _CustomerFormDialog({required this.onSave, this.customer});
 
   @override
   State<_CustomerFormDialog> createState() => _CustomerFormDialogState();
@@ -558,9 +468,10 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
   late final TextEditingController _email;
   late final TextEditingController _phone;
   late final TextEditingController _company;
+  late final TextEditingController _branchName;
+  late final TextEditingController _branchEmail;
   late final TextEditingController _orderDetails;
   late final TextEditingController _notes;
-  String? _selectedBranchId;
 
   @override
   void initState() {
@@ -571,9 +482,10 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
     _email = TextEditingController(text: c?.email ?? '');
     _phone = TextEditingController(text: c?.phone ?? '');
     _company = TextEditingController(text: c?.company ?? '');
+    _branchName = TextEditingController(text: c?.branchName ?? '');
+    _branchEmail = TextEditingController(text: c?.branchEmail ?? '');
     _orderDetails = TextEditingController(text: c?.orderDetails ?? '');
     _notes = TextEditingController(text: c?.notes ?? '');
-    _selectedBranchId = c?.branchId;
   }
 
   @override
@@ -583,6 +495,8 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
     _email.dispose();
     _phone.dispose();
     _company.dispose();
+    _branchName.dispose();
+    _branchEmail.dispose();
     _orderDetails.dispose();
     _notes.dispose();
     super.dispose();
@@ -596,22 +510,12 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
       insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       child: Container(
         width: 560,
-        constraints: const BoxConstraints(maxHeight: 680),
+        constraints: const BoxConstraints(maxHeight: 700),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF1E1B4B), Color(0xFF312E81)],
-          ),
+          gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF1E1B4B), Color(0xFF312E81)]),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: const Color(0xFF7C3AED).withOpacity(0.3)),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF7C3AED).withOpacity(0.25),
-              blurRadius: 40,
-              offset: const Offset(0, 16),
-            ),
-          ],
+          boxShadow: [BoxShadow(color: const Color(0xFF7C3AED).withOpacity(0.25), blurRadius: 40, offset: const Offset(0, 16))],
         ),
         child: Column(
           children: [
@@ -619,15 +523,9 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
               child: Row(
                 children: [
-                  Text(
-                    isEdit ? 'Edit Customer' : 'New Customer',
-                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
+                  Text(isEdit ? 'Edit Customer' : 'New Customer', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                   const Spacer(),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: Icon(Icons.close_rounded, color: Colors.white.withOpacity(0.5)),
-                  ),
+                  IconButton(onPressed: () => Navigator.pop(context), icon: Icon(Icons.close_rounded, color: Colors.white.withOpacity(0.5))),
                 ],
               ),
             ),
@@ -639,25 +537,27 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(child: _field('First Name *', _firstName, required: true)),
-                          const SizedBox(width: 12),
-                          Expanded(child: _field('Last Name *', _lastName, required: true)),
-                        ],
-                      ),
+                      Row(children: [
+                        Expanded(child: _field('First Name *', _firstName, required: true)),
+                        const SizedBox(width: 12),
+                        Expanded(child: _field('Last Name *', _lastName, required: true)),
+                      ]),
                       const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(child: _field('Email', _email)),
-                          const SizedBox(width: 12),
-                          Expanded(child: _field('Phone', _phone)),
-                        ],
-                      ),
+                      Row(children: [
+                        Expanded(child: _field('Email', _email)),
+                        const SizedBox(width: 12),
+                        Expanded(child: _field('Phone', _phone)),
+                      ]),
                       const SizedBox(height: 12),
                       _field('Company / Business', _company),
-                      const SizedBox(height: 12),
-                      _buildBranchDropdown(),
+                      const SizedBox(height: 16),
+                      _sectionLabel('Branch Information'),
+                      const SizedBox(height: 8),
+                      Row(children: [
+                        Expanded(child: _field('Branch Name', _branchName)),
+                        const SizedBox(width: 12),
+                        Expanded(child: _field('Branch Email', _branchEmail)),
+                      ]),
                       const SizedBox(height: 12),
                       _field('Order / Request Details', _orderDetails, maxLines: 3),
                       const SizedBox(height: 12),
@@ -671,12 +571,7 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
               child: Row(
                 children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text('Cancel', style: TextStyle(color: Colors.white.withOpacity(0.6))),
-                    ),
-                  ),
+                  Expanded(child: TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel', style: TextStyle(color: Colors.white.withOpacity(0.6))))),
                   const SizedBox(width: 12),
                   Expanded(
                     flex: 2,
@@ -689,10 +584,7 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         elevation: 0,
                       ),
-                      child: Text(
-                        isEdit ? 'Save Changes' : 'Add Customer',
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                      ),
+                      child: Text(isEdit ? 'Save Changes' : 'Add Customer', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                     ),
                   ),
                 ],
@@ -701,6 +593,16 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _sectionLabel(String label) {
+    return Row(
+      children: [
+        Container(width: 3, height: 14, decoration: BoxDecoration(color: const Color(0xFF7C3AED), borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 8),
+        Text(label, style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+      ],
     );
   }
 
@@ -718,76 +620,12 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
           decoration: InputDecoration(
             filled: true,
             fillColor: Colors.white.withOpacity(0.06),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFF7C3AED)),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFFEF4444)),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF7C3AED))),
+            errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFEF4444))),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBranchDropdown() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Nearest Branch', style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 6),
-        DropdownButtonFormField<String?>(
-          value: _selectedBranchId,
-          dropdownColor: const Color(0xFF1E1B4B),
-          style: const TextStyle(color: Colors.white, fontSize: 14),
-          hint: Text('Select a branch', style: TextStyle(color: Colors.white.withOpacity(0.4))),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.white.withOpacity(0.06),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFF7C3AED)),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          ),
-          items: [
-            DropdownMenuItem<String?>(
-              value: null,
-              child: Text('No branch', style: TextStyle(color: Colors.white.withOpacity(0.4))),
-            ),
-            ...widget.branches.map((b) => DropdownMenuItem<String?>(
-              value: b.id,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(b.name),
-                  if (b.location != null)
-                    Text(b.location!, style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 11)),
-                ],
-              ),
-            )),
-          ],
-          onChanged: (v) => setState(() => _selectedBranchId = v),
         ),
       ],
     );
@@ -802,7 +640,8 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
       'email': _email.text.trim().isEmpty ? null : _email.text.trim(),
       'phone': _phone.text.trim().isEmpty ? null : _phone.text.trim(),
       'company': _company.text.trim().isEmpty ? null : _company.text.trim(),
-      'branchId': _selectedBranchId,
+      'branchName': _branchName.text.trim().isEmpty ? null : _branchName.text.trim(),
+      'branchEmail': _branchEmail.text.trim().isEmpty ? null : _branchEmail.text.trim(),
       'orderDetails': _orderDetails.text.trim().isEmpty ? null : _orderDetails.text.trim(),
       'notes': _notes.text.trim().isEmpty ? null : _notes.text.trim(),
     });

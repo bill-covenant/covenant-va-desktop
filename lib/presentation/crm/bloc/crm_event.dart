@@ -16,7 +16,8 @@ class CrmCustomerCreateRequested extends CrmEvent {
   final String? email;
   final String? phone;
   final String? company;
-  final String? branchId;
+  final String? branchName;
+  final String? branchEmail;
   final String? orderDetails;
   final String? notes;
 
@@ -26,13 +27,14 @@ class CrmCustomerCreateRequested extends CrmEvent {
     this.email,
     this.phone,
     this.company,
-    this.branchId,
+    this.branchName,
+    this.branchEmail,
     this.orderDetails,
     this.notes,
   });
 
   @override
-  List<Object?> get props => [firstName, lastName, email, phone, company, branchId, orderDetails, notes];
+  List<Object?> get props => [firstName, lastName, email, phone, company, branchName, branchEmail, orderDetails, notes];
 }
 
 class CrmCustomerUpdateRequested extends CrmEvent {

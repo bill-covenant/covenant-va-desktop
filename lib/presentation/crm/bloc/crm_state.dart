@@ -1,6 +1,5 @@
 import 'package:equatable/equatable.dart';
 import '../../../data/models/crm_customer_model.dart';
-import '../../../data/models/crm_branch_model.dart';
 
 abstract class CrmState extends Equatable {
   const CrmState();
@@ -18,14 +17,12 @@ class CrmLoading extends CrmState {
 
 class CrmLoaded extends CrmState {
   final List<CrmCustomerModel> customers;
-  final List<CrmBranchModel> branches;
   final String? actionMessage;
   final bool isNotifying;
   final String? notifyingCustomerId;
 
   const CrmLoaded({
     required this.customers,
-    required this.branches,
     this.actionMessage,
     this.isNotifying = false,
     this.notifyingCustomerId,
@@ -33,14 +30,12 @@ class CrmLoaded extends CrmState {
 
   CrmLoaded copyWith({
     List<CrmCustomerModel>? customers,
-    List<CrmBranchModel>? branches,
     String? actionMessage,
     bool? isNotifying,
     String? notifyingCustomerId,
   }) {
     return CrmLoaded(
       customers: customers ?? this.customers,
-      branches: branches ?? this.branches,
       actionMessage: actionMessage,
       isNotifying: isNotifying ?? this.isNotifying,
       notifyingCustomerId: notifyingCustomerId ?? this.notifyingCustomerId,
@@ -48,7 +43,7 @@ class CrmLoaded extends CrmState {
   }
 
   @override
-  List<Object?> get props => [customers, branches, actionMessage, isNotifying, notifyingCustomerId];
+  List<Object?> get props => [customers, actionMessage, isNotifying, notifyingCustomerId];
 }
 
 class CrmError extends CrmState {
