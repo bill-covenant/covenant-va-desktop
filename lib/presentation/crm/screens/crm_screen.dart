@@ -173,17 +173,25 @@ class _CrmScreenState extends State<CrmScreen> {
               ),
               const SizedBox(width: 8),
               if (state is CrmLoaded)
-                ElevatedButton.icon(
+                ElevatedButton(
                   onPressed: () => _showCustomerForm(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFF7C3AED),
+                    backgroundColor: isDark ? const Color(0xFF7C3AED) : Colors.white,
+                    foregroundColor: isDark ? Colors.white : const Color(0xFF7C3AED),
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    elevation: 0,
+                    elevation: isDark ? 0 : 2,
+                    shadowColor: isDark ? Colors.transparent : Colors.black.withOpacity(0.15),
                   ),
-                  icon: const Icon(Icons.person_add_rounded, size: 16),
-                  label: const Text('Add Customer', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.person_add_rounded, size: 16, color: isDark ? Colors.white : const Color(0xFF7C3AED)),
+                      const SizedBox(width: 6),
+                      Text('Add Customer', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: isDark ? Colors.white : const Color(0xFF7C3AED))),
+                    ],
+                  ),
                 ),
             ],
           ),
