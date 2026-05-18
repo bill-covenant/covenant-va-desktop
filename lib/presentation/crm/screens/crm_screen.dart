@@ -136,7 +136,7 @@ class _CrmScreenState extends State<CrmScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Customer CRM',
+                  'Flooring Liquidators',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 22,
@@ -147,7 +147,7 @@ class _CrmScreenState extends State<CrmScreen> {
                 Text(
                   state is CrmLoaded
                       ? '${state.customers.length} customer${state.customers.length == 1 ? '' : 's'}'
-                      : 'Track and notify branches',
+                      : 'Customer inquiries & branch notifications',
                   style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13),
                 ),
               ],

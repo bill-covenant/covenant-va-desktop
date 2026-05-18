@@ -397,7 +397,7 @@ class _MainLayoutState extends State<MainLayout> {
       'archive': 'Archive',
       'announcements': 'Announcements',
       'profile': 'Profile',
-      'crm': 'Customer CRM',
+      'crm': 'Flooring Liquidators',
     };
     return labels[_selectedRoute] ?? 'Dashboard';
   }
@@ -461,7 +461,7 @@ class _MainLayoutState extends State<MainLayout> {
                   const SizedBox(height: 8),
                   LayoutSidebarNavItem(
                     icon: Icons.people_rounded,
-                    label: 'CRM',
+                    label: 'Flooring Liquidators',
                     route: 'crm',
                     isSelected: _selectedRoute == 'crm',
                     onTap: () => _navigateTo('crm'),
