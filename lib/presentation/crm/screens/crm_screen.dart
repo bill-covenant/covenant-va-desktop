@@ -104,15 +104,6 @@ class _CrmScreenState extends State<CrmScreen> {
                   ],
                 ),
               ),
-              floatingActionButton: state is CrmLoaded
-                  ? FloatingActionButton.extended(
-                      onPressed: () => _showCustomerForm(context),
-                      backgroundColor: const Color(0xFF7C3AED),
-                      elevation: 4,
-                      icon: const Icon(Icons.person_add_rounded, color: Colors.white),
-                      label: const Text('Add Customer', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                    )
-                  : null,
             );
           },
         );
@@ -164,19 +155,37 @@ class _CrmScreenState extends State<CrmScreen> {
               ],
             ),
           ),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white.withOpacity(0.15)),
-            ),
-            child: IconButton(
-              onPressed: () => context.read<CrmBloc>().add(const CrmLoadRequested()),
-              icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 18),
-              tooltip: 'Refresh',
-              padding: const EdgeInsets.all(8),
-              constraints: const BoxConstraints(),
-            ),
+          Row(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white.withOpacity(0.15)),
+                ),
+                child: IconButton(
+                  onPressed: () => context.read<CrmBloc>().add(const CrmLoadRequested()),
+                  icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 18),
+                  tooltip: 'Refresh',
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (state is CrmLoaded)
+                ElevatedButton.icon(
+                  onPressed: () => _showCustomerForm(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF7C3AED),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    elevation: 0,
+                  ),
+                  icon: const Icon(Icons.person_add_rounded, size: 16),
+                  label: const Text('Add Customer', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                ),
+            ],
           ),
         ],
       ),
