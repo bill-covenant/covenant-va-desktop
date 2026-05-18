@@ -178,16 +178,13 @@ class _CrmScreenState extends State<CrmScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isDark ? const Color(0xFF7C3AED) : Colors.white,
                     foregroundColor: isDark ? Colors.white : const Color(0xFF7C3AED),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     elevation: isDark ? 0 : 2,
                     shadowColor: isDark ? Colors.transparent : Colors.black.withOpacity(0.15),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.person_add_rounded, size: 16, color: isDark ? Colors.white : const Color(0xFF7C3AED)),
                       const SizedBox(width: 6),
