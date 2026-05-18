@@ -397,11 +397,15 @@ class _MainLayoutState extends State<MainLayout> {
       'archive': 'Archive',
       'announcements': 'Announcements',
       'profile': 'Profile',
+      'crm': 'Customer CRM',
     };
     return labels[_selectedRoute] ?? 'Dashboard';
   }
 
   Widget _buildSidebarContent() {
+    final authState = context.read<AuthBloc>().state;
+    final hasCrmAccess = authState is AuthAuthenticated && authState.user.hasCrmAccess;
+
     return Column(
       children: [
         const LayoutSidebarHeader(),
@@ -453,6 +457,16 @@ class _MainLayoutState extends State<MainLayout> {
                   badge: _timecardBadge > 0 ? _timecardBadge : null,
                   onTap: () => _navigateTo('timecard'),
                 ),
+                if (hasCrmAccess) ...[
+                  const SizedBox(height: 8),
+                  LayoutSidebarNavItem(
+                    icon: Icons.people_rounded,
+                    label: 'CRM',
+                    route: 'crm',
+                    isSelected: _selectedRoute == 'crm',
+                    onTap: () => _navigateTo('crm'),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 LayoutSidebarNavItem(
                   icon: Icons.archive_rounded,

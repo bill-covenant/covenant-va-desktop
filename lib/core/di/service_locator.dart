@@ -9,7 +9,9 @@ import '../../data/repositories/client_repository.dart';
 import '../../data/repositories/timecard_repository.dart';
 import '../../data/repositories/note_repository.dart';
 import '../../data/repositories/announcement_repository.dart';
+import '../../data/repositories/crm_repository.dart';
 import '../../presentation/auth/bloc/auth_bloc.dart';
+import '../../presentation/crm/bloc/crm_bloc.dart';
 import '../../presentation/dashboard/bloc/dashboard_bloc.dart';
 import '../../presentation/messages/bloc/messages_bloc.dart';
 import '../../presentation/timecard/bloc/timecard_bloc.dart';
@@ -68,6 +70,10 @@ Future<void> setupServiceLocator() async {
     () => AnnouncementRepository(getIt<ApiProvider>()),
   );
 
+  getIt.registerLazySingleton<CrmRepository>(
+    () => CrmRepository(getIt<ApiProvider>()),
+  );
+
   // BLoCs
   getIt.registerFactory<AuthBloc>(
     () => AuthBloc(authRepository: getIt<AuthRepository>()),
@@ -93,5 +99,9 @@ Future<void> setupServiceLocator() async {
   // ✅ Notes BLoC — singleton so cache persists across navigations
   getIt.registerLazySingleton<NotesBloc>(
     () => NotesBloc(noteRepository: getIt<NoteRepository>()),
+  );
+
+  getIt.registerFactory<CrmBloc>(
+    () => CrmBloc(crmRepository: getIt<CrmRepository>()),
   );
 }
