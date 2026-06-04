@@ -666,19 +666,13 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
               decoration: BoxDecoration(gradient: headerBg),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
               child: Row(children: [
-                _th('#', 40),
-                const SizedBox(width: 8),
-                _th('Name', 150),
-                const SizedBox(width: 8),
-                _th('Company', 160),
-                const SizedBox(width: 8),
-                _th('Phone', 130),
-                const SizedBox(width: 8),
-                _th('Status', 140),
-                const SizedBox(width: 8),
-                _th('Follow-up', 110),
-                const SizedBox(width: 8),
-                const Expanded(child: Text('Notes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 0.3))),
+                _thFlex('#', 1),
+                _thFlex('Name', 3),
+                _thFlex('Company', 3),
+                _thFlex('Phone', 2),
+                _thFlex('Status', 2),
+                _thFlex('Follow-up', 2),
+                _thFlex('Notes', 4),
               ]),
             ),
             // Rows
@@ -728,6 +722,73 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
     return SizedBox(width: width, child: child);
   }
 
+  Widget _thFlex(String label, int flex) {
+    return Expanded(
+      flex: flex,
+      child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 0.3)),
+    );
+  }
+
+  Widget _editableCellFlex(BuildContext context, LeadModel lead, String field, String value, bool isDark) {
+    return GestureDetector(
+      onTap: () {
+        final ctrl = TextEditingController(text: value);
+        final cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+        final textColor = isDark ? Colors.white : const Color(0xFF1F2937);
+        showDialog(
+          context: context,
+          builder: (ctx) => Dialog(
+            backgroundColor: cardColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Text('Edit ${field[0].toUpperCase()}${field.substring(1)}', style: TextStyle(fontWeight: FontWeight.w800, color: textColor)),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: ctrl,
+                  autofocus: true,
+                  style: TextStyle(color: textColor, fontSize: 13),
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.grey.shade200)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF10B981), width: 2)),
+                    filled: true,
+                    fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(children: [
+                  Expanded(child: TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel'))),
+                  const SizedBox(width: 8),
+                  Expanded(child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      context.read<LeadTrackerBloc>().add(LeadTrackerUpdateRequested(id: lead.id, data: {field: ctrl.text.trim()}));
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), elevation: 0),
+                    child: const Text('Save', style: TextStyle(fontWeight: FontWeight.w700)),
+                  )),
+                ]),
+              ]),
+            ),
+          ),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.only(right: 8),
+        child: Text(
+          value.isEmpty ? '—' : value,
+          style: TextStyle(
+            fontSize: 12,
+            color: value.isEmpty ? (isDark ? Colors.white.withOpacity(0.2) : Colors.grey.shade300) : (isDark ? Colors.white.withOpacity(0.87) : const Color(0xFF374151)),
+            fontWeight: value.isEmpty ? FontWeight.w400 : FontWeight.w500,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    );
+  }
+
   Widget _buildRow(BuildContext context, LeadModel lead, int index, bool isDark, Color borderColor) {
     final isEven = index % 2 == 0;
     final rowBg = isDark
@@ -742,25 +803,16 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
           color: rowBg,
           border: Border(bottom: BorderSide(color: borderColor)),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Row(
           children: [
-            SizedBox(
-              width: 40,
-              child: Text('${index + 1}', style: TextStyle(fontSize: 12, color: isDark ? Colors.white30 : Colors.grey.shade400, fontWeight: FontWeight.w600)),
-            ),
-            const SizedBox(width: 8),
-            _editableCell(context, lead, 'name', lead.name, 150, isDark),
-            const SizedBox(width: 8),
-            _editableCell(context, lead, 'company', lead.company, 160, isDark),
-            const SizedBox(width: 8),
-            _editableCell(context, lead, 'phone', lead.phone, 130, isDark),
-            const SizedBox(width: 8),
-            SizedBox(width: 140, child: _statusChip(context, lead, isDark)),
-            const SizedBox(width: 8),
-            SizedBox(width: 110, child: _datePicker(context, lead, isDark)),
-            const SizedBox(width: 8),
-            Expanded(child: _notesPreview(lead, isDark)),
+            Expanded(flex: 1, child: Text('${index + 1}', style: TextStyle(fontSize: 12, color: isDark ? Colors.white30 : Colors.grey.shade400, fontWeight: FontWeight.w600))),
+            Expanded(flex: 3, child: _editableCellFlex(context, lead, 'name', lead.name, isDark)),
+            Expanded(flex: 3, child: _editableCellFlex(context, lead, 'company', lead.company, isDark)),
+            Expanded(flex: 2, child: _editableCellFlex(context, lead, 'phone', lead.phone, isDark)),
+            Expanded(flex: 2, child: _statusChip(context, lead, isDark)),
+            Expanded(flex: 2, child: _datePicker(context, lead, isDark)),
+            Expanded(flex: 4, child: _notesPreview(lead, isDark)),
           ],
         ),
       ),
