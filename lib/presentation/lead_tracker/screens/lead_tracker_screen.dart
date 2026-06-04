@@ -668,11 +668,12 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
               child: Row(children: [
                 _thFlex('#', 1),
                 _thFlex('Name', 3),
+                _thFlex('Email Address', 3),
                 _thFlex('Company', 3),
                 _thFlex('Phone', 2),
                 _thFlex('Status', 2),
                 _thFlex('Follow-up', 2),
-                _thFlex('Notes', 4),
+                _thFlex('Notes', 3),
               ]),
             ),
             // Rows
@@ -808,11 +809,12 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
           children: [
             Expanded(flex: 1, child: Text('${index + 1}', style: TextStyle(fontSize: 12, color: isDark ? Colors.white30 : Colors.grey.shade400, fontWeight: FontWeight.w600))),
             Expanded(flex: 3, child: _editableCellFlex(context, lead, 'name', lead.name, isDark)),
+            Expanded(flex: 3, child: _editableCellFlex(context, lead, 'email', lead.email ?? '', isDark)),
             Expanded(flex: 3, child: _editableCellFlex(context, lead, 'company', lead.company, isDark)),
             Expanded(flex: 2, child: _editableCellFlex(context, lead, 'phone', lead.phone, isDark)),
             Expanded(flex: 2, child: _statusChip(context, lead, isDark)),
             Expanded(flex: 2, child: _datePicker(context, lead, isDark)),
-            Expanded(flex: 4, child: _notesPreview(lead, isDark)),
+            Expanded(flex: 3, child: _notesPreview(lead, isDark)),
           ],
         ),
       ),
