@@ -9,6 +9,7 @@ class UserModel {
   final DateTime? createdAt;
   final UserProfile? profile;
   final bool hasCrmAccess;
+  final bool hasLeadTrackerAccess;
 
   UserModel({
     required this.id,
@@ -21,6 +22,7 @@ class UserModel {
     this.createdAt,
     this.profile,
     this.hasCrmAccess = false,
+    this.hasLeadTrackerAccess = false,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -37,6 +39,7 @@ class UserModel {
           ? UserProfile.fromJson(json['profile'] as Map<String, dynamic>)
           : null,
       hasCrmAccess: json['hasCrmAccess'] as bool? ?? false,
+      hasLeadTrackerAccess: json['hasLeadTrackerAccess'] as bool? ?? false,
     );
   }
 
@@ -51,6 +54,7 @@ class UserModel {
       'wiseEmail': wiseEmail,
       'profile': profile?.toJson(),
       'hasCrmAccess': hasCrmAccess,
+      'hasLeadTrackerAccess': hasLeadTrackerAccess,
     };
   }
 

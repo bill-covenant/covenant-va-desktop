@@ -398,6 +398,7 @@ class _MainLayoutState extends State<MainLayout> {
       'announcements': 'Announcements',
       'profile': 'Profile',
       'crm': 'Flooring Liquidators',
+      'lead-tracker': 'Lead Tracker',
     };
     return labels[_selectedRoute] ?? 'Dashboard';
   }
@@ -405,6 +406,7 @@ class _MainLayoutState extends State<MainLayout> {
   Widget _buildSidebarContent() {
     final authState = context.read<AuthBloc>().state;
     final hasCrmAccess = authState is AuthAuthenticated && authState.user.hasCrmAccess;
+    final hasLeadTrackerAccess = authState is AuthAuthenticated && authState.user.hasLeadTrackerAccess;
 
     return Column(
       children: [
@@ -465,6 +467,16 @@ class _MainLayoutState extends State<MainLayout> {
                     route: 'crm',
                     isSelected: _selectedRoute == 'crm',
                     onTap: () => _navigateTo('crm'),
+                  ),
+                ],
+                if (hasLeadTrackerAccess) ...[
+                  const SizedBox(height: 8),
+                  LayoutSidebarNavItem(
+                    icon: Icons.trending_up_rounded,
+                    label: 'Lead Tracker',
+                    route: 'lead-tracker',
+                    isSelected: _selectedRoute == 'lead-tracker',
+                    onTap: () => _navigateTo('lead-tracker'),
                   ),
                 ],
                 const SizedBox(height: 8),

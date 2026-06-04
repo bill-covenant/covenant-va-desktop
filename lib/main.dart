@@ -35,6 +35,8 @@ import 'presentation/timecard/bloc/timecard_bloc.dart';
 import 'presentation/timecard/screens/timecard_screen.dart';
 import 'presentation/crm/screens/crm_screen.dart';
 import 'presentation/crm/bloc/crm_bloc.dart';
+import 'presentation/lead_tracker/screens/lead_tracker_screen.dart';
+import 'presentation/lead_tracker/bloc/lead_tracker_bloc.dart';
 import 'data/repositories/notification_repository.dart';
 import 'data/providers/api_provider.dart';
 import 'services/socket_service.dart';
@@ -282,6 +284,13 @@ class _AppContentState extends State<_AppContent> {
               child: const MainLayout(
                 currentRoute: 'crm',
                 child: CrmScreen(),
+              ),
+            ),
+        '/lead-tracker': (context) => BlocProvider(
+              create: (context) => getIt<LeadTrackerBloc>(),
+              child: const MainLayout(
+                currentRoute: 'lead-tracker',
+                child: LeadTrackerScreen(),
               ),
             ),
       },

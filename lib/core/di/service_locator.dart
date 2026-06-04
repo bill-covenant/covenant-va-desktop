@@ -10,8 +10,10 @@ import '../../data/repositories/timecard_repository.dart';
 import '../../data/repositories/note_repository.dart';
 import '../../data/repositories/announcement_repository.dart';
 import '../../data/repositories/crm_repository.dart';
+import '../../data/repositories/lead_repository.dart';
 import '../../presentation/auth/bloc/auth_bloc.dart';
 import '../../presentation/crm/bloc/crm_bloc.dart';
+import '../../presentation/lead_tracker/bloc/lead_tracker_bloc.dart';
 import '../../presentation/dashboard/bloc/dashboard_bloc.dart';
 import '../../presentation/messages/bloc/messages_bloc.dart';
 import '../../presentation/timecard/bloc/timecard_bloc.dart';
@@ -74,6 +76,10 @@ Future<void> setupServiceLocator() async {
     () => CrmRepository(getIt<ApiProvider>()),
   );
 
+  getIt.registerLazySingleton<LeadRepository>(
+    () => LeadRepository(getIt<ApiProvider>()),
+  );
+
   // BLoCs
   getIt.registerFactory<AuthBloc>(
     () => AuthBloc(authRepository: getIt<AuthRepository>()),
@@ -103,5 +109,9 @@ Future<void> setupServiceLocator() async {
 
   getIt.registerFactory<CrmBloc>(
     () => CrmBloc(crmRepository: getIt<CrmRepository>()),
+  );
+
+  getIt.registerFactory<LeadTrackerBloc>(
+    () => LeadTrackerBloc(leadRepository: getIt<LeadRepository>()),
   );
 }
