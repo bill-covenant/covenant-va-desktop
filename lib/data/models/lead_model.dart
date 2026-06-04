@@ -7,6 +7,7 @@ class LeadModel {
   final String? email;
   final String status;
   final String? callDisposition;
+  final String? callOutcome;
   final DateTime? followUpDate;
   final DateTime? lastContacted;
   final String? painPoints;
@@ -24,6 +25,7 @@ class LeadModel {
     this.email,
     required this.status,
     this.callDisposition,
+    this.callOutcome,
     this.followUpDate,
     this.lastContacted,
     this.painPoints,
@@ -43,6 +45,7 @@ class LeadModel {
       email: json['email'] as String?,
       status: json['status'] as String? ?? 'New',
       callDisposition: json['callDisposition'] as String?,
+      callOutcome: json['callOutcome'] as String?,
       followUpDate: json['followUpDate'] != null ? DateTime.tryParse(json['followUpDate'].toString()) : null,
       lastContacted: json['lastContacted'] != null ? DateTime.tryParse(json['lastContacted'].toString()) : null,
       painPoints: json['painPoints'] as String?,
@@ -62,6 +65,7 @@ class LeadModel {
     'email': email,
     'status': status,
     'callDisposition': callDisposition,
+    'callOutcome': callOutcome,
     'followUpDate': followUpDate?.toIso8601String(),
     'lastContacted': lastContacted?.toIso8601String(),
     'painPoints': painPoints,
