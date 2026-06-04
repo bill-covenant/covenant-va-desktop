@@ -6,6 +6,7 @@ import '../bloc/lead_tracker_event.dart';
 import '../bloc/lead_tracker_state.dart';
 import '../../../data/models/lead_model.dart';
 import '../../../core/theme/theme_provider.dart';
+import '../widgets/intake_form_dialog.dart';
 
 const _statuses = ['New', 'Contacted', 'Follow-up', 'Interested', 'Not Interested', 'Closed'];
 
@@ -722,7 +723,7 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
                 _thFlex('Call Disposition', 2),
                 _thFlex('Follow-up', 2),
                 _thFlex('Notes', 3),
-                const SizedBox(width: 40),
+                const SizedBox(width: 80),
               ]),
             ),
             // Rows
@@ -869,7 +870,22 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
             Expanded(flex: 2, child: _datePicker(context, lead, isDark)),
             Expanded(flex: 3, child: _notesPreview(lead, isDark)),
             SizedBox(
-              width: 40,
+              width: 36,
+              child: IconButton(
+                onPressed: () => showDialog(
+                  context: context,
+                  builder: (_) => IntakeFormDialog(lead: lead),
+                ),
+                icon: const Icon(Icons.assignment_turned_in_outlined, size: 17),
+                color: const Color(0xFF10B981).withOpacity(0.7),
+                hoverColor: const Color(0xFF10B981).withOpacity(0.1),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                tooltip: 'Submit intake form',
+              ),
+            ),
+            SizedBox(
+              width: 36,
               child: IconButton(
                 onPressed: () async {
                   final confirm = await showDialog<bool>(

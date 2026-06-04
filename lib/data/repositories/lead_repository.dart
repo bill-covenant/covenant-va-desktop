@@ -39,6 +39,32 @@ class LeadRepository {
     return LeadModel.fromJson(response['lead'] as Map<String, dynamic>);
   }
 
+  Future<void> submitIntake({
+    required String name,
+    required String email,
+    required String phone,
+    required List<String> vaTypes,
+    String? businessName,
+    String? businessAddress,
+    String? vaCount,
+    String? leadId,
+  }) async {
+    await _apiProvider.post(
+      '/va-leads/intake',
+      {
+        'name': name,
+        'email': email,
+        'phone': phone,
+        'vaTypes': vaTypes,
+        if (businessName != null) 'businessName': businessName,
+        if (businessAddress != null) 'businessAddress': businessAddress,
+        if (vaCount != null) 'vaCount': vaCount,
+        if (leadId != null) 'leadId': leadId,
+      },
+      requiresAuth: true,
+    );
+  }
+
   Future<void> deleteLead(String id) async {
     await _apiProvider.delete('/va-leads/$id', requiresAuth: true);
   }
