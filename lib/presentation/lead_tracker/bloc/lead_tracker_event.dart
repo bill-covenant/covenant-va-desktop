@@ -40,3 +40,10 @@ class LeadTrackerUpdateRequested extends LeadTrackerEvent {
   @override
   List<Object?> get props => [id, data];
 }
+
+class LeadTrackerDeleteRequested extends LeadTrackerEvent {
+  final String id;
+  const LeadTrackerDeleteRequested({required this.id});
+  @override
+  List<Object?> get props => [id];
+}

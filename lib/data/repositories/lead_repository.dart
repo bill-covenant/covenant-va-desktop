@@ -39,6 +39,10 @@ class LeadRepository {
     return LeadModel.fromJson(response['lead'] as Map<String, dynamic>);
   }
 
+  Future<void> deleteLead(String id) async {
+    await _apiProvider.delete('/va-leads/$id', requiresAuth: true);
+  }
+
   Future<LeadModel> updateLead(String id, Map<String, dynamic> data) async {
     final response = await _apiProvider.put(
       '/va-leads/$id',

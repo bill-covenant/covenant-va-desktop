@@ -722,6 +722,7 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
                 _thFlex('Call Disposition', 2),
                 _thFlex('Follow-up', 2),
                 _thFlex('Notes', 3),
+                const SizedBox(width: 40),
               ]),
             ),
             // Rows
@@ -867,6 +868,39 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
             Expanded(flex: 2, child: _outcomeChip(context, lead, isDark)),
             Expanded(flex: 2, child: _datePicker(context, lead, isDark)),
             Expanded(flex: 3, child: _notesPreview(lead, isDark)),
+            SizedBox(
+              width: 40,
+              child: IconButton(
+                onPressed: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      title: Text('Delete Lead', style: TextStyle(fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF1F2937))),
+                      content: Text('Remove ${lead.name.isNotEmpty ? lead.name : 'this lead'}? This cannot be undone.', style: TextStyle(color: isDark ? Colors.white70 : Colors.grey.shade600, fontSize: 13)),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), elevation: 0),
+                          child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w700)),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm == true && context.mounted) {
+                    context.read<LeadTrackerBloc>().add(LeadTrackerDeleteRequested(id: lead.id));
+                  }
+                },
+                icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                color: const Color(0xFFEF4444).withOpacity(0.6),
+                hoverColor: const Color(0xFFEF4444).withOpacity(0.1),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                tooltip: 'Delete lead',
+              ),
+            ),
           ],
         ),
       ),

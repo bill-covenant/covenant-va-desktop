@@ -14,6 +14,7 @@ class LeadTrackerBloc extends Bloc<LeadTrackerEvent, LeadTrackerState> {
     on<LeadTrackerLoadRequested>(_onLoad);
     on<LeadTrackerCreateRequested>(_onCreate);
     on<LeadTrackerUpdateRequested>(_onUpdate);
+    on<LeadTrackerDeleteRequested>(_onDelete);
   }
 
   void _emitLoaded(Emitter<LeadTrackerState> emit, {String? message}) {
@@ -44,6 +45,16 @@ class LeadTrackerBloc extends Bloc<LeadTrackerEvent, LeadTrackerState> {
       _emitLoaded(emit, message: 'Lead added');
     } catch (e) {
       emit(LeadTrackerError('Failed to create lead: $e'));
+    }
+  }
+
+  Future<void> _onDelete(LeadTrackerDeleteRequested event, Emitter<LeadTrackerState> emit) async {
+    try {
+      await _leadRepository.deleteLead(event.id);
+      _leads = _leads.where((l) => l.id != event.id).toList();
+      _emitLoaded(emit, message: 'Lead deleted');
+    } catch (e) {
+      emit(LeadTrackerError('Failed to delete lead: $e'));
     }
   }
 
