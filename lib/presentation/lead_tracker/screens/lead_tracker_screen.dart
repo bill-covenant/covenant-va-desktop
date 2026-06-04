@@ -26,13 +26,14 @@ const _dispositionColors = {
   'Closed Deal':       Color(0xFF0D9488),
 };
 
-const _outcomes = ['Busy', 'Voicemail', 'Wrong Number', 'Disconnected Number'];
+const _outcomes = ['Busy', 'Voicemail', 'Wrong Number', 'Disconnected Number', 'Contact Hang Up'];
 
 const _outcomeColors = {
   'Busy':               Color(0xFFF59E0B),
   'Voicemail':          Color(0xFF3B82F6),
   'Wrong Number':       Color(0xFFF97316),
   'Disconnected Number':Color(0xFFEF4444),
+  'Contact Hang Up':    Color(0xFFE11D48),
 };
 
 const _outcomeBg = {
@@ -40,6 +41,7 @@ const _outcomeBg = {
   'Voicemail':          Color(0xFFEFF6FF),
   'Wrong Number':       Color(0xFFFFF7ED),
   'Disconnected Number':Color(0xFFFEF2F2),
+  'Contact Hang Up':    Color(0xFFFFF1F2),
 };
 
 const _dispositionBg = {
