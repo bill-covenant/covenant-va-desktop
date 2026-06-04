@@ -517,6 +517,21 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
             ),
             const SizedBox(width: 8),
             if (state is LeadTrackerLoaded)
+              // Submit Intake button (for interested leads)
+              OutlinedButton.icon(
+                onPressed: () => showDialog(
+                  context: context,
+                  builder: (_) => const IntakeFormDialog(),
+                ),
+                icon: const Icon(Icons.assignment_turned_in_outlined, size: 16, color: Colors.white),
+                label: const Text('Submit Intake', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.white)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  side: BorderSide(color: Colors.white.withOpacity(0.4)),
+                ),
+              ),
+              const SizedBox(width: 8),
               ElevatedButton(
                 onPressed: _showAddDialog,
                 style: ElevatedButton.styleFrom(
@@ -881,7 +896,7 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
                 hoverColor: const Color(0xFF10B981).withOpacity(0.1),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
-                tooltip: 'Submit intake form',
+                tooltip: 'Submit client intake form',
               ),
             ),
             SizedBox(

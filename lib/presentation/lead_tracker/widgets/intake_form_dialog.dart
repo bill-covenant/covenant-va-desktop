@@ -10,8 +10,8 @@ const _vaExperienceOptions = [
 ];
 
 class IntakeFormDialog extends StatefulWidget {
-  final LeadModel lead;
-  const IntakeFormDialog({super.key, required this.lead});
+  final LeadModel? lead;
+  const IntakeFormDialog({super.key, this.lead});
 
   @override
   State<IntakeFormDialog> createState() => _IntakeFormDialogState();
@@ -56,10 +56,10 @@ class _IntakeFormDialogState extends State<IntakeFormDialog> {
   @override
   void initState() {
     super.initState();
-    _nameCtrl = TextEditingController(text: widget.lead.name);
-    _phoneCtrl = TextEditingController(text: widget.lead.phone);
-    _emailCtrl = TextEditingController(text: widget.lead.email ?? '');
-    _companyCtrl = TextEditingController(text: widget.lead.company);
+    _nameCtrl = TextEditingController(text: widget.lead?.name ?? '');
+    _phoneCtrl = TextEditingController(text: widget.lead?.phone ?? '');
+    _emailCtrl = TextEditingController(text: widget.lead?.email ?? '');
+    _companyCtrl = TextEditingController(text: widget.lead?.company ?? '');
     _addressCtrl = TextEditingController();
   }
 
@@ -124,7 +124,7 @@ class _IntakeFormDialogState extends State<IntakeFormDialog> {
         softwareTools: _softwareCtrl.text.trim().isEmpty ? null : _softwareCtrl.text.trim(),
         vaExperience: _vaExperience,
         anythingElse: _anythingCtrl.text.trim().isEmpty ? null : _anythingCtrl.text.trim(),
-        leadId: widget.lead.id,
+        leadId: widget.lead?.id,
       );
       setState(() { _submitted = true; _submitting = false; });
     } catch (e) {
