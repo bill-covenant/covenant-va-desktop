@@ -5,20 +5,27 @@ import '../bloc/lead_tracker_bloc.dart';
 import '../bloc/lead_tracker_event.dart';
 import '../bloc/lead_tracker_state.dart';
 import '../../../data/models/lead_model.dart';
+import '../../../core/theme/theme_provider.dart';
 
 const _statuses = ['New', 'Contacted', 'Follow-up', 'Interested', 'Not Interested', 'Closed'];
 
-Color _statusColor(String status) {
-  switch (status) {
-    case 'New': return const Color(0xFF6B7280);
-    case 'Contacted': return const Color(0xFF3B82F6);
-    case 'Follow-up': return const Color(0xFFF59E0B);
-    case 'Interested': return const Color(0xFF10B981);
-    case 'Not Interested': return const Color(0xFFEF4444);
-    case 'Closed': return const Color(0xFF059669);
-    default: return const Color(0xFF6B7280);
-  }
-}
+const _statusColors = {
+  'New':           Color(0xFF6B7280),
+  'Contacted':     Color(0xFF3B82F6),
+  'Follow-up':     Color(0xFFF59E0B),
+  'Interested':    Color(0xFF10B981),
+  'Not Interested':Color(0xFFEF4444),
+  'Closed':        Color(0xFF059669),
+};
+
+const _statusBg = {
+  'New':           Color(0xFFF3F4F6),
+  'Contacted':     Color(0xFFEFF6FF),
+  'Follow-up':     Color(0xFFFFFBEB),
+  'Interested':    Color(0xFFECFDF5),
+  'Not Interested':Color(0xFFFEF2F2),
+  'Closed':        Color(0xFFD1FAE5),
+};
 
 class LeadTrackerScreen extends StatefulWidget {
   const LeadTrackerScreen({super.key});
@@ -60,55 +67,136 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
     final phoneCtrl = TextEditingController();
     final emailCtrl = TextEditingController();
     String status = 'New';
+    final isDark = ThemeProvider().isDarkMode;
+    final cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF1F2937);
+    final hintColor = isDark ? Colors.white38 : Colors.grey.shade400;
+    final borderColor = isDark ? Colors.white12 : Colors.grey.shade200;
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) => AlertDialog(
-          title: const Text('Add Lead', style: TextStyle(fontWeight: FontWeight.bold)),
-          content: SingleChildScrollView(
+        builder: (ctx, setState) => Dialog(
+          backgroundColor: cardColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            width: 420,
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name', border: OutlineInputBorder())),
+                Row(children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF059669)]),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.person_add_rounded, color: Colors.white, size: 18),
+                  ),
+                  const SizedBox(width: 12),
+                  Text('Add New Lead', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: textColor)),
+                  const Spacer(),
+                  IconButton(onPressed: () => Navigator.pop(ctx), icon: Icon(Icons.close, color: hintColor, size: 18)),
+                ]),
+                const SizedBox(height: 20),
+                _dialogField(nameCtrl, 'Name', Icons.person_outline, isDark, textColor, hintColor, borderColor),
                 const SizedBox(height: 12),
-                TextField(controller: companyCtrl, decoration: const InputDecoration(labelText: 'Company', border: OutlineInputBorder())),
+                _dialogField(companyCtrl, 'Company', Icons.business_outlined, isDark, textColor, hintColor, borderColor),
                 const SizedBox(height: 12),
-                TextField(controller: phoneCtrl, decoration: const InputDecoration(labelText: 'Phone', border: OutlineInputBorder())),
+                _dialogField(phoneCtrl, 'Phone', Icons.phone_outlined, isDark, textColor, hintColor, borderColor),
                 const SizedBox(height: 12),
-                TextField(controller: emailCtrl, decoration: const InputDecoration(labelText: 'Email (optional)', border: OutlineInputBorder())),
+                _dialogField(emailCtrl, 'Email (optional)', Icons.email_outlined, isDark, textColor, hintColor, borderColor),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: status,
-                  decoration: const InputDecoration(labelText: 'Status', border: OutlineInputBorder()),
-                  items: _statuses.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-                  onChanged: (v) => setState(() => status = v ?? 'New'),
+                Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: borderColor),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: status,
+                      isExpanded: true,
+                      dropdownColor: cardColor,
+                      style: TextStyle(color: textColor, fontSize: 13),
+                      items: _statuses.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                      onChanged: (v) => setState(() => status = v ?? 'New'),
+                    ),
+                  ),
                 ),
+                const SizedBox(height: 20),
+                Row(children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: borderColor)),
+                      ),
+                      child: Text('Cancel', style: TextStyle(color: hintColor, fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        context.read<LeadTrackerBloc>().add(LeadTrackerCreateRequested(
+                          name: nameCtrl.text.trim(),
+                          company: companyCtrl.text.trim(),
+                          phone: phoneCtrl.text.trim(),
+                          email: emailCtrl.text.trim().isEmpty ? null : emailCtrl.text.trim(),
+                          status: status,
+                        ));
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                      child: const Text('Add Lead', style: TextStyle(fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ]),
               ],
             ),
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                context.read<LeadTrackerBloc>().add(LeadTrackerCreateRequested(
-                  name: nameCtrl.text.trim(),
-                  company: companyCtrl.text.trim(),
-                  phone: phoneCtrl.text.trim(),
-                  email: emailCtrl.text.trim().isEmpty ? null : emailCtrl.text.trim(),
-                  status: status,
-                ));
-              },
-              child: const Text('Add'),
-            ),
-          ],
         ),
       ),
     );
   }
 
-  void _showNotesDialog(LeadModel lead) {
+  Widget _dialogField(TextEditingController ctrl, String hint, IconData icon, bool isDark, Color textColor, Color hintColor, Color borderColor) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor),
+      ),
+      child: TextField(
+        controller: ctrl,
+        style: TextStyle(color: textColor, fontSize: 13),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: hintColor, fontSize: 13),
+          prefixIcon: Icon(icon, color: hintColor, size: 18),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+        ),
+      ),
+    );
+  }
+
+  void _showNotesDialog(LeadModel lead, bool isDark) {
+    final cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF1F2937);
+    final hintColor = isDark ? Colors.white38 : Colors.grey.shade400;
+    final borderColor = isDark ? Colors.white12 : Colors.grey.shade200;
     final lastContactedCtrl = TextEditingController(
       text: lead.lastContacted != null ? DateFormat('yyyy-MM-dd').format(lead.lastContacted!) : '',
     );
@@ -118,416 +206,730 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(lead.name.isNotEmpty ? lead.name : 'Lead Details',
-            style: const TextStyle(fontWeight: FontWeight.bold)),
-        content: SizedBox(
-          width: 400,
+      builder: (ctx) => Dialog(
+        backgroundColor: cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          width: 460,
+          padding: const EdgeInsets.all(24),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Last Contacted', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-                const SizedBox(height: 4),
-                TextField(controller: lastContactedCtrl, decoration: const InputDecoration(hintText: 'YYYY-MM-DD', border: OutlineInputBorder()), keyboardType: TextInputType.datetime),
-                const SizedBox(height: 12),
-                const Text('Pain Points', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-                const SizedBox(height: 4),
-                TextField(controller: painPointsCtrl, decoration: const InputDecoration(hintText: 'What problems are they facing?', border: OutlineInputBorder()), maxLines: 3),
-                const SizedBox(height: 12),
-                const Text('Objections', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-                const SizedBox(height: 4),
-                TextField(controller: objectionsCtrl, decoration: const InputDecoration(hintText: 'Note any objections raised...', border: OutlineInputBorder()), maxLines: 3),
-                const SizedBox(height: 12),
-                const Text('Additional Notes', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-                const SizedBox(height: 4),
-                TextField(controller: notesCtrl, decoration: const InputDecoration(hintText: 'Any other notes...', border: OutlineInputBorder()), maxLines: 4),
+                Row(children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF059669)]),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.notes_rounded, color: Colors.white, size: 18),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Lead Details', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: textColor)),
+                    if (lead.name.isNotEmpty)
+                      Text('${lead.name}${lead.company.isNotEmpty ? ' · ${lead.company}' : ''}',
+                          style: TextStyle(fontSize: 11, color: hintColor)),
+                  ]),
+                  const Spacer(),
+                  IconButton(onPressed: () => Navigator.pop(ctx), icon: Icon(Icons.close, color: hintColor, size: 18)),
+                ]),
+                const SizedBox(height: 20),
+                _sectionLabel('Last Contacted', textColor),
+                const SizedBox(height: 6),
+                _dialogField(lastContactedCtrl, 'YYYY-MM-DD', Icons.calendar_today_outlined, isDark, textColor, hintColor, borderColor),
+                const SizedBox(height: 14),
+                _sectionLabel('Pain Points', textColor),
+                const SizedBox(height: 6),
+                _dialogTextArea(painPointsCtrl, 'What problems are they facing?', isDark, textColor, hintColor, borderColor),
+                const SizedBox(height: 14),
+                _sectionLabel('Objections', textColor),
+                const SizedBox(height: 6),
+                _dialogTextArea(objectionsCtrl, 'Note any objections raised...', isDark, textColor, hintColor, borderColor),
+                const SizedBox(height: 14),
+                _sectionLabel('Additional Notes', textColor),
+                const SizedBox(height: 6),
+                _dialogTextArea(notesCtrl, 'Any other notes...', isDark, textColor, hintColor, borderColor, maxLines: 4),
+                const SizedBox(height: 20),
+                Row(children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: borderColor)),
+                      ),
+                      child: Text('Cancel', style: TextStyle(color: hintColor, fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        context.read<LeadTrackerBloc>().add(LeadTrackerUpdateRequested(
+                          id: lead.id,
+                          data: {
+                            'lastContacted': lastContactedCtrl.text.trim().isEmpty ? null : lastContactedCtrl.text.trim(),
+                            'painPoints': painPointsCtrl.text.trim(),
+                            'objections': objectionsCtrl.text.trim(),
+                            'additionalNotes': notesCtrl.text.trim(),
+                          },
+                        ));
+                      },
+                      icon: const Icon(Icons.check_rounded, size: 16),
+                      label: const Text('Save', style: TextStyle(fontWeight: FontWeight.w700)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ]),
               ],
             ),
           ),
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.read<LeadTrackerBloc>().add(LeadTrackerUpdateRequested(
-                id: lead.id,
-                data: {
-                  'lastContacted': lastContactedCtrl.text.trim().isEmpty ? null : lastContactedCtrl.text.trim(),
-                  'painPoints': painPointsCtrl.text.trim(),
-                  'objections': objectionsCtrl.text.trim(),
-                  'additionalNotes': notesCtrl.text.trim(),
-                },
-              ));
-            },
-            child: const Text('Save'),
-          ),
-        ],
+      ),
+    );
+  }
+
+  Widget _sectionLabel(String label, Color textColor) {
+    return Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: textColor.withOpacity(0.5), letterSpacing: 0.5));
+  }
+
+  Widget _dialogTextArea(TextEditingController ctrl, String hint, bool isDark, Color textColor, Color hintColor, Color borderColor, {int maxLines = 3}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor),
+      ),
+      child: TextField(
+        controller: ctrl,
+        maxLines: maxLines,
+        style: TextStyle(color: textColor, fontSize: 13),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: hintColor, fontSize: 13),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.all(14),
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<LeadTrackerBloc, LeadTrackerState>(
-      listener: (context, state) {
-        if (state is LeadTrackerLoaded && state.actionMessage != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.actionMessage!), backgroundColor: Colors.green),
-          );
-        }
-        if (state is LeadTrackerError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
-          );
-        }
-      },
-      builder: (context, state) {
-        return Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                children: [
-                  Container(
-                    width: 48, height: 48,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF059669)]),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(Icons.trending_up_rounded, color: Colors.white, size: 26),
-                  ),
-                  const SizedBox(width: 16),
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Lead Tracker', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white)),
-                      Text('Track and manage your sales leads', style: TextStyle(fontSize: 13, color: Colors.white70)),
+    return ListenableBuilder(
+      listenable: ThemeProvider(),
+      builder: (context, _) {
+        final isDark = ThemeProvider().isDarkMode;
+        return BlocConsumer<LeadTrackerBloc, LeadTrackerState>(
+          listener: (context, state) {
+            if (state is LeadTrackerLoaded && state.actionMessage != null) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(state.actionMessage!),
+                backgroundColor: const Color(0xFF10B981),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ));
+            }
+            if (state is LeadTrackerError) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(state.message),
+                backgroundColor: const Color(0xFFEF4444),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ));
+            }
+          },
+          builder: (context, state) {
+            return Scaffold(
+              backgroundColor: Colors.transparent,
+              body: Container(
+                decoration: isDark
+                    ? BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            const Color(0xFF0F172A),
+                            const Color(0xFF064E3B).withOpacity(0.3),
+                            const Color(0xFF0F172A),
+                          ],
+                        ),
+                      )
+                    : null,
+                child: Column(
+                  children: [
+                    _buildHeader(context, state, isDark),
+                    if (state is LeadTrackerLoaded) ...[
+                      _buildStats(state.leads, isDark),
+                      _buildSearchBar(isDark),
+                      Expanded(child: _buildTable(context, state.leads, isDark)),
+                    ] else if (state is LeadTrackerLoading) ...[
+                      Expanded(child: Center(child: CircularProgressIndicator(color: isDark ? const Color(0xFF10B981) : Colors.white))),
+                    ] else if (state is LeadTrackerError) ...[
+                      Expanded(child: Center(
+                        child: Column(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.error_outline, color: isDark ? const Color(0xFFEF4444) : Colors.white70, size: 48),
+                          const SizedBox(height: 12),
+                          Text(state.message, style: TextStyle(color: isDark ? Colors.white70 : Colors.white)),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: () => context.read<LeadTrackerBloc>().add(const LeadTrackerLoadRequested()),
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Retry'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isDark ? const Color(0xFF10B981) : Colors.white,
+                              foregroundColor: isDark ? Colors.white : const Color(0xFF10B981),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ]),
+                      )),
+                    ] else ...[
+                      const Expanded(child: SizedBox()),
                     ],
-                  ),
-                  const Spacer(),
-                  ElevatedButton.icon(
-                    onPressed: _showAddDialog,
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Add Lead', style: TextStyle(fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF10B981),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // Search & Filter
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchCtrl,
-                      onChanged: (v) => setState(() => _searchQuery = v),
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        hintText: 'Search by name or company...',
-                        hintStyle: const TextStyle(color: Colors.white54),
-                        prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 18),
-                        filled: true,
-                        fillColor: Colors.white.withOpacity(0.1),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withOpacity(0.2))),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withOpacity(0.2))),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.white38)),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withOpacity(0.2)),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _filterStatus.isEmpty ? null : _filterStatus,
-                        hint: const Text('All Statuses', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                        dropdownColor: const Color(0xFF1E2A4A),
-                        style: const TextStyle(color: Colors.white, fontSize: 13),
-                        icon: const Icon(Icons.filter_list, color: Colors.white54, size: 18),
-                        items: [
-                          const DropdownMenuItem(value: '', child: Text('All Statuses')),
-                          ..._statuses.map((s) => DropdownMenuItem(value: s, child: Text(s))),
-                        ],
-                        onChanged: (v) => setState(() => _filterStatus = v ?? ''),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Table
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 4))],
-                  ),
-                  child: state is LeadTrackerLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : state is LeadTrackerLoaded
-                          ? _buildTable(state.leads)
-                          : state is LeadTrackerError
-                              ? Center(child: Text(state.message, style: const TextStyle(color: Colors.red)))
-                              : const Center(child: CircularProgressIndicator()),
+                  ],
                 ),
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 
-  Widget _buildTable(List<LeadModel> allLeads) {
-    final leads = _filtered(allLeads);
-    if (leads.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.trending_up_rounded, size: 48, color: Colors.grey.shade300),
-            const SizedBox(height: 12),
-            Text(allLeads.isEmpty ? 'No leads yet' : 'No leads match your search',
-                style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey.shade500)),
-            if (allLeads.isEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: TextButton.icon(
-                  onPressed: _showAddDialog,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add your first lead'),
-                ),
-              ),
-          ],
+  Widget _buildHeader(BuildContext context, LeadTrackerState state, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(28, 28, 28, 0),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: isDark
+              ? [const Color(0xFF064E3B), const Color(0xFF065F46)]
+              : [const Color(0xFF10B981), const Color(0xFF059669)],
         ),
-      );
-    }
-
-    return Column(
-      children: [
-        // Header row
-        Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [Color(0xFF1D4ED8), Color(0xFF4338CA)]),
-            borderRadius: BorderRadius.only(topLeft: Radius.circular(16), topRight: Radius.circular(16)),
-          ),
-          child: Row(
-            children: [
-              _headerCell('#', 40),
-              _headerCell('Name', 140),
-              _headerCell('Company', 150),
-              _headerCell('Phone', 130),
-              _headerCell('Status', 130),
-              _headerCell('Follow-up', 110),
-              _headerCell('Notes', 200),
-            ],
-          ),
-        ),
-        // Data rows
-        Expanded(
-          child: ListView.builder(
-            itemCount: leads.length,
-            itemBuilder: (context, i) {
-              final lead = leads[i];
-              final isEven = i % 2 == 0;
-              return Container(
-                color: isEven ? Colors.grey.shade50 : Colors.white,
-                child: Row(
-                  children: [
-                    _cell(Text('${i + 1}', style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600)), 40),
-                    _editableCell(lead, 'name', lead.name, 140),
-                    _editableCell(lead, 'company', lead.company, 150),
-                    _editableCell(lead, 'phone', lead.phone, 130),
-                    _statusCell(lead, 130),
-                    _dateCell(lead, 110),
-                    _notesCell(lead, 200),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-        // Footer
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(16), bottomRight: Radius.circular(16)),
-            border: Border(top: BorderSide(color: Colors.grey.shade200)),
-          ),
-          child: Row(
-            children: [
-              Text(
-                leads.length != allLeads.length ? '${leads.length} of ${allLeads.length} leads' : '${allLeads.length} lead${allLeads.length != 1 ? 's' : ''}',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w600),
-              ),
-              const Spacer(),
-              TextButton.icon(
-                onPressed: _showAddDialog,
-                icon: const Icon(Icons.add, size: 14),
-                label: const Text('Add row', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                style: TextButton.styleFrom(foregroundColor: const Color(0xFF10B981)),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _headerCell(String label, double width) {
-    return SizedBox(
-      width: width,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11)),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: const Color(0xFF10B981).withOpacity(isDark ? 0.15 : 0.4), blurRadius: 20, offset: const Offset(0, 8)),
+          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 2)),
+        ],
       ),
-    );
-  }
-
-  Widget _cell(Widget child, double width) {
-    return SizedBox(
-      width: width,
-      child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), child: child),
-    );
-  }
-
-  Widget _editableCell(LeadModel lead, String field, String value, double width) {
-    return _cell(
-      GestureDetector(
-        onTap: () {
-          final ctrl = TextEditingController(text: value);
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: Text('Edit ${field[0].toUpperCase()}${field.substring(1)}'),
-              content: TextField(controller: ctrl, autofocus: true, decoration: const InputDecoration(border: OutlineInputBorder())),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                ElevatedButton(onPressed: () {
-                  Navigator.pop(ctx);
-                  context.read<LeadTrackerBloc>().add(LeadTrackerUpdateRequested(id: lead.id, data: {field: ctrl.text.trim()}));
-                }, child: const Text('Save')),
+      padding: const EdgeInsets.fromLTRB(20, 18, 16, 18),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [Colors.white.withOpacity(0.25), Colors.white.withOpacity(0.1)]),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white.withOpacity(0.25)),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 8, offset: const Offset(0, 4))],
+            ),
+            child: const Icon(Icons.trending_up_rounded, color: Colors.white, size: 22),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Lead Tracker', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -0.3)),
+                Text(
+                  state is LeadTrackerLoaded
+                      ? '${state.leads.length} lead${state.leads.length == 1 ? '' : 's'} total'
+                      : 'Track and manage your sales leads',
+                  style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 12, fontWeight: FontWeight.w500),
+                ),
               ],
             ),
-          );
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: Colors.transparent),
           ),
-          child: Text(value.isEmpty ? '—' : value, style: TextStyle(fontSize: 12, color: value.isEmpty ? Colors.grey.shade300 : Colors.grey.shade800)),
-        ),
+          Row(children: [
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white.withOpacity(0.15)),
+              ),
+              child: IconButton(
+                onPressed: () => context.read<LeadTrackerBloc>().add(const LeadTrackerLoadRequested()),
+                icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 18),
+                tooltip: 'Refresh',
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (state is LeadTrackerLoaded)
+              ElevatedButton(
+                onPressed: _showAddDialog,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isDark ? const Color(0xFF10B981) : Colors.white,
+                  foregroundColor: isDark ? Colors.white : const Color(0xFF059669),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  elevation: isDark ? 0 : 3,
+                  shadowColor: Colors.black.withOpacity(0.2),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.add_rounded, size: 16, color: isDark ? Colors.white : const Color(0xFF059669)),
+                  const SizedBox(width: 6),
+                  Text('Add Lead', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: isDark ? Colors.white : const Color(0xFF059669))),
+                ]),
+              ),
+          ]),
+        ],
       ),
-      width,
     );
   }
 
-  Widget _statusCell(LeadModel lead, double width) {
-    return _cell(
-      GestureDetector(
-        onTap: () {
-          String selected = lead.status;
-          showDialog(
-            context: context,
-            builder: (ctx) => StatefulBuilder(
-              builder: (ctx, setState) => AlertDialog(
-                title: const Text('Change Status'),
-                content: DropdownButtonFormField<String>(
-                  value: selected,
-                  decoration: const InputDecoration(border: OutlineInputBorder()),
-                  items: _statuses.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-                  onChanged: (v) => setState(() => selected = v ?? lead.status),
-                ),
-                actions: [
-                  TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                  ElevatedButton(onPressed: () {
-                    Navigator.pop(ctx);
-                    context.read<LeadTrackerBloc>().add(LeadTrackerUpdateRequested(id: lead.id, data: {'status': selected}));
-                  }, child: const Text('Save')),
+  Widget _buildStats(List<LeadModel> leads, bool isDark) {
+    final counts = <String, int>{
+      'New': 0, 'Contacted': 0, 'Follow-up': 0,
+      'Interested': 0, 'Not Interested': 0, 'Closed': 0,
+    };
+    for (final l in leads) {
+      counts[l.status] = (counts[l.status] ?? 0) + 1;
+    }
+
+    final chips = [
+      ('New', counts['New']!, const Color(0xFF6B7280), const Color(0xFFF9FAFB)),
+      ('Contacted', counts['Contacted']!, const Color(0xFF3B82F6), const Color(0xFFEFF6FF)),
+      ('Follow-up', counts['Follow-up']!, const Color(0xFFF59E0B), const Color(0xFFFFFBEB)),
+      ('Interested', counts['Interested']!, const Color(0xFF10B981), const Color(0xFFECFDF5)),
+      ('Closed', counts['Closed']!, const Color(0xFF059669), const Color(0xFFD1FAE5)),
+      ('Not Interested', counts['Not Interested']!, const Color(0xFFEF4444), const Color(0xFFFEF2F2)),
+    ];
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(28, 14, 28, 0),
+      child: Row(
+        children: chips.map((chip) {
+          final (label, count, color, bg) = chip;
+          return Expanded(
+            child: Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+              decoration: BoxDecoration(
+                color: isDark ? color.withOpacity(0.12) : bg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: isDark ? color.withOpacity(0.2) : color.withOpacity(0.15)),
+                boxShadow: [BoxShadow(color: color.withOpacity(isDark ? 0.08 : 0.06), blurRadius: 8, offset: const Offset(0, 2))],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('$count', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color)),
+                  const SizedBox(height: 2),
+                  Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: isDark ? color.withOpacity(0.8) : color.withOpacity(0.7))),
                 ],
               ),
             ),
           );
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: _statusColor(lead.status).withOpacity(0.12),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: _statusColor(lead.status).withOpacity(0.3)),
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildSearchBar(bool isDark) {
+    final bg = isDark ? Colors.white.withOpacity(0.06) : Colors.white;
+    final border = isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade200;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(28, 12, 28, 0),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: border),
+                boxShadow: isDark ? [] : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+              ),
+              child: TextField(
+                controller: _searchCtrl,
+                onChanged: (v) => setState(() => _searchQuery = v),
+                style: TextStyle(color: isDark ? Colors.white : const Color(0xFF1F2937), fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: 'Search by name or company...',
+                  hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade400, fontSize: 13),
+                  prefixIcon: Icon(Icons.search_rounded, color: isDark ? Colors.white30 : Colors.grey.shade400, size: 18),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                ),
+              ),
+            ),
           ),
-          child: Text(lead.status, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _statusColor(lead.status))),
+          const SizedBox(width: 10),
+          Container(
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: border),
+              boxShadow: isDark ? [] : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _filterStatus.isEmpty ? null : _filterStatus,
+                hint: Row(children: [
+                  Icon(Icons.filter_list_rounded, size: 16, color: isDark ? Colors.white38 : Colors.grey.shade400),
+                  const SizedBox(width: 6),
+                  Text('All Statuses', style: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade500, fontSize: 13)),
+                ]),
+                dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                style: TextStyle(color: isDark ? Colors.white : const Color(0xFF1F2937), fontSize: 13),
+                icon: Icon(Icons.keyboard_arrow_down_rounded, color: isDark ? Colors.white38 : Colors.grey.shade400, size: 18),
+                items: [
+                  DropdownMenuItem(value: '', child: Text('All Statuses', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600))),
+                  ..._statuses.map((s) => DropdownMenuItem(value: s, child: Text(s))),
+                ],
+                onChanged: (v) => setState(() => _filterStatus = v ?? ''),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTable(BuildContext context, List<LeadModel> allLeads, bool isDark) {
+    final leads = _filtered(allLeads);
+    final cardBg = isDark ? const Color(0xFF0F1E35).withOpacity(0.8) : Colors.white;
+    final headerBg = isDark
+        ? const LinearGradient(colors: [Color(0xFF064E3B), Color(0xFF065F46)])
+        : const LinearGradient(colors: [Color(0xFF1D4ED8), Color(0xFF4338CA)]);
+    final borderColor = isDark ? Colors.white.withOpacity(0.06) : Colors.grey.shade100;
+
+    if (leads.isEmpty) {
+      return Center(
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [const Color(0xFF10B981).withOpacity(0.12), const Color(0xFF059669).withOpacity(0.06)]),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.trending_up_rounded, size: 48, color: const Color(0xFF10B981).withOpacity(0.5)),
+          ),
+          const SizedBox(height: 16),
+          Text(allLeads.isEmpty ? 'No leads yet' : 'No leads match your search',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: isDark ? Colors.white54 : Colors.grey.shade500)),
+          const SizedBox(height: 6),
+          Text(allLeads.isEmpty ? 'Tap Add Lead to get started' : 'Try a different search or filter',
+              style: TextStyle(fontSize: 12, color: isDark ? Colors.white30 : Colors.grey.shade400)),
+          if (allLeads.isEmpty) ...[
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _showAddDialog,
+              icon: const Icon(Icons.add_rounded, size: 16),
+              label: const Text('Add your first lead', style: TextStyle(fontWeight: FontWeight.w700)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF10B981),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+            ),
+          ]
+        ]),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(28, 12, 28, 28),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(isDark ? 0.3 : 0.08), blurRadius: 24, offset: const Offset(0, 8)),
+          BoxShadow(color: Colors.black.withOpacity(isDark ? 0.15 : 0.04), blurRadius: 6, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Column(
+          children: [
+            // Header
+            Container(
+              decoration: BoxDecoration(gradient: headerBg),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(children: [
+                _th('#', 36),
+                _th('Name', 140),
+                _th('Company', 150),
+                _th('Phone', 120),
+                _th('Status', 130),
+                _th('Follow-up', 110),
+                Expanded(child: _th('Notes', double.infinity)),
+              ]),
+            ),
+            // Rows
+            Expanded(
+              child: ListView.builder(
+                itemCount: leads.length,
+                itemBuilder: (context, i) {
+                  final lead = leads[i];
+                  return _buildRow(context, lead, i, isDark, borderColor);
+                },
+              ),
+            ),
+            // Footer
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withOpacity(0.04) : Colors.grey.shade50,
+                border: Border(top: BorderSide(color: borderColor)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.people_outline, size: 14, color: isDark ? Colors.white30 : Colors.grey.shade400),
+                  const SizedBox(width: 6),
+                  Text(
+                    leads.length != allLeads.length ? '${leads.length} of ${allLeads.length} leads' : '${allLeads.length} lead${allLeads.length != 1 ? 's' : ''}',
+                    style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : Colors.grey.shade500, fontWeight: FontWeight.w600),
+                  ),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: _showAddDialog,
+                    icon: Icon(Icons.add_rounded, size: 14, color: const Color(0xFF10B981).withOpacity(0.8)),
+                    label: Text('Add row', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF10B981).withOpacity(0.8))),
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
-      width,
     );
   }
 
-  Widget _dateCell(LeadModel lead, double width) {
-    final label = lead.followUpDate != null ? DateFormat('MM/dd/yyyy').format(lead.followUpDate!) : '—';
-    return _cell(
-      GestureDetector(
-        onTap: () async {
-          final picked = await showDatePicker(
-            context: context,
-            initialDate: lead.followUpDate ?? DateTime.now(),
-            firstDate: DateTime(2020),
-            lastDate: DateTime(2030),
-          );
-          if (picked != null && mounted) {
-            context.read<LeadTrackerBloc>().add(LeadTrackerUpdateRequested(
-              id: lead.id,
-              data: {'followUpDate': DateFormat('yyyy-MM-dd').format(picked)},
-            ));
-          }
-        },
-        child: Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+  Widget _th(String label, double width) {
+    final child = Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 0.3));
+    if (width == double.infinity) return Expanded(child: child);
+    return SizedBox(width: width, child: child);
+  }
+
+  Widget _buildRow(BuildContext context, LeadModel lead, int index, bool isDark, Color borderColor) {
+    final isEven = index % 2 == 0;
+    final rowBg = isDark
+        ? (isEven ? Colors.white.withOpacity(0.0) : Colors.white.withOpacity(0.02))
+        : (isEven ? Colors.white : const Color(0xFFF9FAFB));
+
+    return InkWell(
+      onTap: () => _showNotesDialog(lead, isDark),
+      hoverColor: isDark ? const Color(0xFF10B981).withOpacity(0.05) : const Color(0xFFECFDF5),
+      child: Container(
+        decoration: BoxDecoration(
+          color: rowBg,
+          border: Border(bottom: BorderSide(color: borderColor)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 36,
+              child: Text('${index + 1}', style: TextStyle(fontSize: 12, color: isDark ? Colors.white30 : Colors.grey.shade400, fontWeight: FontWeight.w600)),
+            ),
+            _editableCell(context, lead, 'name', lead.name, 140, isDark),
+            _editableCell(context, lead, 'company', lead.company, 150, isDark),
+            _editableCell(context, lead, 'phone', lead.phone, 120, isDark),
+            SizedBox(width: 130, child: _statusChip(context, lead, isDark)),
+            SizedBox(width: 110, child: _datePicker(context, lead, isDark)),
+            Expanded(child: _notesPreview(lead, isDark)),
+          ],
+        ),
       ),
-      width,
     );
   }
 
-  Widget _notesCell(LeadModel lead, double width) {
-    return _cell(
-      GestureDetector(
-        onTap: () => _showNotesDialog(lead),
+  Widget _editableCell(BuildContext context, LeadModel lead, String field, String value, double width, bool isDark) {
+    return SizedBox(
+      width: width,
+      child: GestureDetector(
+        onTap: () {
+          final ctrl = TextEditingController(text: value);
+          final cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+          final textColor = isDark ? Colors.white : const Color(0xFF1F2937);
+          showDialog(
+            context: context,
+            builder: (ctx) => Dialog(
+              backgroundColor: cardColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text('Edit ${field[0].toUpperCase()}${field.substring(1)}', style: TextStyle(fontWeight: FontWeight.w800, color: textColor)),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: ctrl,
+                    autofocus: true,
+                    style: TextStyle(color: textColor, fontSize: 13),
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.grey.shade200)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF10B981), width: 2)),
+                      filled: true,
+                      fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(children: [
+                    Expanded(child: TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel'))),
+                    const SizedBox(width: 8),
+                    Expanded(child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        context.read<LeadTrackerBloc>().add(LeadTrackerUpdateRequested(id: lead.id, data: {field: ctrl.text.trim()}));
+                      },
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), elevation: 0),
+                      child: const Text('Save', style: TextStyle(fontWeight: FontWeight.w700)),
+                    )),
+                  ]),
+                ]),
+              ),
+            ),
+          );
+        },
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: Colors.transparent),
-          ),
           child: Text(
-            lead.additionalNotes?.isNotEmpty == true ? lead.additionalNotes! : 'Add notes...',
-            style: TextStyle(fontSize: 12, color: lead.additionalNotes?.isNotEmpty == true ? Colors.grey.shade700 : Colors.grey.shade300),
-            maxLines: 2,
+            value.isEmpty ? '—' : value,
+            style: TextStyle(
+              fontSize: 12,
+              color: value.isEmpty ? (isDark ? Colors.white.withOpacity(0.2) : Colors.grey.shade300) : (isDark ? Colors.white.withOpacity(0.87) : const Color(0xFF374151)),
+              fontWeight: value.isEmpty ? FontWeight.w400 : FontWeight.w500,
+            ),
             overflow: TextOverflow.ellipsis,
           ),
         ),
       ),
-      width,
+    );
+  }
+
+  Widget _statusChip(BuildContext context, LeadModel lead, bool isDark) {
+    final color = _statusColors[lead.status] ?? const Color(0xFF6B7280);
+    final bg = isDark ? color.withOpacity(0.15) : (_statusBg[lead.status] ?? const Color(0xFFF3F4F6));
+
+    return GestureDetector(
+      onTap: () {
+        String selected = lead.status;
+        final cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+        showDialog(
+          context: context,
+          builder: (ctx) => StatefulBuilder(
+            builder: (ctx, setState) => Dialog(
+              backgroundColor: cardColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Change Status', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: isDark ? Colors.white : const Color(0xFF1F2937))),
+                    const SizedBox(height: 14),
+                    ..._statuses.map((s) {
+                      final sColor = _statusColors[s] ?? const Color(0xFF6B7280);
+                      final sBg = isDark ? sColor.withOpacity(0.12) : (_statusBg[s] ?? const Color(0xFFF3F4F6));
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() => selected = s);
+                          Navigator.pop(ctx);
+                          context.read<LeadTrackerBloc>().add(LeadTrackerUpdateRequested(id: lead.id, data: {'status': s}));
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: selected == s ? sBg : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: selected == s ? sColor.withOpacity(0.3) : Colors.transparent),
+                          ),
+                          child: Row(children: [
+                            Container(width: 8, height: 8, decoration: BoxDecoration(color: sColor, shape: BoxShape.circle)),
+                            const SizedBox(width: 10),
+                            Text(s, style: TextStyle(fontSize: 13, fontWeight: selected == s ? FontWeight.w700 : FontWeight.w500, color: selected == s ? sColor : (isDark ? Colors.white70 : Colors.grey.shade700))),
+                            if (selected == s) ...[const Spacer(), Icon(Icons.check_rounded, size: 16, color: sColor)],
+                          ]),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withOpacity(0.25)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          const SizedBox(width: 6),
+          Text(lead.status, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
+        ]),
+      ),
+    );
+  }
+
+  Widget _datePicker(BuildContext context, LeadModel lead, bool isDark) {
+    final label = lead.followUpDate != null ? DateFormat('MM/dd/yy').format(lead.followUpDate!) : '—';
+    return GestureDetector(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: lead.followUpDate ?? DateTime.now(),
+          firstDate: DateTime(2020),
+          lastDate: DateTime(2030),
+          builder: (ctx, child) => Theme(
+            data: ThemeData(
+              colorScheme: isDark
+                  ? const ColorScheme.dark(primary: Color(0xFF10B981))
+                  : const ColorScheme.light(primary: Color(0xFF10B981)),
+            ),
+            child: child!,
+          ),
+        );
+        if (picked != null && mounted) {
+          context.read<LeadTrackerBloc>().add(LeadTrackerUpdateRequested(id: lead.id, data: {'followUpDate': DateFormat('yyyy-MM-dd').format(picked)}));
+        }
+      },
+      child: Row(children: [
+        Icon(Icons.calendar_today_outlined, size: 12, color: isDark ? Colors.white30 : Colors.grey.shade400),
+        const SizedBox(width: 5),
+        Text(label, style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey.shade600, fontWeight: FontWeight.w500)),
+      ]),
+    );
+  }
+
+  Widget _notesPreview(LeadModel lead, bool isDark) {
+    final hasNotes = lead.additionalNotes?.isNotEmpty == true;
+    return Text(
+      hasNotes ? lead.additionalNotes! : 'Tap to add notes...',
+      style: TextStyle(
+        fontSize: 12,
+        color: hasNotes ? (isDark ? Colors.white.withOpacity(0.6) : Colors.grey.shade600) : (isDark ? Colors.white.withOpacity(0.2) : Colors.grey.shade300),
+        fontStyle: hasNotes ? FontStyle.normal : FontStyle.italic,
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 }
