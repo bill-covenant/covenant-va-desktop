@@ -9,6 +9,33 @@ import '../../../core/theme/theme_provider.dart';
 
 const _statuses = ['New', 'Contacted', 'Follow-up', 'Interested', 'Not Interested', 'Closed'];
 
+const _dispositions = [
+  'New Lead', 'Attempted Contact', 'Contacted', 'Interested',
+  'Meeting Scheduled', 'Nurture', 'Not Interested', 'DNC',
+];
+
+const _dispositionColors = {
+  'New Lead':          Color(0xFF6B7280),
+  'Attempted Contact': Color(0xFF0EA5E9),
+  'Contacted':         Color(0xFF3B82F6),
+  'Interested':        Color(0xFF10B981),
+  'Meeting Scheduled': Color(0xFF8B5CF6),
+  'Nurture':           Color(0xFFF59E0B),
+  'Not Interested':    Color(0xFFF97316),
+  'DNC':               Color(0xFFEF4444),
+};
+
+const _dispositionBg = {
+  'New Lead':          Color(0xFFF3F4F6),
+  'Attempted Contact': Color(0xFFE0F2FE),
+  'Contacted':         Color(0xFFEFF6FF),
+  'Interested':        Color(0xFFECFDF5),
+  'Meeting Scheduled': Color(0xFFF5F3FF),
+  'Nurture':           Color(0xFFFFFBEB),
+  'Not Interested':    Color(0xFFFFF7ED),
+  'DNC':               Color(0xFFFEF2F2),
+};
+
 const _statusColors = {
   'New':           Color(0xFF6B7280),
   'Contacted':     Color(0xFF3B82F6),
@@ -671,6 +698,7 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
                 _thFlex('Email Address', 3),
                 _thFlex('Company', 3),
                 _thFlex('Phone', 2),
+                _thFlex('Call Disposition', 3),
                 _thFlex('Status', 2),
                 _thFlex('Follow-up', 2),
                 _thFlex('Notes', 3),
@@ -815,6 +843,7 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
             Expanded(flex: 3, child: _editableCellFlex(context, lead, 'email', lead.email ?? '', isDark)),
             Expanded(flex: 3, child: _editableCellFlex(context, lead, 'company', lead.company, isDark)),
             Expanded(flex: 2, child: _editableCellFlex(context, lead, 'phone', lead.phone, isDark)),
+            Expanded(flex: 3, child: _dispositionChip(context, lead, isDark)),
             Expanded(flex: 2, child: _statusChip(context, lead, isDark)),
             Expanded(flex: 2, child: _datePicker(context, lead, isDark)),
             Expanded(flex: 3, child: _notesPreview(lead, isDark)),
@@ -958,6 +987,97 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
           Text(lead.status, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
         ]),
       ),
+    );
+  }
+
+  Widget _dispositionChip(BuildContext context, LeadModel lead, bool isDark) {
+    final disp = lead.callDisposition;
+    final color = disp != null ? (_dispositionColors[disp] ?? const Color(0xFF6B7280)) : const Color(0xFF6B7280);
+    final bg = disp != null ? (_dispositionBg[disp] ?? const Color(0xFFF3F4F6)) : Colors.transparent;
+
+    return GestureDetector(
+      onTap: () {
+        String? selected = lead.callDisposition;
+        final cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+        final textColor = isDark ? Colors.white : const Color(0xFF1F2937);
+        showDialog(
+          context: context,
+          builder: (ctx) => StatefulBuilder(
+            builder: (ctx, setState) => Dialog(
+              backgroundColor: cardColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: SizedBox(
+                width: 340,
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Call Disposition', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: textColor)),
+                      const SizedBox(height: 14),
+                      ...[ null, ..._dispositions].map((d) {
+                        final dColor = d != null ? (_dispositionColors[d] ?? const Color(0xFF6B7280)) : const Color(0xFF6B7280);
+                        final dBg = d != null ? (_dispositionBg[d] ?? const Color(0xFFF3F4F6)) : Colors.transparent;
+                        final isSelected = selected == d;
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() => selected = d);
+                            Navigator.pop(ctx);
+                            context.read<LeadTrackerBloc>().add(LeadTrackerUpdateRequested(id: lead.id, data: {'callDisposition': d}));
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                            decoration: BoxDecoration(
+                              color: isSelected ? (isDark ? dColor.withOpacity(0.15) : dBg) : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: isSelected ? dColor.withOpacity(0.3) : Colors.transparent),
+                            ),
+                            child: Row(children: [
+                              if (d != null) ...[
+                                Container(width: 8, height: 8, decoration: BoxDecoration(color: dColor, shape: BoxShape.circle)),
+                                const SizedBox(width: 10),
+                              ],
+                              Text(
+                                d ?? '— Clear —',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                  color: d != null
+                                      ? (isSelected ? dColor : (isDark ? Colors.white70 : Colors.grey.shade700))
+                                      : (isDark ? Colors.white38 : Colors.grey.shade400),
+                                  fontStyle: d == null ? FontStyle.italic : FontStyle.normal,
+                                ),
+                              ),
+                              if (isSelected) ...[const Spacer(), Icon(Icons.check_rounded, size: 16, color: dColor)],
+                            ]),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      child: disp != null
+          ? Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: isDark ? color.withOpacity(0.15) : bg,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: color.withOpacity(0.25)),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                const SizedBox(width: 5),
+                Flexible(child: Text(disp, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color), overflow: TextOverflow.ellipsis)),
+              ]),
+            )
+          : Text('— Set —', style: TextStyle(fontSize: 11, color: isDark ? Colors.white.withOpacity(0.2) : Colors.grey.shade300, fontStyle: FontStyle.italic)),
     );
   }
 
