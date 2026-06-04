@@ -58,54 +58,38 @@ class _TimecardScreenState extends State<TimecardScreen> {
   }
 
   // ============================================
-  // PAY PERIOD HELPERS (2nd and 4th Friday)
+  // PAY PERIOD HELPERS (Weekly: Mon–Fri, payday following Friday)
   // ============================================
 
-  static DateTime _getNthWeekday(int year, int month, int weekday, int n) {
-    final firstDay = DateTime(year, month, 1);
-    final firstWeekday = firstDay.weekday % 7; // Convert to 0=Sun format
-    final dayOfMonth = 1 + ((weekday - firstWeekday + 7) % 7) + (n - 1) * 7;
-    return DateTime(year, month, dayOfMonth);
+  /// Returns the Monday of the week containing [date].
+  static DateTime _getMondayOf(DateTime date) {
+    return date.subtract(Duration(days: date.weekday - 1));
   }
 
-  static Map<String, DateTime> _getPayPeriodDates(int year, int month, String period) {
-    final secondFriday = _getNthWeekday(year, month, 5, 2);
-    final fourthFriday = _getNthWeekday(year, month, 5, 4);
-
-    final prevMonth = month == 1 ? 12 : month - 1;
-    final prevYear = month == 1 ? year - 1 : year;
-    final prevFourthFriday = _getNthWeekday(prevYear, prevMonth, 5, 4);
-    final p1Start = prevFourthFriday.add(const Duration(days: 1));
-    final p2Start = secondFriday.add(const Duration(days: 1));
-
-    if (period == 'P1') {
-      return {'start': p1Start, 'end': secondFriday, 'payday': secondFriday};
-    }
-    return {'start': p2Start, 'end': fourthFriday, 'payday': fourthFriday};
+  /// Builds a pay period option map from a Monday start date.
+  static Map<String, dynamic> _weeklyPeriod(DateTime monday) {
+    final friday = monday.add(const Duration(days: 4));   // same-week Friday
+    final payday = monday.add(const Duration(days: 11));  // following Friday
+    final key =
+        '${monday.year}-${monday.month.toString().padLeft(2, '0')}-${monday.day.toString().padLeft(2, '0')}';
+    final label = '${_fmtShort(monday)} – ${_fmtShort(friday)}, ${monday.year}  •  Payday ${_fmtShort(payday)}';
+    return {
+      'key': key,
+      'label': label,
+      'start': monday,
+      'end': friday,
+      'payday': payday,
+    };
   }
 
+  /// Returns the 12 most recent weekly periods (current week first).
   List<Map<String, dynamic>> _getPayPeriodOptions() {
     final now = DateTime.now();
+    final currentMonday = _getMondayOf(now);
     final options = <Map<String, dynamic>>[];
-
-    for (int i = 0; i < 6; i++) {
-      final date = DateTime(now.year, now.month - i, 1);
-      final y = date.year;
-      final m = date.month;
-
-      for (final p in ['P2', 'P1']) {
-        final dates = _getPayPeriodDates(y, m, p);
-        final start = dates['start']!;
-        final end = dates['end']!;
-        final label = '${_fmtShort(start)} – ${_fmtShort(end)}, $y';
-        options.add({
-          'key': '$y-${m.toString().padLeft(2, '0')}-$p',
-          'label': label,
-          'start': start,
-          'end': end,
-          'payday': dates['payday']!,
-        });
-      }
+    for (int i = 0; i < 12; i++) {
+      final monday = currentMonday.subtract(Duration(days: i * 7));
+      options.add(_weeklyPeriod(monday));
     }
     return options;
   }
