@@ -171,7 +171,7 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
     );
   }
 
-  Widget _dialogField(TextEditingController ctrl, String hint, IconData icon, bool isDark, Color textColor, Color hintColor, Color borderColor) {
+  Widget _dialogField(TextEditingController ctrl, String hint, IconData? icon, bool isDark, Color textColor, Color hintColor, Color borderColor) {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
@@ -184,9 +184,9 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(color: hintColor, fontSize: 13),
-          prefixIcon: Icon(icon, color: hintColor, size: 18),
+          prefixIcon: icon != null ? Icon(icon, color: hintColor, size: 18) : null,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+          contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: icon != null ? 12 : 16),
         ),
       ),
     );
@@ -239,7 +239,7 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
                 const SizedBox(height: 20),
                 _sectionLabel('Last Contacted', textColor),
                 const SizedBox(height: 6),
-                _dialogField(lastContactedCtrl, 'YYYY-MM-DD', Icons.calendar_today_outlined, isDark, textColor, hintColor, borderColor),
+                _dialogField(lastContactedCtrl, 'YYYY-MM-DD', null, isDark, textColor, hintColor, borderColor),
                 const SizedBox(height: 14),
                 _sectionLabel('Pain Points', textColor),
                 const SizedBox(height: 6),
