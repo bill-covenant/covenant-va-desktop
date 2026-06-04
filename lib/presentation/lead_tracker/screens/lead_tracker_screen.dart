@@ -517,19 +517,25 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
             ),
             const SizedBox(width: 8),
             if (state is LeadTrackerLoaded)
-              // Submit Intake button (for interested leads)
-              OutlinedButton.icon(
+              // Submit Intake button
+              ElevatedButton(
                 onPressed: () => showDialog(
                   context: context,
                   builder: (_) => const IntakeFormDialog(),
                 ),
-                icon: const Icon(Icons.assignment_turned_in_outlined, size: 16, color: Colors.white),
-                label: const Text('Submit Intake', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.white)),
-                style: OutlinedButton.styleFrom(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isDark ? const Color(0xFF10B981) : Colors.white,
+                  foregroundColor: isDark ? Colors.white : const Color(0xFF059669),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  side: BorderSide(color: Colors.white.withOpacity(0.4)),
+                  elevation: isDark ? 0 : 3,
+                  shadowColor: Colors.black.withOpacity(0.2),
                 ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.assignment_turned_in_outlined, size: 16, color: isDark ? Colors.white : const Color(0xFF059669)),
+                  const SizedBox(width: 6),
+                  Text('Submit Intake', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: isDark ? Colors.white : const Color(0xFF059669))),
+                ]),
               ),
               const SizedBox(width: 8),
               ElevatedButton(
