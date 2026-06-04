@@ -531,10 +531,10 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
                   elevation: isDark ? 0 : 3,
                   shadowColor: Colors.black.withOpacity(0.2),
                 ),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.assignment_turned_in_outlined, size: 16, color: isDark ? Colors.white : const Color(0xFF059669)),
+                child: Row(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(Icons.assignment_turned_in_outlined, size: 16, color: Colors.white),
                   const SizedBox(width: 6),
-                  Text('Submit Intake', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: isDark ? Colors.white : const Color(0xFF059669))),
+                  const Text('Submit Intake', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.white)),
                 ]),
               ),
               const SizedBox(width: 8),
