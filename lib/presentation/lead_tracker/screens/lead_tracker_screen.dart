@@ -741,7 +741,9 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
           builder: (ctx) => Dialog(
             backgroundColor: cardColor,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
+            child: SizedBox(
+              width: 380,
+              child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 Text('Edit ${field[0].toUpperCase()}${field.substring(1)}', style: TextStyle(fontWeight: FontWeight.w800, color: textColor)),
@@ -772,6 +774,7 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
                 ]),
               ]),
             ),
+          ),
           ),
         );
       },
@@ -834,7 +837,9 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
             builder: (ctx) => Dialog(
               backgroundColor: cardColor,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: Padding(
+              child: SizedBox(
+                width: 380,
+                child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
                   Text('Edit ${field[0].toUpperCase()}${field.substring(1)}', style: TextStyle(fontWeight: FontWeight.w800, color: textColor)),
@@ -866,7 +871,8 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
                 ]),
               ),
             ),
-          );
+          ),
+        );
         },
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
