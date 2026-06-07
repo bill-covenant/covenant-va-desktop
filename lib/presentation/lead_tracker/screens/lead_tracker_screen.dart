@@ -112,6 +112,7 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
   void _showAddDialog() {
     final nameCtrl = TextEditingController();
     final companyCtrl = TextEditingController();
+    final industryCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
     final emailCtrl = TextEditingController();
     String status = 'New';
@@ -152,6 +153,8 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
                 _dialogField(nameCtrl, 'Name', Icons.person_outline, isDark, textColor, hintColor, borderColor),
                 const SizedBox(height: 12),
                 _dialogField(companyCtrl, 'Company', Icons.business_outlined, isDark, textColor, hintColor, borderColor),
+                const SizedBox(height: 12),
+                _dialogField(industryCtrl, 'Industry (optional)', Icons.apartment_outlined, isDark, textColor, hintColor, borderColor),
                 const SizedBox(height: 12),
                 _dialogField(phoneCtrl, 'Phone', Icons.phone_outlined, isDark, textColor, hintColor, borderColor),
                 const SizedBox(height: 12),
@@ -195,6 +198,7 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
                         context.read<LeadTrackerBloc>().add(LeadTrackerCreateRequested(
                           name: nameCtrl.text.trim(),
                           company: companyCtrl.text.trim(),
+                          industry: industryCtrl.text.trim().isEmpty ? null : industryCtrl.text.trim(),
                           phone: phoneCtrl.text.trim(),
                           email: emailCtrl.text.trim().isEmpty ? null : emailCtrl.text.trim(),
                           status: status,
@@ -734,6 +738,7 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
                 _thFlex('Name', 2),
                 _thFlex('Email Address', 3),
                 _thFlex('Company', 2),
+                _thFlex('Industry', 2),
                 _thFlex('Phone', 2),
                 _thFlex('Status', 2),
                 _thFlex('Call Disposition', 2),
@@ -880,6 +885,7 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
             Expanded(flex: 2, child: _editableCellFlex(context, lead, 'name', lead.name, isDark)),
             Expanded(flex: 3, child: _editableCellFlex(context, lead, 'email', lead.email ?? '', isDark)),
             Expanded(flex: 2, child: _editableCellFlex(context, lead, 'company', lead.company, isDark)),
+            Expanded(flex: 2, child: _editableCellFlex(context, lead, 'industry', lead.industry ?? '', isDark)),
             Expanded(flex: 2, child: _editableCellFlex(context, lead, 'phone', lead.phone, isDark)),
             Expanded(flex: 2, child: _dispositionChip(context, lead, isDark)),
             Expanded(flex: 2, child: _outcomeChip(context, lead, isDark)),

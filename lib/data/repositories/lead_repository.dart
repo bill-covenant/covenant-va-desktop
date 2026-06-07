@@ -19,6 +19,7 @@ class LeadRepository {
   Future<LeadModel> createLead({
     required String name,
     required String company,
+    String? industry,
     String? department,
     required String phone,
     String? email,
@@ -29,6 +30,7 @@ class LeadRepository {
       {
         'name': name,
         'company': company,
+        if (industry != null) 'industry': industry,
         if (department != null) 'department': department,
         'phone': phone,
         if (email != null) 'email': email,

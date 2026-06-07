@@ -13,6 +13,7 @@ class LeadTrackerLoadRequested extends LeadTrackerEvent {
 class LeadTrackerCreateRequested extends LeadTrackerEvent {
   final String name;
   final String company;
+  final String? industry;
   final String? department;
   final String phone;
   final String? email;
@@ -21,6 +22,7 @@ class LeadTrackerCreateRequested extends LeadTrackerEvent {
   const LeadTrackerCreateRequested({
     required this.name,
     required this.company,
+    this.industry,
     this.department,
     required this.phone,
     this.email,
@@ -28,7 +30,7 @@ class LeadTrackerCreateRequested extends LeadTrackerEvent {
   });
 
   @override
-  List<Object?> get props => [name, company, department, phone, email, status];
+  List<Object?> get props => [name, company, industry, department, phone, email, status];
 }
 
 class LeadTrackerUpdateRequested extends LeadTrackerEvent {

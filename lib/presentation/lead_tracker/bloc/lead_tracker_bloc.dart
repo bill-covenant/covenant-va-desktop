@@ -36,6 +36,7 @@ class LeadTrackerBloc extends Bloc<LeadTrackerEvent, LeadTrackerState> {
       final lead = await _leadRepository.createLead(
         name: event.name,
         company: event.company,
+        industry: event.industry,
         department: event.department,
         phone: event.phone,
         email: event.email,

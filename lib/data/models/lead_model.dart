@@ -2,6 +2,7 @@ class LeadModel {
   final String id;
   final String name;
   final String company;
+  final String? industry;
   final String? department;
   final String phone;
   final String? email;
@@ -20,6 +21,7 @@ class LeadModel {
     required this.id,
     required this.name,
     required this.company,
+    this.industry,
     this.department,
     required this.phone,
     this.email,
@@ -40,6 +42,7 @@ class LeadModel {
       id: json['id'] as String,
       name: json['name'] as String? ?? '',
       company: json['company'] as String? ?? '',
+      industry: json['industry'] as String?,
       department: json['department'] as String?,
       phone: json['phone'] as String? ?? '',
       email: json['email'] as String?,
@@ -60,6 +63,7 @@ class LeadModel {
     'id': id,
     'name': name,
     'company': company,
+    'industry': industry,
     'department': department,
     'phone': phone,
     'email': email,
