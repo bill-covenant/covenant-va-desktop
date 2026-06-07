@@ -8,14 +8,17 @@ import '../bloc/lead_tracker_bloc.dart';
 import '../bloc/lead_tracker_event.dart';
 import '../bloc/lead_tracker_state.dart';
 import '../../../data/models/lead_model.dart';
+import '../../../data/repositories/lead_repository.dart';
+import '../../../core/di/service_locator.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../widgets/intake_form_dialog.dart';
 
 const _statuses = ['New', 'Contacted', 'Follow-up', 'Interested', 'Not Interested', 'Closed'];
 
 const _dispositions = [
-  'New Lead', 'Attempted Contact', 'Contacted', 'Interested',
-  'Meeting Scheduled', 'Nurture', 'Not Interested', 'DNC', 'Closed Deal',
+  'New Lead', 'Contact Attempted', 'Contacted', 'Follow-Up Scheduled',
+  'Discovery Meeting Scheduled', 'Qualified Opportunity', 'Proposal Sent',
+  'Negotiation', 'Closed Won', 'Closed Lost', 'Nurture', 'Disqualified',
 ];
 
 const _dispositionColors = {
@@ -24,13 +27,27 @@ const _dispositionColors = {
   'Contacted':         Color(0xFF3B82F6),
   'Interested':        Color(0xFF10B981),
   'Meeting Scheduled': Color(0xFF8B5CF6),
-  'Nurture':           Color(0xFFF59E0B),
+  'Nurture':           Color(0xFFEAB308),
   'Not Interested':    Color(0xFFF97316),
   'DNC':               Color(0xFFEF4444),
   'Closed Deal':       Color(0xFF0D9488),
+  // New Lead Status values
+  'Contact Attempted':           Color(0xFF0EA5E9),
+  'Follow-Up Scheduled':         Color(0xFFF59E0B),
+  'Discovery Meeting Scheduled': Color(0xFF8B5CF6),
+  'Qualified Opportunity':       Color(0xFF14B8A6),
+  'Proposal Sent':               Color(0xFF6366F1),
+  'Negotiation':                 Color(0xFFF97316),
+  'Closed Won':                  Color(0xFF10B981),
+  'Closed Lost':                 Color(0xFFEF4444),
+  'Disqualified':                Color(0xFFE11D48),
 };
 
-const _outcomes = ['Busy', 'Voicemail', 'Wrong Number', 'Disconnected Number', 'Contact Hang Up'];
+const _outcomes = [
+  'No Answer', 'Voicemail Left', 'Busy', 'Wrong Number', 'Gatekeeper',
+  'Call Back Requested', 'Interested', 'Not Interested', 'Appointment Scheduled',
+  'Sent Information', 'Do Not Call', 'Disqualified',
+];
 
 const _outcomeColors = {
   'Busy':               Color(0xFFF59E0B),
@@ -38,6 +55,17 @@ const _outcomeColors = {
   'Wrong Number':       Color(0xFFF97316),
   'Disconnected Number':Color(0xFFEF4444),
   'Contact Hang Up':    Color(0xFFE11D48),
+  // New Call Disposition values
+  'No Answer':             Color(0xFF6B7280),
+  'Voicemail Left':        Color(0xFF3B82F6),
+  'Gatekeeper':            Color(0xFF8B5CF6),
+  'Call Back Requested':   Color(0xFF0EA5E9),
+  'Interested':            Color(0xFF10B981),
+  'Not Interested':        Color(0xFFEF4444),
+  'Appointment Scheduled': Color(0xFF14B8A6),
+  'Sent Information':      Color(0xFF6366F1),
+  'Do Not Call':           Color(0xFFDC2626),
+  'Disqualified':          Color(0xFFE11D48),
 };
 
 const _outcomeBg = {
@@ -46,6 +74,17 @@ const _outcomeBg = {
   'Wrong Number':       Color(0xFFFFF7ED),
   'Disconnected Number':Color(0xFFFEF2F2),
   'Contact Hang Up':    Color(0xFFFFF1F2),
+  // New Call Disposition values
+  'No Answer':             Color(0xFFF3F4F6),
+  'Voicemail Left':        Color(0xFFEFF6FF),
+  'Gatekeeper':            Color(0xFFF5F3FF),
+  'Call Back Requested':   Color(0xFFE0F2FE),
+  'Interested':            Color(0xFFECFDF5),
+  'Not Interested':        Color(0xFFFEF2F2),
+  'Appointment Scheduled': Color(0xFFCCFBF1),
+  'Sent Information':      Color(0xFFEEF2FF),
+  'Do Not Call':           Color(0xFFFEF2F2),
+  'Disqualified':          Color(0xFFFFF1F2),
 };
 
 const _dispositionBg = {
@@ -58,6 +97,16 @@ const _dispositionBg = {
   'Not Interested':    Color(0xFFFFF7ED),
   'DNC':               Color(0xFFFEF2F2),
   'Closed Deal':       Color(0xFFCCFBF1),
+  // New Lead Status values
+  'Contact Attempted':           Color(0xFFE0F2FE),
+  'Follow-Up Scheduled':         Color(0xFFFFFBEB),
+  'Discovery Meeting Scheduled': Color(0xFFF5F3FF),
+  'Qualified Opportunity':       Color(0xFFCCFBF1),
+  'Proposal Sent':               Color(0xFFEEF2FF),
+  'Negotiation':                 Color(0xFFFFF7ED),
+  'Closed Won':                  Color(0xFFECFDF5),
+  'Closed Lost':                 Color(0xFFFEF2F2),
+  'Disqualified':                Color(0xFFFFF1F2),
 };
 
 const _statusColors = {
@@ -395,6 +444,10 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
     }
   }
 
+  void _showSubmittedIntakes() {
+    showDialog(context: context, builder: (_) => const _SubmittedIntakesDialog());
+  }
+
   void _showNotesDialog(LeadModel lead, bool isDark) {
     final cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textColor = isDark ? Colors.white : const Color(0xFF1F2937);
@@ -681,6 +734,21 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
                 onPressed: _handleImportCsv,
                 icon: const Icon(Icons.upload_file_rounded, color: Colors.white, size: 18),
                 tooltip: 'Import leads from CSV',
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white.withOpacity(0.15)),
+              ),
+              child: IconButton(
+                onPressed: _showSubmittedIntakes,
+                icon: const Icon(Icons.assignment_turned_in_outlined, color: Colors.white, size: 18),
+                tooltip: 'Submitted intakes',
                 padding: const EdgeInsets.all(8),
                 constraints: const BoxConstraints(),
               ),
@@ -1471,6 +1539,149 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
       ),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
+    );
+  }
+}
+
+/// Read-only viewer of submitted client intake forms (basic info).
+class _SubmittedIntakesDialog extends StatefulWidget {
+  const _SubmittedIntakesDialog();
+  @override
+  State<_SubmittedIntakesDialog> createState() => _SubmittedIntakesDialogState();
+}
+
+class _SubmittedIntakesDialogState extends State<_SubmittedIntakesDialog> {
+  late Future<List<Map<String, dynamic>>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = getIt<LeadRepository>().getSubmittedIntakes();
+  }
+
+  String _fmtDate(dynamic iso) {
+    if (iso == null) return '';
+    final d = DateTime.tryParse(iso.toString());
+    return d == null ? '' : DateFormat('MMM d, yyyy').format(d.toLocal());
+  }
+
+  Color _statusColor(String s) {
+    switch (s.toUpperCase()) {
+      case 'APPROVED':
+        return const Color(0xFF10B981);
+      case 'REJECTED':
+        return const Color(0xFFEF4444);
+      default:
+        return const Color(0xFFF59E0B);
+    }
+  }
+
+  Widget _intakeRow(IconData icon, String text, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(icon, size: 13, color: color),
+        const SizedBox(width: 6),
+        Expanded(child: Text(text, style: TextStyle(fontSize: 12, color: color))),
+      ]),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = ThemeProvider().isDarkMode;
+    final cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF1F2937);
+    final hintColor = isDark ? Colors.white60 : Colors.grey.shade600;
+    final borderColor = isDark ? Colors.white12 : Colors.grey.shade200;
+
+    return Dialog(
+      backgroundColor: cardColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: SizedBox(
+        width: 560,
+        height: 600,
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
+            child: Row(children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF059669)]),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.assignment_turned_in_outlined, color: Colors.white, size: 18),
+              ),
+              const SizedBox(width: 12),
+              Text('Submitted Intakes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: textColor)),
+              const Spacer(),
+              IconButton(onPressed: () => Navigator.pop(context), icon: Icon(Icons.close, color: hintColor, size: 18)),
+            ]),
+          ),
+          Expanded(
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: _future,
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)));
+                }
+                if (snap.hasError) {
+                  return Center(child: Text('Failed to load intakes', style: TextStyle(color: hintColor)));
+                }
+                final intakes = snap.data ?? [];
+                if (intakes.isEmpty) {
+                  return Center(child: Text('No submitted intakes yet', style: TextStyle(color: hintColor, fontWeight: FontWeight.w600)));
+                }
+                return ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  itemCount: intakes.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, i) {
+                    final it = intakes[i];
+                    final name = (it['name'] ?? '').toString();
+                    final business = (it['businessName'] ?? '').toString();
+                    final email = (it['email'] ?? '').toString();
+                    final phone = (it['phone'] ?? '').toString();
+                    final vaCount = (it['vaCount'] ?? '').toString();
+                    final hours = (it['hoursPerWeek'] ?? '').toString();
+                    final services = (it['vaTypes'] is List) ? (it['vaTypes'] as List).join(', ') : '';
+                    final status = (it['status'] ?? 'PENDING').toString();
+                    final sColor = _statusColor(status);
+                    return Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withOpacity(0.04) : Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: borderColor),
+                      ),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Row(children: [
+                          Expanded(child: Text(name.isEmpty ? '(no name)' : name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: textColor))),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(color: sColor.withOpacity(0.15), borderRadius: BorderRadius.circular(8), border: Border.all(color: sColor.withOpacity(0.3))),
+                            child: Text(status, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: sColor)),
+                          ),
+                        ]),
+                        if (business.isNotEmpty) ...[const SizedBox(height: 3), Text(business, style: TextStyle(fontSize: 12, color: hintColor, fontWeight: FontWeight.w600))],
+                        const SizedBox(height: 8),
+                        if (email.isNotEmpty) _intakeRow(Icons.email_outlined, email, hintColor),
+                        if (phone.isNotEmpty) _intakeRow(Icons.phone_outlined, phone, hintColor),
+                        if (services.isNotEmpty) _intakeRow(Icons.work_outline, services, hintColor),
+                        if (vaCount.isNotEmpty) _intakeRow(Icons.people_outline, 'VAs needed: $vaCount', hintColor),
+                        if (hours.isNotEmpty) _intakeRow(Icons.schedule_outlined, 'Hours/week: $hours', hintColor),
+                        const SizedBox(height: 6),
+                        Text('Submitted ${_fmtDate(it['createdAt'])}', style: TextStyle(fontSize: 11, color: hintColor.withOpacity(0.8))),
+                      ]),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ]),
+      ),
     );
   }
 }

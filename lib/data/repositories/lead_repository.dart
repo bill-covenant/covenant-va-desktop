@@ -49,6 +49,7 @@ class LeadRepository {
     String? businessName,
     String? businessAddress,
     String? vaCount,
+    String? hoursPerWeek,
     String? aboutBusiness,
     String? needSuggestions,
     String? startTimeline,
@@ -68,6 +69,7 @@ class LeadRepository {
         if (businessName != null) 'businessName': businessName,
         if (businessAddress != null) 'businessAddress': businessAddress,
         if (vaCount != null) 'vaCount': vaCount,
+        if (hoursPerWeek != null) 'hoursPerWeek': hoursPerWeek,
         if (aboutBusiness != null) 'aboutBusiness': aboutBusiness,
         if (needSuggestions != null) 'needSuggestions': needSuggestions,
         if (startTimeline != null) 'startTimeline': startTimeline,
@@ -79,6 +81,16 @@ class LeadRepository {
       },
       requiresAuth: true,
     );
+  }
+
+  Future<List<Map<String, dynamic>>> getSubmittedIntakes() async {
+    final response = await _apiProvider.get(
+      '/va-leads/intakes',
+      requiresAuth: true,
+      forceRefresh: true,
+    );
+    final list = response['intakes'] as List<dynamic>? ?? [];
+    return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
   Future<int> importLeads(List<Map<String, dynamic>> leads) async {

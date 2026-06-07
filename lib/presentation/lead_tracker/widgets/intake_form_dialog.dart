@@ -37,6 +37,7 @@ class _IntakeFormDialogState extends State<IntakeFormDialog> {
 
   // Section 2 — Service Requirements
   final TextEditingController _hoursCtrl = TextEditingController();
+  final TextEditingController _vaCountCtrl = TextEditingController();
   final TextEditingController _timelineCtrl = TextEditingController();
   final TextEditingController _paymentCtrl = TextEditingController();
 
@@ -66,7 +67,7 @@ class _IntakeFormDialogState extends State<IntakeFormDialog> {
   @override
   void dispose() {
     for (final c in [_nameCtrl, _phoneCtrl, _emailCtrl, _companyCtrl, _addressCtrl,
-      _aboutCtrl, _servicesCtrl, _suggestionsCtrl, _hoursCtrl, _timelineCtrl,
+      _aboutCtrl, _servicesCtrl, _suggestionsCtrl, _hoursCtrl, _vaCountCtrl, _timelineCtrl,
       _paymentCtrl, _softwareCtrl, _anythingCtrl]) {
       c.dispose();
     }
@@ -91,6 +92,7 @@ class _IntakeFormDialogState extends State<IntakeFormDialog> {
         return null;
       case 2:
         if (_hoursCtrl.text.trim().isEmpty) return 'Please specify hours per week';
+        if (_vaCountCtrl.text.trim().isEmpty) return 'Please specify how many VAs are needed';
         if (_timelineCtrl.text.trim().isEmpty) return 'Please specify a start timeline';
         return null;
       default:
@@ -116,7 +118,8 @@ class _IntakeFormDialogState extends State<IntakeFormDialog> {
         servicesNeeded: _servicesCtrl.text.trim(),
         businessName: _companyCtrl.text.trim().isEmpty ? null : _companyCtrl.text.trim(),
         businessAddress: _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim(),
-        vaCount: _hoursCtrl.text.trim().isEmpty ? null : _hoursCtrl.text.trim(),
+        vaCount: _vaCountCtrl.text.trim().isEmpty ? null : _vaCountCtrl.text.trim(),
+        hoursPerWeek: _hoursCtrl.text.trim().isEmpty ? null : _hoursCtrl.text.trim(),
         aboutBusiness: _aboutCtrl.text.trim().isEmpty ? null : _aboutCtrl.text.trim(),
         needSuggestions: _suggestionsCtrl.text.trim().isEmpty ? null : _suggestionsCtrl.text.trim(),
         startTimeline: _timelineCtrl.text.trim().isEmpty ? null : _timelineCtrl.text.trim(),
@@ -265,6 +268,11 @@ class _IntakeFormDialogState extends State<IntakeFormDialog> {
     _hint('Available: 20 hrs/week (\$300/week) or 40 hrs/week (\$600/week)', hintColor),
     _gap(h: 6),
     _field(_hoursCtrl, 'e.g. 20 hours/week', '', Icons.schedule_outlined, textColor, hintColor, borderColor, fieldBg, type: TextInputType.text),
+    _gap(),
+    _label('How many virtual assistants do you need? *', textColor),
+    _hint('Let us know if you need more than one VA', hintColor),
+    _gap(h: 6),
+    _field(_vaCountCtrl, 'e.g. 1 VA, 2 VAs', '', Icons.people_outline_rounded, textColor, hintColor, borderColor, fieldBg, type: TextInputType.text),
     _gap(),
     _label('When do you need to start? *', textColor),
     _gap(h: 6),

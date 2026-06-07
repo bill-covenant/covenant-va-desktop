@@ -11,6 +11,7 @@ import '../../data/repositories/note_repository.dart';
 import '../../data/repositories/announcement_repository.dart';
 import '../../data/repositories/crm_repository.dart';
 import '../../data/repositories/lead_repository.dart';
+import '../../data/repositories/blog_repository.dart';
 import '../../presentation/auth/bloc/auth_bloc.dart';
 import '../../presentation/crm/bloc/crm_bloc.dart';
 import '../../presentation/lead_tracker/bloc/lead_tracker_bloc.dart';
@@ -78,6 +79,10 @@ Future<void> setupServiceLocator() async {
 
   getIt.registerLazySingleton<LeadRepository>(
     () => LeadRepository(getIt<ApiProvider>()),
+  );
+
+  getIt.registerLazySingleton<BlogRepository>(
+    () => BlogRepository(getIt<ApiProvider>()),
   );
 
   // BLoCs
