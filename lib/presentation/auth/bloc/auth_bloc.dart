@@ -65,7 +65,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         final token = await _authRepository.getCachedToken();
 
         if (user != null && token != null) {
+          // Show cached user immediately for fast startup...
           emit(AuthAuthenticated(user: user, token: token));
+
+          // ...then refresh from the server so access/permission changes
+          // (e.g. Lead Tracker access granted by an admin) take effect on
+          // next launch without requiring a manual logout/login.
+          try {
+            final freshUser = await _authRepository.getCurrentUser();
+            if (!emit.isDone) {
+              emit(AuthAuthenticated(user: freshUser, token: token));
+            }
+          } catch (_) {
+            // Offline or transient error — keep the cached user.
+          }
         } else {
           emit(const AuthUnauthenticated());
         }

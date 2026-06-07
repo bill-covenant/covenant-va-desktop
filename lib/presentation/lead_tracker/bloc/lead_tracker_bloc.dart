@@ -15,6 +15,7 @@ class LeadTrackerBloc extends Bloc<LeadTrackerEvent, LeadTrackerState> {
     on<LeadTrackerCreateRequested>(_onCreate);
     on<LeadTrackerUpdateRequested>(_onUpdate);
     on<LeadTrackerDeleteRequested>(_onDelete);
+    on<LeadTrackerImportRequested>(_onImport);
   }
 
   void _emitLoaded(Emitter<LeadTrackerState> emit, {String? message}) {
@@ -56,6 +57,16 @@ class LeadTrackerBloc extends Bloc<LeadTrackerEvent, LeadTrackerState> {
       _emitLoaded(emit, message: 'Lead deleted');
     } catch (e) {
       emit(LeadTrackerError('Failed to delete lead: $e'));
+    }
+  }
+
+  Future<void> _onImport(LeadTrackerImportRequested event, Emitter<LeadTrackerState> emit) async {
+    try {
+      final count = await _leadRepository.importLeads(event.leads);
+      _leads = await _leadRepository.getLeads();
+      _emitLoaded(emit, message: 'Imported $count lead${count == 1 ? '' : 's'}');
+    } catch (e) {
+      emit(LeadTrackerError('Failed to import leads: $e'));
     }
   }
 

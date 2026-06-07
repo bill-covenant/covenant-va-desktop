@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:csv/csv.dart';
+import 'package:file_picker/file_picker.dart';
 import '../bloc/lead_tracker_bloc.dart';
 import '../bloc/lead_tracker_event.dart';
 import '../bloc/lead_tracker_state.dart';
@@ -242,6 +245,154 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
         ),
       ),
     );
+  }
+
+  // Maps a CSV header to a lead field key (case-insensitive, common aliases).
+  String? _mapHeader(String raw) {
+    final k = raw.trim().toLowerCase();
+    if (['name', 'full name', 'lead name', 'contact', 'contact name', 'contact person'].contains(k)) return 'name';
+    if (['company', 'company name', 'business', 'business name', 'organization', 'organisation'].contains(k)) return 'company';
+    if (['industry', 'sector', 'niche'].contains(k)) return 'industry';
+    if (['phone', 'phone number', 'mobile', 'mobile number', 'contact number', 'number', 'tel', 'telephone'].contains(k)) return 'phone';
+    if (['email', 'email address', 'e-mail', 'e mail'].contains(k)) return 'email';
+    if (['status', 'lead status'].contains(k)) return 'status';
+    return null;
+  }
+
+  void _showImportError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: const Color(0xFFEF4444),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    ));
+  }
+
+  Future<void> _handleImportCsv() async {
+    final picked = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['csv'],
+      withData: true,
+    );
+    if (picked == null || picked.files.isEmpty) return;
+    final file = picked.files.first;
+    final bytes = file.bytes;
+    if (bytes == null) {
+      _showImportError('Could not read the selected file.');
+      return;
+    }
+
+    List<List<dynamic>> rows;
+    try {
+      var content = utf8.decode(bytes, allowMalformed: true);
+      content = content.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+      rows = const CsvToListConverter(eol: '\n', shouldParseNumbers: false).convert(content);
+    } catch (_) {
+      _showImportError('Could not parse the CSV file.');
+      return;
+    }
+    if (rows.isEmpty) {
+      _showImportError('The file appears to be empty.');
+      return;
+    }
+
+    final headers = rows.first.map((e) => e.toString()).toList();
+    final fieldIndex = <String, int>{};
+    for (var i = 0; i < headers.length; i++) {
+      final field = _mapHeader(headers[i]);
+      if (field != null && !fieldIndex.containsKey(field)) fieldIndex[field] = i;
+    }
+    if (!fieldIndex.containsKey('name') && !fieldIndex.containsKey('company') && !fieldIndex.containsKey('phone')) {
+      _showImportError('No recognizable columns. Add a header row with Name, Company, Phone, Email, or Industry.');
+      return;
+    }
+
+    String cell(List<dynamic> row, String field) {
+      final idx = fieldIndex[field];
+      if (idx == null || idx >= row.length) return '';
+      return row[idx].toString().trim();
+    }
+
+    final leads = <Map<String, dynamic>>[];
+    for (final row in rows.skip(1)) {
+      if (row.every((c) => c.toString().trim().isEmpty)) continue;
+      final name = cell(row, 'name');
+      final company = cell(row, 'company');
+      final phone = cell(row, 'phone');
+      final email = cell(row, 'email');
+      final industry = cell(row, 'industry');
+      final status = cell(row, 'status');
+      if (name.isEmpty && company.isEmpty && phone.isEmpty && email.isEmpty) continue;
+      leads.add({
+        'name': name,
+        'company': company,
+        if (industry.isNotEmpty) 'industry': industry,
+        'phone': phone,
+        if (email.isNotEmpty) 'email': email,
+        if (status.isNotEmpty) 'status': status,
+      });
+    }
+
+    if (leads.isEmpty) {
+      _showImportError('No leads found in the file.');
+      return;
+    }
+    if (!mounted) return;
+
+    final isDark = ThemeProvider().isDarkMode;
+    final cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF1F2937);
+    final hintColor = isDark ? Colors.white60 : Colors.grey.shade600;
+    final detected = fieldIndex.keys.map((k) => '${k[0].toUpperCase()}${k.substring(1)}').join(', ');
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          width: 380,
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF059669)]),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.upload_file_rounded, color: Colors.white, size: 18),
+              ),
+              const SizedBox(width: 12),
+              Text('Import Leads', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: textColor)),
+            ]),
+            const SizedBox(height: 16),
+            Text('Found ${leads.length} lead${leads.length == 1 ? '' : 's'} in ${file.name}.',
+                style: TextStyle(fontSize: 13, color: textColor, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            Text('Detected columns: $detected', style: TextStyle(fontSize: 12, color: hintColor)),
+            const SizedBox(height: 20),
+            Row(children: [
+              Expanded(child: TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text('Cancel', style: TextStyle(color: hintColor, fontWeight: FontWeight.w600)),
+              )),
+              const SizedBox(width: 10),
+              Expanded(child: ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+                child: Text('Import ${leads.length}', style: const TextStyle(fontWeight: FontWeight.w700)),
+              )),
+            ]),
+          ]),
+        ),
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      context.read<LeadTrackerBloc>().add(LeadTrackerImportRequested(leads));
+    }
   }
 
   void _showNotesDialog(LeadModel lead, bool isDark) {
@@ -515,6 +666,21 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
                 onPressed: () => context.read<LeadTrackerBloc>().add(const LeadTrackerLoadRequested()),
                 icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 18),
                 tooltip: 'Refresh',
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white.withOpacity(0.15)),
+              ),
+              child: IconButton(
+                onPressed: _handleImportCsv,
+                icon: const Icon(Icons.upload_file_rounded, color: Colors.white, size: 18),
+                tooltip: 'Import leads from CSV',
                 padding: const EdgeInsets.all(8),
                 constraints: const BoxConstraints(),
               ),

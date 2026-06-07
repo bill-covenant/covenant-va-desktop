@@ -81,6 +81,15 @@ class LeadRepository {
     );
   }
 
+  Future<int> importLeads(List<Map<String, dynamic>> leads) async {
+    final response = await _apiProvider.post(
+      '/va-leads/bulk',
+      {'leads': leads},
+      requiresAuth: true,
+    );
+    return (response['count'] as num?)?.toInt() ?? 0;
+  }
+
   Future<void> deleteLead(String id) async {
     await _apiProvider.delete('/va-leads/$id', requiresAuth: true);
   }

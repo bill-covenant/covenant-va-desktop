@@ -50,7 +50,8 @@ class AuthRepository {
     }
   }
 
-  // Get current user (from API)
+  // Get current user (from API) — also refreshes the cached user so
+  // access/permission changes (e.g. Lead Tracker access) propagate.
   Future<UserModel> getCurrentUser() async {
     try {
       final response = await _apiProvider.get(
@@ -58,7 +59,9 @@ class AuthRepository {
         requiresAuth: true,
       );
 
-      return UserModel.fromJson(response['user'] as Map<String, dynamic>);
+      final user = UserModel.fromJson(response['user'] as Map<String, dynamic>);
+      await _storageProvider.saveUser(user);
+      return user;
     } catch (e) {
       throw Exception('Failed to get user: $e');
     }

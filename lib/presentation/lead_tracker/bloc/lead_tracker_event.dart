@@ -49,3 +49,10 @@ class LeadTrackerDeleteRequested extends LeadTrackerEvent {
   @override
   List<Object?> get props => [id];
 }
+
+class LeadTrackerImportRequested extends LeadTrackerEvent {
+  final List<Map<String, dynamic>> leads;
+  const LeadTrackerImportRequested(this.leads);
+  @override
+  List<Object?> get props => [leads];
+}
