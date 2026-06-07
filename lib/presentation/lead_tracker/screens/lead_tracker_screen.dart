@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:csv/csv.dart';
+import 'package:excel/excel.dart' as xls;
 import 'package:file_picker/file_picker.dart';
 import '../bloc/lead_tracker_bloc.dart';
 import '../bloc/lead_tracker_event.dart';
@@ -318,14 +319,46 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
     ));
   }
 
+  // Parse an .xlsx file's first sheet into rows of strings (same shape as CSV).
+  List<List<dynamic>> _parseXlsx(List<int> bytes) {
+    final book = xls.Excel.decodeBytes(bytes);
+    if (book.tables.isEmpty) return [];
+    final sheet = book.tables.values.first;
+    return sheet.rows.map((row) => row.map(_cellToString).toList()).toList();
+  }
+
+  String _cellToString(xls.Data? cell) {
+    final v = cell?.value;
+    if (v == null) return '';
+    dynamic inner;
+    try {
+      inner = (v as dynamic).value;
+    } catch (_) {
+      inner = null;
+    }
+    var s = (inner ?? v).toString().trim();
+    // Excel commonly stores numbers as doubles; drop a trailing .0 (e.g. phone numbers)
+    if (s.endsWith('.0')) s = s.substring(0, s.length - 2);
+    return s;
+  }
+
   Future<void> _handleImportCsv() async {
+    // Use FileType.any so the picker never greys out the file. A strict
+    // .csv filter blocks Excel/Sheets files on some platforms, which looks
+    // like "import isn't allowed". We validate the extension ourselves below.
     final picked = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['csv'],
+      type: FileType.any,
       withData: true,
     );
     if (picked == null || picked.files.isEmpty) return;
     final file = picked.files.first;
+    final name = file.name.toLowerCase();
+    final isCsv = name.endsWith('.csv');
+    final isXlsx = name.endsWith('.xlsx');
+    if (!isCsv && !isXlsx) {
+      _showImportError('Please choose a .csv or .xlsx file. In Google Sheets: File → Download → Excel (.xlsx) or CSV.');
+      return;
+    }
     final bytes = file.bytes;
     if (bytes == null) {
       _showImportError('Could not read the selected file.');
@@ -334,11 +367,15 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
 
     List<List<dynamic>> rows;
     try {
-      var content = utf8.decode(bytes, allowMalformed: true);
-      content = content.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
-      rows = const CsvToListConverter(eol: '\n', shouldParseNumbers: false).convert(content);
+      if (isXlsx) {
+        rows = _parseXlsx(bytes);
+      } else {
+        var content = utf8.decode(bytes, allowMalformed: true);
+        content = content.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+        rows = const CsvToListConverter(eol: '\n', shouldParseNumbers: false).convert(content);
+      }
     } catch (_) {
-      _showImportError('Could not parse the CSV file.');
+      _showImportError('Could not read the file. Please check the format and try again.');
       return;
     }
     if (rows.isEmpty) {
@@ -733,7 +770,7 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
               child: IconButton(
                 onPressed: _handleImportCsv,
                 icon: const Icon(Icons.upload_file_rounded, color: Colors.white, size: 18),
-                tooltip: 'Import leads from CSV',
+                tooltip: 'Import leads from CSV or Excel',
                 padding: const EdgeInsets.all(8),
                 constraints: const BoxConstraints(),
               ),
