@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/task_model.dart';
 import 'announcements_section.dart';
+import 'blog_preview_section.dart';
 import '../bloc/dashboard_bloc.dart';
 import '../bloc/dashboard_event.dart';
 import '../bloc/dashboard_state.dart';
@@ -99,6 +100,7 @@ class DashboardContent extends StatelessWidget {
                         _buildTopRow(state, isMobile),
                         const SizedBox(height: 20),
                         _buildBottomRow(state, isMobile),
+                        const BlogPreviewSection(),
                       ],
                     ),
                   );

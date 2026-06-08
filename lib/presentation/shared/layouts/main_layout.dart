@@ -399,7 +399,6 @@ class _MainLayoutState extends State<MainLayout> {
       'profile': 'Profile',
       'crm': 'Flooring Liquidators',
       'lead-tracker': 'Lead Tracker',
-      'blog': 'Blog',
     };
     return labels[_selectedRoute] ?? 'Dashboard';
   }
@@ -496,14 +495,6 @@ class _MainLayoutState extends State<MainLayout> {
                   isSelected: _selectedRoute == 'announcements',
                   badge: _announcementBadge > 0 ? _announcementBadge : null,
                   onTap: () => _navigateTo('announcements'),
-                ),
-                const SizedBox(height: 8),
-                LayoutSidebarNavItem(
-                  icon: Icons.menu_book_rounded,
-                  label: 'Blog',
-                  route: 'blog',
-                  isSelected: _selectedRoute == 'blog',
-                  onTap: () => _navigateTo('blog'),
                 ),
                 const SizedBox(height: 8),
                 LayoutSidebarNavItem(

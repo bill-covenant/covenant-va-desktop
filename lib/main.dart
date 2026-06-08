@@ -37,7 +37,6 @@ import 'presentation/timecard/screens/timecard_screen.dart';
 import 'presentation/crm/screens/crm_screen.dart';
 import 'presentation/crm/bloc/crm_bloc.dart';
 import 'presentation/lead_tracker/screens/lead_tracker_screen.dart';
-import 'presentation/blog/screens/blog_screen.dart';
 import 'presentation/lead_tracker/bloc/lead_tracker_bloc.dart';
 import 'data/repositories/notification_repository.dart';
 import 'data/providers/api_provider.dart';
@@ -100,7 +99,7 @@ class _AppContentState extends State<_AppContent> {
   bool _restoredLastRoute = false;
   static const _restorableRoutes = {
     'tasks', 'notes', 'messages', 'timecard', 'crm', 'lead-tracker',
-    'archive', 'announcements', 'blog', 'profile',
+    'archive', 'announcements', 'profile',
   };
 
   @override
@@ -285,10 +284,6 @@ class _AppContentState extends State<_AppContent> {
         '/announcements': (context) => const MainLayout(
               currentRoute: 'announcements',
               child: AnnouncementsScreen(),
-            ),
-        '/blog': (context) => const MainLayout(
-              currentRoute: 'blog',
-              child: BlogScreen(),
             ),
         '/crm': (context) => BlocProvider(
               create: (context) => getIt<CrmBloc>(),
