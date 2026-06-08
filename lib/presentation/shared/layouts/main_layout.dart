@@ -554,6 +554,14 @@ class _MainLayoutState extends State<MainLayout> {
     }
     setState(() => _selectedRoute = route);
     _clearBadge(route);
+    _saveLastRoute(route);
     Navigator.pushReplacementNamed(context, '/$route');
+  }
+
+  Future<void> _saveLastRoute(String route) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('last_route', route);
+    } catch (_) {}
   }
 }

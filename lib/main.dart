@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_core/firebase_core.dart';
 // import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'core/constants/app_theme.dart';
 import 'core/theme/theme_provider.dart';
@@ -96,6 +97,11 @@ class _AppContentState extends State<_AppContent> {
   final SocketService _socketService = SocketService();
   final CallService _callService = CallService();
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  bool _restoredLastRoute = false;
+  static const _restorableRoutes = {
+    'tasks', 'notes', 'messages', 'timecard', 'crm', 'lead-tracker',
+    'archive', 'announcements', 'blog', 'profile',
+  };
 
   @override
   void initState() {
@@ -316,16 +322,42 @@ class _AppContentState extends State<_AppContent> {
         }
         
         if (state is AuthAuthenticated) {
-          return BlocProvider(
-            create: (context) => getIt<DashboardBloc>()
-              ..add(const DashboardLoadRequested()),
-            child: const MainLayout(
-              currentRoute: 'dashboard',
-              child: DashboardScreen(),
-            ),
+          // On (web) reload the app restarts at /home. Restore the last screen
+          // the user was on instead of always dropping them on the dashboard.
+          return FutureBuilder<String?>(
+            future: SharedPreferences.getInstance()
+                .then((p) => p.getString('last_route')),
+            builder: (context, snap) {
+              if (snap.connectionState != ConnectionState.done) {
+                return const Scaffold(body: Center(child: CircularProgressIndicator()));
+              }
+              final last = snap.data;
+              final shouldRestore = last != null &&
+                  last != 'dashboard' &&
+                  _restorableRoutes.contains(last);
+              if (shouldRestore) {
+                if (!_restoredLastRoute) {
+                  _restoredLastRoute = true;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _navigatorKey.currentState?.pushReplacementNamed('/$last');
+                  });
+                }
+                return const Scaffold(body: Center(child: CircularProgressIndicator()));
+              }
+              return BlocProvider(
+                create: (context) => getIt<DashboardBloc>()
+                  ..add(const DashboardLoadRequested()),
+                child: const MainLayout(
+                  currentRoute: 'dashboard',
+                  child: DashboardScreen(),
+                ),
+              );
+            },
           );
         }
-        
+
+        // Not authenticated (e.g. after logout) — forget the saved screen.
+        SharedPreferences.getInstance().then((p) => p.remove('last_route')).ignore();
         return const LoginScreen();
       },
     );
