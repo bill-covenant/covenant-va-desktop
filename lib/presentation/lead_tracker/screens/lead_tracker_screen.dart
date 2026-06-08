@@ -139,6 +139,8 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
   final _searchCtrl = TextEditingController();
   String _filterStatus = '';
   String _searchQuery = '';
+  int _page = 0;
+  static const _pageSize = 20;
 
   @override
   void initState() {
@@ -896,7 +898,7 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
               ),
               child: TextField(
                 controller: _searchCtrl,
-                onChanged: (v) => setState(() => _searchQuery = v),
+                onChanged: (v) => setState(() { _searchQuery = v; _page = 0; }),
                 style: TextStyle(color: isDark ? Colors.white : const Color(0xFF1F2937), fontSize: 13),
                 decoration: InputDecoration(
                   hintText: 'Search by name or company...',
@@ -932,7 +934,7 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
                   DropdownMenuItem(value: '', child: Text('All Statuses', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600))),
                   ..._statuses.map((s) => DropdownMenuItem(value: s, child: Text(s))),
                 ],
-                onChanged: (v) => setState(() => _filterStatus = v ?? ''),
+                onChanged: (v) => setState(() { _filterStatus = v ?? ''; _page = 0; }),
               ),
             ),
           ),
@@ -943,6 +945,10 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
 
   Widget _buildTable(BuildContext context, List<LeadModel> allLeads, bool isDark) {
     final leads = _filtered(allLeads);
+    final totalPages = leads.isEmpty ? 1 : (leads.length / _pageSize).ceil();
+    final page = leads.isEmpty ? 0 : _page.clamp(0, totalPages - 1);
+    final startIdx = page * _pageSize;
+    final pageLeads = leads.skip(startIdx).take(_pageSize).toList();
     final cardBg = isDark ? const Color(0xFF0F1E35).withOpacity(0.8) : Colors.white;
     final headerBg = isDark
         ? const LinearGradient(colors: [Color(0xFF064E3B), Color(0xFF065F46)])
@@ -1021,10 +1027,10 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
             // Rows
             Expanded(
               child: ListView.builder(
-                itemCount: leads.length,
+                itemCount: pageLeads.length,
                 itemBuilder: (context, i) {
-                  final lead = leads[i];
-                  return _buildRow(context, lead, i, isDark, borderColor);
+                  final lead = pageLeads[i];
+                  return _buildRow(context, lead, startIdx + i, isDark, borderColor);
                 },
               ),
             ),
@@ -1040,10 +1046,19 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
                   Icon(Icons.people_outline, size: 14, color: isDark ? Colors.white30 : Colors.grey.shade400),
                   const SizedBox(width: 6),
                   Text(
-                    leads.length != allLeads.length ? '${leads.length} of ${allLeads.length} leads' : '${allLeads.length} lead${allLeads.length != 1 ? 's' : ''}',
+                    'Showing ${startIdx + 1}–${startIdx + pageLeads.length} of ${leads.length}${leads.length != allLeads.length ? ' (filtered)' : ''}',
                     style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : Colors.grey.shade500, fontWeight: FontWeight.w600),
                   ),
                   const Spacer(),
+                  if (totalPages > 1) ...[
+                    _pageBtn(Icons.chevron_left_rounded, page > 0, () => setState(() => _page = page - 1), isDark),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text('Page ${page + 1} of $totalPages', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: isDark ? Colors.white70 : Colors.grey.shade700)),
+                    ),
+                    _pageBtn(Icons.chevron_right_rounded, page < totalPages - 1, () => setState(() => _page = page + 1), isDark),
+                    const SizedBox(width: 16),
+                  ],
                   TextButton.icon(
                     onPressed: _showAddDialog,
                     icon: Icon(Icons.add_rounded, size: 14, color: const Color(0xFF10B981).withOpacity(0.8)),
@@ -1055,6 +1070,22 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _pageBtn(IconData icon, bool enabled, VoidCallback onTap, bool isDark) {
+    return InkWell(
+      onTap: enabled ? onTap : null,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: enabled ? const Color(0xFF10B981).withOpacity(0.12) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: enabled ? const Color(0xFF10B981).withOpacity(0.35) : (isDark ? Colors.white12 : Colors.grey.shade200)),
+        ),
+        child: Icon(icon, size: 18, color: enabled ? const Color(0xFF10B981) : (isDark ? Colors.white24 : Colors.grey.shade300)),
       ),
     );
   }
