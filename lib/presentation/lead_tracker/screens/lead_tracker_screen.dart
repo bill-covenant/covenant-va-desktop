@@ -1068,7 +1068,7 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
   Widget _thFlex(String label, int flex) {
     return Expanded(
       flex: flex,
-      child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 0.3)),
+      child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13, letterSpacing: 0.3)),
     );
   }
 
@@ -1125,7 +1125,7 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
         child: Text(
           value.isEmpty ? '—' : value,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 14,
             color: value.isEmpty ? (isDark ? Colors.white.withOpacity(0.2) : Colors.grey.shade300) : (isDark ? Colors.white.withOpacity(0.87) : const Color(0xFF374151)),
             fontWeight: value.isEmpty ? FontWeight.w400 : FontWeight.w500,
           ),
@@ -1152,7 +1152,7 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Row(
           children: [
-            Expanded(flex: 1, child: Text('${index + 1}', style: TextStyle(fontSize: 12, color: isDark ? Colors.white30 : Colors.grey.shade400, fontWeight: FontWeight.w600))),
+            Expanded(flex: 1, child: Text('${index + 1}', style: TextStyle(fontSize: 14, color: isDark ? Colors.white30 : Colors.grey.shade400, fontWeight: FontWeight.w600))),
             Expanded(flex: 2, child: _editableCellFlex(context, lead, 'name', lead.name, isDark)),
             Expanded(flex: 3, child: _editableCellFlex(context, lead, 'email', lead.email ?? '', isDark)),
             Expanded(flex: 2, child: _editableCellFlex(context, lead, 'company', lead.company, isDark)),
@@ -1437,10 +1437,10 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
                 const SizedBox(width: 5),
-                Flexible(child: Text(disp, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color), overflow: TextOverflow.ellipsis)),
+                Flexible(child: Text(disp, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color), overflow: TextOverflow.ellipsis)),
               ]),
             )
-          : Text('— Set —', style: TextStyle(fontSize: 11, color: isDark ? Colors.white.withOpacity(0.2) : Colors.grey.shade300, fontStyle: FontStyle.italic)),
+          : Text('— Set —', style: TextStyle(fontSize: 13, color: isDark ? Colors.white.withOpacity(0.2) : Colors.grey.shade300, fontStyle: FontStyle.italic)),
     );
   }
 
@@ -1528,10 +1528,10 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
                 const SizedBox(width: 5),
-                Flexible(child: Text(outcome, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color), overflow: TextOverflow.ellipsis)),
+                Flexible(child: Text(outcome, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color), overflow: TextOverflow.ellipsis)),
               ]),
             )
-          : Text('— Set —', style: TextStyle(fontSize: 11, color: isDark ? Colors.white.withOpacity(0.2) : Colors.grey.shade300, fontStyle: FontStyle.italic)),
+          : Text('— Set —', style: TextStyle(fontSize: 13, color: isDark ? Colors.white.withOpacity(0.2) : Colors.grey.shade300, fontStyle: FontStyle.italic)),
     );
   }
 
@@ -1560,7 +1560,7 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
       child: Row(children: [
         Icon(Icons.calendar_today_outlined, size: 12, color: isDark ? Colors.white30 : Colors.grey.shade400),
         const SizedBox(width: 5),
-        Text(label, style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey.shade600, fontWeight: FontWeight.w500)),
+        Text(label, style: TextStyle(fontSize: 14, color: isDark ? Colors.white54 : Colors.grey.shade600, fontWeight: FontWeight.w500)),
       ]),
     );
   }
@@ -1570,7 +1570,7 @@ class _LeadTrackerScreenState extends State<LeadTrackerScreen> {
     return Text(
       hasNotes ? lead.additionalNotes! : 'Tap to add notes...',
       style: TextStyle(
-        fontSize: 12,
+        fontSize: 14,
         color: hasNotes ? (isDark ? Colors.white.withOpacity(0.6) : Colors.grey.shade600) : (isDark ? Colors.white.withOpacity(0.2) : Colors.grey.shade300),
         fontStyle: hasNotes ? FontStyle.normal : FontStyle.italic,
       ),
