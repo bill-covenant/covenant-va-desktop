@@ -271,7 +271,7 @@ class _IntakeFormDialogState extends State<IntakeFormDialog> {
 
   Widget _section2(Color textColor, Color hintColor, Color borderColor, Color fieldBg) => Column(children: [
     _label('How many hours per week do you anticipate needing? *', textColor),
-    _hint('Available: 20 hrs/week (\$300/week) or 40 hrs/week (\$600/week)', hintColor),
+    _hint('Available: 20 hrs/week or 40 hrs/week', hintColor),
     _gap(h: 6),
     _field(_hoursCtrl, 'e.g. 20 hours/week', '', Icons.schedule_outlined, textColor, hintColor, borderColor, fieldBg, type: TextInputType.text),
     _gap(),
@@ -287,7 +287,7 @@ class _IntakeFormDialogState extends State<IntakeFormDialog> {
     _label('Payment Information', textColor),
     _hint('Auto-pay required — Payment due on the 1st of every month', hintColor),
     _gap(h: 6),
-    _area(_paymentCtrl, 'Please acknowledge: Payment is \$1,200/month (20 hrs) or \$2,400/month (40 hrs). Auto-pay is required.', textColor, hintColor, borderColor, fieldBg, rows: 3),
+    _area(_paymentCtrl, 'Please acknowledge: Auto-pay is required, with payment due on the 1st of every month.', textColor, hintColor, borderColor, fieldBg, rows: 3),
     const SizedBox(height: 4),
   ]);
 
