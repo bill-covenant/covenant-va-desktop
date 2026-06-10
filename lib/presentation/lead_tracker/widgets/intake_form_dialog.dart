@@ -30,6 +30,8 @@ class _IntakeFormDialogState extends State<IntakeFormDialog> {
   late final TextEditingController _companyCtrl;
   late final TextEditingController _addressCtrl;
 
+  final TextEditingController _positionCtrl = TextEditingController();
+
   // Section 1 — About Your Business
   final TextEditingController _aboutCtrl = TextEditingController();
   final TextEditingController _servicesCtrl = TextEditingController();
@@ -66,7 +68,7 @@ class _IntakeFormDialogState extends State<IntakeFormDialog> {
 
   @override
   void dispose() {
-    for (final c in [_nameCtrl, _phoneCtrl, _emailCtrl, _companyCtrl, _addressCtrl,
+    for (final c in [_nameCtrl, _positionCtrl, _phoneCtrl, _emailCtrl, _companyCtrl, _addressCtrl,
       _aboutCtrl, _servicesCtrl, _suggestionsCtrl, _hoursCtrl, _vaCountCtrl, _timelineCtrl,
       _paymentCtrl, _softwareCtrl, _anythingCtrl]) {
       c.dispose();
@@ -115,6 +117,7 @@ class _IntakeFormDialogState extends State<IntakeFormDialog> {
         name: _nameCtrl.text.trim(),
         email: _emailCtrl.text.trim(),
         phone: _phoneCtrl.text.trim(),
+        position: _positionCtrl.text.trim().isEmpty ? null : _positionCtrl.text.trim(),
         servicesNeeded: _servicesCtrl.text.trim(),
         businessName: _companyCtrl.text.trim().isEmpty ? null : _companyCtrl.text.trim(),
         businessAddress: _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim(),
@@ -235,6 +238,9 @@ class _IntakeFormDialogState extends State<IntakeFormDialog> {
 
   Widget _section0(Color textColor, Color hintColor, Color borderColor, Color fieldBg) => Column(children: [
     _field(_nameCtrl, 'Full Name *', 'John Smith', Icons.person_outline, textColor, hintColor, borderColor, fieldBg),
+    _gap(),
+    _field(_positionCtrl, 'Position / Role', 'Owner, Office Manager, Project Coordinator', Icons.badge_outlined, textColor, hintColor, borderColor, fieldBg),
+    _hint('The role of the person you are speaking with', hintColor),
     _gap(),
     _field(_phoneCtrl, 'Phone Number *', '(555) 123-4567', Icons.phone_outlined, textColor, hintColor, borderColor, fieldBg, type: TextInputType.phone),
     _gap(),
