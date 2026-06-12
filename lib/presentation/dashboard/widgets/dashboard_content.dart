@@ -297,7 +297,7 @@ class DashboardContent extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(child: _buildCalendarCard()),
+              Expanded(child: _buildCalendarCard(fill: true)),
               const SizedBox(width: 20),
               const Expanded(child: BlogPreviewSection()),
             ],
@@ -466,7 +466,7 @@ class DashboardContent extends StatelessWidget {
   // CALENDAR
   // ═══════════════════════════════════════
 
-  Widget _buildCalendarCard() {
+  Widget _buildCalendarCard({bool fill = false}) {
     final now = DateTime.now();
     final firstDay = DateTime(now.year, now.month, 1);
     final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
@@ -500,31 +500,33 @@ class DashboardContent extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           ...List.generate(6, (week) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: List.generate(7, (wd) {
-                  final dayNum = week * 7 + wd - startWeekday + 1;
-                  if (dayNum < 1 || dayNum > daysInMonth) return const SizedBox(width: 32, height: 32);
-                  final isToday = dayNum == now.day;
-                  return Container(
-                    width: 32, height: 32,
-                    decoration: BoxDecoration(
-                      gradient: isToday ? const LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)]) : null,
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: isToday ? [BoxShadow(color: const Color(0xFF8B5CF6).withOpacity(0.3), blurRadius: 6, offset: const Offset(0, 2))] : null,
+            final row = Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: List.generate(7, (wd) {
+                final dayNum = week * 7 + wd - startWeekday + 1;
+                if (dayNum < 1 || dayNum > daysInMonth) return const SizedBox(width: 32, height: 32);
+                final isToday = dayNum == now.day;
+                return Container(
+                  width: 32, height: 32,
+                  decoration: BoxDecoration(
+                    gradient: isToday ? const LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)]) : null,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: isToday ? [BoxShadow(color: const Color(0xFF8B5CF6).withOpacity(0.3), blurRadius: 6, offset: const Offset(0, 2))] : null,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$dayNum',
+                      style: TextStyle(fontSize: 12, fontWeight: isToday ? FontWeight.w800 : FontWeight.w500, color: isToday ? Colors.white : _textPrimary()),
                     ),
-                    child: Center(
-                      child: Text(
-                        '$dayNum',
-                        style: TextStyle(fontSize: 12, fontWeight: isToday ? FontWeight.w800 : FontWeight.w500, color: isToday ? Colors.white : _textPrimary()),
-                      ),
-                    ),
-                  );
-                }),
-              ),
+                  ),
+                );
+              }),
             );
+            // When the card is stretched to fill height (desktop), let each week
+            // row expand so the grid spreads evenly across the whole card.
+            return fill
+                ? Expanded(child: Center(child: row))
+                : Padding(padding: const EdgeInsets.symmetric(vertical: 2), child: row);
           }),
         ],
       ),
