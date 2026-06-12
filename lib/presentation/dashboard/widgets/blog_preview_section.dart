@@ -5,7 +5,8 @@ import '../../../core/theme/theme_provider.dart';
 import '../../../data/repositories/blog_repository.dart';
 
 /// "Latest Blog Posts" card on the VA dashboard — shows admin-authored
-/// VA-audience blog posts (GET /blog/va). Hidden entirely when there are none.
+/// VA-audience blog posts (GET /blog/va). Sits beside Recent Activity, so it
+/// always renders a card (with a placeholder when there are no posts yet).
 class BlogPreviewSection extends StatefulWidget {
   const BlogPreviewSection({super.key});
 
@@ -68,105 +69,93 @@ class _BlogPreviewSectionState extends State<BlogPreviewSection> {
   @override
   Widget build(BuildContext context) {
     final isDark = ThemeProvider().isDarkMode;
-    if (_loading || _posts.isEmpty) return const SizedBox.shrink();
-
     final textPrimary = isDark ? Colors.white : const Color(0xFF1F2937);
     final textSecondary = isDark ? Colors.white70 : const Color(0xFF6B7280);
     final cardBg = isDark ? const Color(0xFF1A1D2E) : Colors.white;
-    final posts = _posts.take(4).toList();
+    final posts = _posts.take(3).toList();
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 20),
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: cardBg,
-          borderRadius: BorderRadius.circular(24),
-          border: isDark ? Border.all(color: Colors.white.withOpacity(0.08)) : null,
-          boxShadow: isDark
-              ? [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 4))]
-              : [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 24, offset: const Offset(0, 8))],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFFEC4899)]),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.menu_book_rounded, color: Colors.white, size: 18),
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(24),
+        border: isDark ? Border.all(color: Colors.white.withOpacity(0.08)) : null,
+        boxShadow: isDark
+            ? [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 4))]
+            : [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 24, offset: const Offset(0, 8))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFFEC4899)]),
+                borderRadius: BorderRadius.circular(10),
               ),
-              const SizedBox(width: 10),
-              Text('Latest Blog Posts', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: textPrimary)),
-            ]),
-            const SizedBox(height: 16),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final cols = constraints.maxWidth > 800 ? 2 : 1;
-                final cardWidth = (constraints.maxWidth - (16.0 * (cols - 1))) / cols;
-                return Wrap(
-                  spacing: 16,
-                  runSpacing: 16,
-                  children: posts
-                      .map((p) => SizedBox(width: cardWidth, child: _postCard(p, isDark, textPrimary, textSecondary)))
-                      .toList(),
-                );
-              },
+              child: const Icon(Icons.menu_book_rounded, color: Colors.white, size: 18),
             ),
-          ],
-        ),
+            const SizedBox(width: 10),
+            Text('Latest Blog Posts', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: textPrimary)),
+          ]),
+          const SizedBox(height: 16),
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 28),
+              child: Center(child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF7C3AED)))),
+            )
+          else if (posts.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 28),
+              child: Center(child: Text('No blog posts yet', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textSecondary))),
+            )
+          else
+            ...List.generate(posts.length, (i) => Padding(
+              padding: EdgeInsets.only(bottom: i == posts.length - 1 ? 0 : 12),
+              child: _postRow(posts[i], isDark, textPrimary, textSecondary),
+            )),
+        ],
       ),
     );
   }
 
-  Widget _postCard(Map<String, dynamic> p, bool isDark, Color textPrimary, Color textSecondary) {
+  Widget _postRow(Map<String, dynamic> p, bool isDark, Color textPrimary, Color textSecondary) {
     final cover = (p['coverImage'] ?? '').toString();
-    final tags = (p['tags'] is List) ? (p['tags'] as List) : const [];
     return GestureDetector(
       onTap: () => _open(p, isDark),
       child: Container(
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isDark ? Colors.white.withOpacity(0.03) : const Color(0xFFFAFAFC),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(color: isDark ? Colors.white.withOpacity(0.06) : Colors.grey.shade200),
         ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (cover.isNotEmpty)
-              Image.network(cover, height: 120, width: double.infinity, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
-            Padding(
-              padding: const EdgeInsets.all(14),
+            if (cover.isNotEmpty) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.network(cover, width: 56, height: 56, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox(width: 56, height: 56)),
+              ),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (tags.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Wrap(
-                        spacing: 6,
-                        children: tags.take(2).map((t) => Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(color: const Color(0xFF7C3AED).withOpacity(0.12), borderRadius: BorderRadius.circular(6)),
-                          child: Text(t.toString(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF7C3AED))),
-                        )).toList(),
-                      ),
-                    ),
-                  Text((p['title'] ?? '').toString(), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: textPrimary), maxLines: 2, overflow: TextOverflow.ellipsis),
+                  Text((p['title'] ?? '').toString(), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: textPrimary), maxLines: 2, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 4),
+                  Text(_preview(p), style: TextStyle(fontSize: 12, color: textSecondary, height: 1.35), maxLines: 2, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 6),
-                  Text(_preview(p), style: TextStyle(fontSize: 12, color: textSecondary, height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 10),
                   Row(children: [
                     Icon(Icons.calendar_today_outlined, size: 11, color: textSecondary),
                     const SizedBox(width: 4),
                     Text(_fmtDate(p['publishedAt'] ?? p['createdAt']), style: TextStyle(fontSize: 11, color: textSecondary)),
                     const Spacer(),
-                    const Text('Read', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF7C3AED))),
-                    const Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFF7C3AED)),
+                    const Text('Read', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF7C3AED))),
+                    const Icon(Icons.chevron_right_rounded, size: 14, color: Color(0xFF7C3AED)),
                   ]),
                 ],
               ),

@@ -100,7 +100,6 @@ class DashboardContent extends StatelessWidget {
                         _buildTopRow(state, isMobile),
                         const SizedBox(height: 20),
                         _buildBottomRow(state, isMobile),
-                        const BlogPreviewSection(),
                       ],
                     ),
                   );
@@ -280,9 +279,11 @@ class DashboardContent extends StatelessWidget {
     if (isMobile) {
       return Column(
         children: [
-          _buildCalendarCard(),
-          const SizedBox(height: 12),
           RecentActivityCard(recentEntries: state.recentEntries, todayTasks: state.todayTasks),
+          const SizedBox(height: 12),
+          const BlogPreviewSection(),
+          const SizedBox(height: 12),
+          _buildCalendarCard(),
           const SizedBox(height: 12),
           _buildRecentTasksSection(sorted),
         ],
@@ -291,18 +292,25 @@ class DashboardContent extends StatelessWidget {
 
     return Column(
       children: [
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(child: _buildCalendarCard()),
-              const SizedBox(width: 20),
-              Expanded(child: RecentActivityCard(recentEntries: state.recentEntries, todayTasks: state.todayTasks)),
-            ],
-          ),
+        // Recent Activity + Latest Blog Posts, side by side (like the client portal)
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: RecentActivityCard(recentEntries: state.recentEntries, todayTasks: state.todayTasks)),
+            const SizedBox(width: 20),
+            const Expanded(child: BlogPreviewSection()),
+          ],
         ),
         const SizedBox(height: 20),
-        _buildRecentTasksSection(sorted),
+        // Calendar + Recent Tasks
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(flex: 2, child: _buildCalendarCard()),
+            const SizedBox(width: 20),
+            Expanded(flex: 3, child: _buildRecentTasksSection(sorted)),
+          ],
+        ),
       ],
     );
   }
