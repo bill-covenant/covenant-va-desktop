@@ -132,9 +132,9 @@ class _BlogPreviewSectionState extends State<BlogPreviewSection> {
               borderRadius: BorderRadius.circular(14),
               child: Image.network(
                 cover,
-                height: 150,
                 width: double.infinity,
-                fit: BoxFit.cover,
+                // Show the full image (no crop), scaled to the card width.
+                fit: BoxFit.fitWidth,
                 // Flutter web (CanvasKit) can't draw cross-origin images without
                 // CORS headers; fall back to an HTML <img> element so they show.
                 webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
