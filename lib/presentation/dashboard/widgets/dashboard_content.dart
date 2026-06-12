@@ -472,6 +472,29 @@ class DashboardContent extends StatelessWidget {
     final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
     final startWeekday = firstDay.weekday % 7;
     final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final isDark = _isDark();
+    final weekendAccent = isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED);
+
+    // Raised, tactile nav button (chevrons).
+    Widget navBtn(IconData icon) => Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDark
+                  ? [Colors.white.withOpacity(0.08), Colors.white.withOpacity(0.03)]
+                  : [Colors.white, const Color(0xFFF1F1F7)],
+            ),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: isDark ? Colors.white.withOpacity(0.10) : Colors.black.withOpacity(0.05)),
+            boxShadow: isDark
+                ? null
+                : [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 5, offset: const Offset(0, 2))],
+          ),
+          child: Icon(icon, size: 17, color: _textSecondary()),
+        );
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -481,42 +504,107 @@ class DashboardContent extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('${months[now.month - 1]} ${now.year}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _textPrimary())),
               Row(
                 children: [
-                  Icon(Icons.chevron_left, size: 20, color: _textTertiary()),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [BoxShadow(color: const Color(0xFF8B5CF6).withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 3))],
+                    ),
+                    child: const Icon(Icons.calendar_month_rounded, color: Colors.white, size: 18),
+                  ),
+                  const SizedBox(width: 10),
+                  Text('${months[now.month - 1]} ${now.year}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _textPrimary())),
+                ],
+              ),
+              Row(
+                children: [
+                  navBtn(Icons.chevron_left_rounded),
                   const SizedBox(width: 8),
-                  Icon(Icons.chevron_right, size: 20, color: _textTertiary()),
+                  navBtn(Icons.chevron_right_rounded),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
-                .map((d) => SizedBox(width: 32, child: Center(child: Text(d, style: TextStyle(fontSize: 11, color: _textTertiary(), fontWeight: FontWeight.w700)))))
+                .asMap()
+                .entries
+                .map((e) => SizedBox(
+                      width: 36,
+                      child: Center(
+                        child: Text(
+                          e.value,
+                          style: TextStyle(
+                            fontSize: 11,
+                            letterSpacing: 0.5,
+                            color: (e.key == 0 || e.key == 6) ? weekendAccent.withOpacity(0.9) : _textTertiary(),
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ))
                 .toList(),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           ...List.generate(6, (week) {
             final row = Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: List.generate(7, (wd) {
                 final dayNum = week * 7 + wd - startWeekday + 1;
-                if (dayNum < 1 || dayNum > daysInMonth) return const SizedBox(width: 32, height: 32);
+                if (dayNum < 1 || dayNum > daysInMonth) return const SizedBox(width: 36, height: 36);
                 final isToday = dayNum == now.day;
+                final isWeekend = wd == 0 || wd == 6;
                 return Container(
-                  width: 32, height: 32,
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
-                    gradient: isToday ? const LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)]) : null,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: isToday ? [BoxShadow(color: const Color(0xFF8B5CF6).withOpacity(0.3), blurRadius: 6, offset: const Offset(0, 2))] : null,
+                    gradient: isToday
+                        ? const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+                          )
+                        : LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: isDark
+                                ? [Colors.white.withOpacity(0.05), Colors.white.withOpacity(0.015)]
+                                : [Colors.white, const Color(0xFFF3F2F9)],
+                          ),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isToday
+                          ? Colors.white.withOpacity(0.25)
+                          : (isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04)),
+                    ),
+                    boxShadow: isToday
+                        ? [
+                            BoxShadow(color: const Color(0xFF7C3AED).withOpacity(0.55), blurRadius: 14, offset: const Offset(0, 6)),
+                            BoxShadow(color: const Color(0xFF8B5CF6).withOpacity(0.30), blurRadius: 4, offset: const Offset(0, 1)),
+                          ]
+                        : (isDark
+                            ? null
+                            : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 2))]),
                   ),
                   child: Center(
                     child: Text(
                       '$dayNum',
-                      style: TextStyle(fontSize: 12, fontWeight: isToday ? FontWeight.w800 : FontWeight.w500, color: isToday ? Colors.white : _textPrimary()),
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: isToday ? FontWeight.w800 : FontWeight.w600,
+                        color: isToday
+                            ? Colors.white
+                            : (isWeekend ? weekendAccent : _textPrimary()),
+                      ),
                     ),
                   ),
                 );
@@ -526,7 +614,7 @@ class DashboardContent extends StatelessWidget {
             // row expand so the grid spreads evenly across the whole card.
             return fill
                 ? Expanded(child: Center(child: row))
-                : Padding(padding: const EdgeInsets.symmetric(vertical: 2), child: row);
+                : Padding(padding: const EdgeInsets.symmetric(vertical: 3), child: row);
           }),
         ],
       ),
