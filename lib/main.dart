@@ -219,6 +219,9 @@ class _AppContentState extends State<_AppContent> {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+      // Switch theme instantly. The default 200ms animated cross-fade rebuilds
+      // the whole screen for ~12 frames, which on web reads as a page reload/flash.
+      themeAnimationDuration: Duration.zero,
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
         return CallOverlay(
