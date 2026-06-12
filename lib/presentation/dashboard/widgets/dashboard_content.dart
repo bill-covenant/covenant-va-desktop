@@ -279,11 +279,11 @@ class DashboardContent extends StatelessWidget {
     if (isMobile) {
       return Column(
         children: [
-          RecentActivityCard(recentEntries: state.recentEntries, todayTasks: state.todayTasks),
+          _buildCalendarCard(),
           const SizedBox(height: 12),
           const BlogPreviewSection(),
           const SizedBox(height: 12),
-          _buildCalendarCard(),
+          RecentActivityCard(recentEntries: state.recentEntries, todayTasks: state.todayTasks),
           const SizedBox(height: 12),
           _buildRecentTasksSection(sorted),
         ],
@@ -292,23 +292,23 @@ class DashboardContent extends StatelessWidget {
 
     return Column(
       children: [
-        // Recent Activity + Latest Blog Posts, side by side (like the client portal)
+        // Calendar + Latest Blog Posts, side by side (like the client portal)
         IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(child: RecentActivityCard(recentEntries: state.recentEntries, todayTasks: state.todayTasks)),
+              Expanded(child: _buildCalendarCard()),
               const SizedBox(width: 20),
               const Expanded(child: BlogPreviewSection()),
             ],
           ),
         ),
         const SizedBox(height: 20),
-        // Calendar + Recent Tasks
+        // Recent Activity + Recent Tasks
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(flex: 2, child: _buildCalendarCard()),
+            Expanded(flex: 2, child: RecentActivityCard(recentEntries: state.recentEntries, todayTasks: state.todayTasks)),
             const SizedBox(width: 20),
             Expanded(flex: 3, child: _buildRecentTasksSection(sorted)),
           ],
