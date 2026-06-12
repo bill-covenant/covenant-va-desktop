@@ -293,13 +293,15 @@ class DashboardContent extends StatelessWidget {
     return Column(
       children: [
         // Recent Activity + Latest Blog Posts, side by side (like the client portal)
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: RecentActivityCard(recentEntries: state.recentEntries, todayTasks: state.todayTasks)),
-            const SizedBox(width: 20),
-            const Expanded(child: BlogPreviewSection()),
-          ],
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: RecentActivityCard(recentEntries: state.recentEntries, todayTasks: state.todayTasks)),
+              const SizedBox(width: 20),
+              const Expanded(child: BlogPreviewSection()),
+            ],
+          ),
         ),
         const SizedBox(height: 20),
         // Calendar + Recent Tasks
