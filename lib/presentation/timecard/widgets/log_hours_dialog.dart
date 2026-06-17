@@ -51,9 +51,26 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
   /// Sync with backend WITHOUT blocking the UI
   Future<void> _syncActiveClockIn() async {
     try {
-      final activeClock = await _timecardRepo.getActiveClock();
+      final status = await _timecardRepo.getClockStatus();
       if (!mounted) return;
 
+      // A pending shift = clocked out but not yet saved. Restore both times so
+      // the VA can Save it (this is what prevents the worked time being lost).
+      if (status.pendingClockIn != null && status.pendingClockOut != null) {
+        final inLocal = status.pendingClockIn!.toLocal();
+        final outLocal = status.pendingClockOut!.toLocal();
+        setState(() {
+          _clockInDateTime = status.pendingClockIn;
+          _clockInTime = TimeOfDay(hour: inLocal.hour, minute: inLocal.minute);
+          _clockOutTime = TimeOfDay(hour: outLocal.hour, minute: outLocal.minute);
+          // Date the entry to the clock-in day — covers overnight shifts.
+          _selectedDate = DateTime(inLocal.year, inLocal.month, inLocal.day);
+        });
+        _notifyClockState();
+        return;
+      }
+
+      final activeClock = status.clockIn;
       if (activeClock != null) {
         final localTime = activeClock.toLocal();
         final serverClockIn = TimeOfDay(hour: localTime.hour, minute: localTime.minute);
@@ -352,11 +369,10 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
   }
 
   void _handleReset() async {
-    if (_clockInTime != null && _clockOutTime == null) {
-      try {
-        await _timecardRepo.clockOut();
-      } catch (_) {}
-    }
+    // Discard the shift entirely (clears active + pending) so it isn't recorded.
+    try {
+      await _timecardRepo.clockClear();
+    } catch (_) {}
     setState(() {
       _clockInTime = null;
       _clockOutTime = null;

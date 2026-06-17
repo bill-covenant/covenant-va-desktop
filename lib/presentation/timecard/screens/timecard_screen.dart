@@ -13,6 +13,8 @@ import '../widgets/timecard_loading_skeleton.dart';
 import '../widgets/timecard_error_state.dart';
 import '../widgets/log_hours_dialog.dart';
 import '../../../data/models/time_entry.dart';
+import '../../../data/repositories/timecard_repository.dart';
+import '../../../core/di/service_locator.dart';
 import '../widgets/date_range_picker_dialog.dart' as custom;
 import '../../shared/widgets/refresh_fab.dart';
 
@@ -41,6 +43,10 @@ class _TimecardScreenState extends State<TimecardScreen> {
   TimeOfDay? _activeClockIn;
   TimeOfDay? _activeClockOut;
 
+  // A shift that was clocked out but not yet saved as an entry.
+  final TimecardRepository _timecardRepo = getIt<TimecardRepository>();
+  ({DateTime clockIn, DateTime clockOut})? _pendingShift;
+
   // Cache last loaded data so we never flash a skeleton unnecessarily
   List<TimeEntry>? _cachedEntries;
   MonthlySummary? _cachedSummary;
@@ -55,6 +61,19 @@ class _TimecardScreenState extends State<TimecardScreen> {
     super.initState();
     _selectedPayPeriod = _getPayPeriodOptions().first['key'] as String;
     _loadData();
+    _loadClockStatus();
+  }
+
+  /// Check the backend for a pending (clocked-out, unsaved) shift so we can nag
+  /// the VA to save it before it's lost.
+  Future<void> _loadClockStatus() async {
+    final status = await _timecardRepo.getClockStatus();
+    if (!mounted) return;
+    setState(() {
+      _pendingShift = (status.pendingClockIn != null && status.pendingClockOut != null)
+          ? (clockIn: status.pendingClockIn!, clockOut: status.pendingClockOut!)
+          : null;
+    });
   }
 
   // ============================================
@@ -252,6 +271,7 @@ class _TimecardScreenState extends State<TimecardScreen> {
       setState(() {
         _activeClockIn = null;
         _activeClockOut = null;
+        _pendingShift = null; // saved — no longer pending
       });
 
       final date = result['date'] as DateTime;
@@ -297,6 +317,10 @@ class _TimecardScreenState extends State<TimecardScreen> {
           description: description,
         ),
       );
+    } else if (mounted) {
+      // Dialog dismissed without saving — refresh in case a shift was clocked
+      // out inside the dialog (now pending) or discarded.
+      _loadClockStatus();
     }
   }
 
@@ -382,6 +406,62 @@ class _TimecardScreenState extends State<TimecardScreen> {
     );
   }
 
+  Widget _buildPendingBanner() {
+    final p = _pendingShift!;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    String fmt(DateTime dt) {
+      final t = TimeOfDay.fromDateTime(dt.toLocal());
+      final h = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
+      final m = t.minute.toString().padLeft(2, '0');
+      return '$h:$m ${t.period == DayPeriod.am ? 'AM' : 'PM'}';
+    }
+    final inL = p.clockIn.toLocal();
+    final dateLabel = '${months[inL.month - 1]} ${inL.day}';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(50, 16, 48, 0),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _handleLogHours,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [Color(0xFFF59E0B), Color(0xFFEF4444)]),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [BoxShadow(color: const Color(0xFFF59E0B).withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 6))],
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 24),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Unsaved shift', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
+                      const SizedBox(height: 2),
+                      Text(
+                        '$dateLabel · ${fmt(p.clockIn)} → ${fmt(p.clockOut)} hasn\'t been saved yet. Tap to review and save it.',
+                        style: const TextStyle(color: Colors.white, fontSize: 12.5, height: 1.3),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+                  child: const Text('Save now', style: TextStyle(color: Color(0xFFB45309), fontWeight: FontWeight.w800, fontSize: 13)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -422,6 +502,7 @@ class _TimecardScreenState extends State<TimecardScreen> {
                   onRefresh: _silentRefresh,
                   trailing: RefreshFAB(onRefresh: () async => _silentRefresh()),
                 ),
+                if (_pendingShift != null) _buildPendingBanner(),
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: () async => _silentRefresh(),

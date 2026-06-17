@@ -27,6 +27,33 @@ class TimecardRepository {
     }
   }
 
+  /// Full clock status, including a pending (clocked-out but unsaved) shift.
+  /// [clockIn] is non-null only while actively clocked in; when a shift is
+  /// pending save, [pendingClockIn]/[pendingClockOut] carry its times instead.
+  Future<({DateTime? clockIn, DateTime? pendingClockIn, DateTime? pendingClockOut})> getClockStatus() async {
+    try {
+      final response = await apiProvider.get(
+        '/timecard/clock',
+        requiresAuth: true,
+        cacheDuration: const Duration(seconds: 5),
+      );
+      final active = response['activeClockIn'];
+      final pending = response['pendingShift'];
+      return (
+        clockIn: active != null ? DateTime.parse(active) : null,
+        pendingClockIn: pending != null ? DateTime.parse(pending['clockIn']) : null,
+        pendingClockOut: pending != null ? DateTime.parse(pending['clockOut']) : null,
+      );
+    } catch (e) {
+      return (clockIn: null, pendingClockIn: null, pendingClockOut: null);
+    }
+  }
+
+  /// Discard the current/pending shift without recording an entry.
+  Future<void> clockClear() async {
+    await apiProvider.post('/timecard/clock-clear', {}, requiresAuth: true);
+  }
+
   Future<DateTime> clockIn() async {
     final response = await apiProvider.post(
       '/timecard/clock-in',
