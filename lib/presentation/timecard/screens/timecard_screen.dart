@@ -77,40 +77,57 @@ class _TimecardScreenState extends State<TimecardScreen> {
   }
 
   // ============================================
-  // PAY PERIOD HELPERS (Weekly: Mon–Fri, payday following Friday)
+  // PAY PERIOD HELPERS (Semi-monthly: cut-off on the 2nd & 4th Thursday of
+  // each month, payday the following Friday. A period runs from the day after
+  // the previous cut-off through the cut-off Thursday.)
   // ============================================
 
-  /// Returns the Monday of the week containing [date].
-  static DateTime _getMondayOf(DateTime date) {
-    return date.subtract(Duration(days: date.weekday - 1));
+  /// nth (1-based) Thursday of a month.
+  static DateTime _nthThursday(int year, int month, int n) {
+    final first = DateTime(year, month, 1);
+    final offset = (4 - first.weekday + 7) % 7; // days to first Thursday (Thu = 4)
+    return DateTime(year, month, 1 + offset + 7 * (n - 1));
   }
 
-  /// Builds a pay period option map from a Monday start date.
-  static Map<String, dynamic> _weeklyPeriod(DateTime monday) {
-    final friday = monday.add(const Duration(days: 4));   // same-week Friday
-    final payday = monday.add(const Duration(days: 11));  // following Friday
+  /// The cut-off immediately before [cutoff] (a 2nd/4th Thursday).
+  static DateTime _previousCutoff(DateTime cutoff) {
+    final second = _nthThursday(cutoff.year, cutoff.month, 2);
+    if (cutoff == second) {
+      final pm = cutoff.month == 1 ? 12 : cutoff.month - 1;
+      final py = cutoff.month == 1 ? cutoff.year - 1 : cutoff.year;
+      return _nthThursday(py, pm, 4);
+    }
+    return second;
+  }
+
+  /// Builds a pay period option map from a cut-off Thursday.
+  static Map<String, dynamic> _payPeriod(DateTime cutoff) {
+    final start = _previousCutoff(cutoff).add(const Duration(days: 1));
+    final payday = cutoff.add(const Duration(days: 1)); // Friday after the cut-off
     final key =
-        '${monday.year}-${monday.month.toString().padLeft(2, '0')}-${monday.day.toString().padLeft(2, '0')}';
-    final label = '${_fmtShort(monday)} – ${_fmtShort(friday)}, ${monday.year}  •  Payday ${_fmtShort(payday)}';
+        '${cutoff.year}-${cutoff.month.toString().padLeft(2, '0')}-${cutoff.day.toString().padLeft(2, '0')}';
+    final label = '${_fmtShort(start)} – ${_fmtShort(cutoff)}, ${cutoff.year}  •  Payday ${_fmtShort(payday)}';
     return {
       'key': key,
       'label': label,
-      'start': monday,
-      'end': friday,
+      'start': start,
+      'end': cutoff,
       'payday': payday,
     };
   }
 
-  /// Returns the 12 most recent weekly periods (current week first).
+  /// Returns the 12 most recent pay periods (current period first).
   List<Map<String, dynamic>> _getPayPeriodOptions() {
     final now = DateTime.now();
-    final currentMonday = _getMondayOf(now);
-    final options = <Map<String, dynamic>>[];
-    for (int i = 0; i < 12; i++) {
-      final monday = currentMonday.subtract(Duration(days: i * 7));
-      options.add(_weeklyPeriod(monday));
+    final today = DateTime(now.year, now.month, now.day);
+    final cutoffs = <DateTime>[];
+    for (int back = 0; back <= 7; back++) {
+      final d = DateTime(now.year, now.month - back, 1); // normalizes month underflow
+      cutoffs.add(_nthThursday(d.year, d.month, 2));
+      cutoffs.add(_nthThursday(d.year, d.month, 4));
     }
-    return options;
+    cutoffs.sort((a, b) => b.compareTo(a)); // most recent first
+    return cutoffs.where((c) => !c.isAfter(today)).take(12).map(_payPeriod).toList();
   }
 
   static String _fmtShort(DateTime d) {
