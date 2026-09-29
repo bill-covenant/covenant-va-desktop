@@ -6,6 +6,30 @@ class LeadRepository {
 
   LeadRepository(this._apiProvider);
 
+  // Last successful lead list, kept in memory so the Lead Tracker can show
+  // data instantly on revisit while a fresh copy loads. Tied to the auth token
+  // that fetched it so a different user never sees a previous user's data.
+  List<LeadModel>? _cachedLeads;
+  String? _cacheToken;
+
+  /// Last successfully loaded leads, or null if nothing is cached yet
+  /// (or the cache belongs to a different session).
+  List<LeadModel>? get cachedLeads {
+    if (_cachedLeads == null || _cacheToken != _apiProvider.authToken) return null;
+    return List<LeadModel>.from(_cachedLeads!);
+  }
+
+  void clearCache() {
+    _cachedLeads = null;
+    _cacheToken = null;
+  }
+
+  void _updateCache(List<LeadModel> Function(List<LeadModel> current) update) {
+    final current = cachedLeads;
+    if (current == null) return;
+    _cachedLeads = update(current);
+  }
+
   Future<List<LeadModel>> getLeads() async {
     final response = await _apiProvider.get(
       '/va-leads',
@@ -13,7 +37,10 @@ class LeadRepository {
       forceRefresh: true,
     );
     final list = response['leads'] as List<dynamic>? ?? [];
-    return list.map((e) => LeadModel.fromJson(e as Map<String, dynamic>)).toList();
+    final leads = list.map((e) => LeadModel.fromJson(e as Map<String, dynamic>)).toList();
+    _cachedLeads = List<LeadModel>.from(leads);
+    _cacheToken = _apiProvider.authToken;
+    return leads;
   }
 
   Future<LeadModel> createLead({
@@ -38,7 +65,9 @@ class LeadRepository {
       },
       requiresAuth: true,
     );
-    return LeadModel.fromJson(response['lead'] as Map<String, dynamic>);
+    final lead = LeadModel.fromJson(response['lead'] as Map<String, dynamic>);
+    _updateCache((current) => [...current.where((l) => l.id != lead.id), lead]);
+    return lead;
   }
 
   Future<void> submitIntake({
@@ -101,11 +130,14 @@ class LeadRepository {
       {'leads': leads},
       requiresAuth: true,
     );
+    // Imported rows only exist server-side until the next getLeads().
+    clearCache();
     return (response['count'] as num?)?.toInt() ?? 0;
   }
 
   Future<void> deleteLead(String id) async {
     await _apiProvider.delete('/va-leads/$id', requiresAuth: true);
+    _updateCache((current) => current.where((l) => l.id != id).toList());
   }
 
   Future<LeadModel> updateLead(String id, Map<String, dynamic> data) async {
@@ -114,6 +146,8 @@ class LeadRepository {
       data,
       requiresAuth: true,
     );
-    return LeadModel.fromJson(response['lead'] as Map<String, dynamic>);
+    final updated = LeadModel.fromJson(response['lead'] as Map<String, dynamic>);
+    _updateCache((current) => current.map((l) => l.id == id ? updated : l).toList());
+    return updated;
   }
 }

@@ -11,7 +11,11 @@ import 'task_detail_modal.dart';
 
 const _priorityOrder = ['URGENT', 'HIGH', 'MEDIUM', 'LOW'];
 
-class TasksList extends StatelessWidget {
+/// Card listing [tasks] sorted by priority, built lazily.
+///
+/// This widget is a SLIVER — place it inside a [CustomScrollView] (or a
+/// [SliverMainAxisGroup]), not in a Column / box widget.
+class TasksList extends StatefulWidget {
   final List<TaskModel> tasks;
   final VoidCallback onTaskUpdated;
   final void Function(TaskModel task)? onArchiveTask;
@@ -23,7 +27,31 @@ class TasksList extends StatelessWidget {
     this.onArchiveTask,
   });
 
-  List<TaskModel> get _sortedTasks {
+  @override
+  State<TasksList> createState() => _TasksListState();
+}
+
+class _TasksListState extends State<TasksList> {
+  static const _radius = 24.0;
+
+  // Sorted once per new task list instead of on every build.
+  late List<TaskModel> _sorted;
+
+  @override
+  void initState() {
+    super.initState();
+    _sorted = _sortTasks(widget.tasks);
+  }
+
+  @override
+  void didUpdateWidget(TasksList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.tasks, widget.tasks)) {
+      _sorted = _sortTasks(widget.tasks);
+    }
+  }
+
+  static List<TaskModel> _sortTasks(List<TaskModel> tasks) {
     final sorted = List<TaskModel>.from(tasks);
     sorted.sort((a, b) {
       final ai = _priorityOrder.indexOf(a.priority);
@@ -41,7 +69,7 @@ class TasksList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sorted = _sortedTasks;
+    final sorted = _sorted;
 
     return ListenableBuilder(
       listenable: ThemeProvider(),
@@ -49,10 +77,10 @@ class TasksList extends StatelessWidget {
         final isDark = ThemeProvider().isDarkMode;
         return BlocProvider(
           create: (context) => getIt<DashboardBloc>(),
-          child: Container(
+          child: DecoratedSliver(
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF1A1D2E) : Colors.white,
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(_radius),
               boxShadow: isDark
                   ? [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 4))]
                   : [
@@ -62,21 +90,46 @@ class TasksList extends StatelessWidget {
                     ],
               border: Border.all(color: isDark ? Colors.white.withOpacity(0.08) : Colors.grey.withOpacity(0.08), width: 1),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: Column(
-                children: [
-                  _buildHeader(sorted.length),
-                  _buildColumnHeaders(),
-                  ...List.generate(sorted.length, (i) {
-                    return _TaskRow(
-                      task: sorted[i],
-                      index: i + 1,
-                      isLast: i == sorted.length - 1,
-                      onStatusChanged: onTaskUpdated,
-                      onArchive: onArchiveTask != null ? () => onArchiveTask!(sorted[i]) : null,
-                    );
-                  }),
+            // Inset by the border width, like a Container with this decoration.
+            sliver: SliverPadding(
+              padding: const EdgeInsets.all(1),
+              sliver: SliverMainAxisGroup(
+                slivers: [
+                  SliverToBoxAdapter(
+                    // Rounded top like the card; the clip extends below so the
+                    // header's drop shadow isn't cut off.
+                    child: ClipRRect(
+                      clipper: const _CardTopClipper(radius: _radius),
+                      child: Column(
+                        children: [
+                          _buildHeader(sorted.length),
+                          _buildColumnHeaders(),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SliverList.builder(
+                    itemCount: sorted.length,
+                    itemBuilder: (context, i) {
+                      final task = sorted[i];
+                      final isLast = i == sorted.length - 1;
+                      final row = _TaskRow(
+                        key: ValueKey(task.id),
+                        task: task,
+                        index: i + 1,
+                        isLast: isLast,
+                        onStatusChanged: widget.onTaskUpdated,
+                        onArchive: widget.onArchiveTask != null ? () => widget.onArchiveTask!(task) : null,
+                      );
+                      // Last row gets the card's rounded bottom corners.
+                      return isLast
+                          ? ClipRRect(
+                              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(_radius)),
+                              child: row,
+                            )
+                          : row;
+                    },
+                  ),
                 ],
               ),
             ),
@@ -205,6 +258,7 @@ class _TaskRow extends StatefulWidget {
   final VoidCallback? onArchive;
 
   const _TaskRow({
+    super.key,
     required this.task,
     required this.index,
     required this.isLast,
@@ -539,4 +593,30 @@ class _TaskRowState extends State<_TaskRow> {
       default: return const Color(0xFF6B7280);
     }
   }
+}
+
+
+/// Clips to the card's rounded top corners and side edges, extending
+/// [overflow] px below the child so its drop shadow isn't cut off.
+class _CardTopClipper extends CustomClipper<RRect> {
+  final double radius;
+  static const double overflow = 24;
+
+  const _CardTopClipper({required this.radius});
+
+  @override
+  RRect getClip(Size size) {
+    return RRect.fromLTRBAndCorners(
+      0,
+      0,
+      size.width,
+      size.height + overflow,
+      topLeft: Radius.circular(radius),
+      topRight: Radius.circular(radius),
+    );
+  }
+
+  @override
+  bool shouldReclip(_CardTopClipper oldClipper) =>
+      oldClipper.radius != radius;
 }

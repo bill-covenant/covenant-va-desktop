@@ -9,6 +9,10 @@ class NotesBloc extends Bloc<NotesEvent, NotesState> {
   final NoteRepository _noteRepository;
   
   List<NoteModel> _cachedNotes = [];
+  // True once a notes list has been emitted, so a later failed refresh keeps it
+  // on screen (with a snackbar) instead of replacing it with the error view.
+  bool _hasLoaded = false;
+  int _errorSeq = 0;
 
   NotesBloc({required NoteRepository noteRepository})
       : _noteRepository = noteRepository,
@@ -20,9 +24,14 @@ class NotesBloc extends Bloc<NotesEvent, NotesState> {
     on<NoteDeleteRequested>(_onNoteDelete);
   }
 
-  void _emitLoaded(Emitter<NotesState> emit) {
+  void _emitLoaded(Emitter<NotesState> emit, {String? error}) {
+    _hasLoaded = true;
     // Always emit a new list copy so Equatable detects the change
-    emit(NotesLoaded(notes: List<NoteModel>.from(_cachedNotes)));
+    emit(NotesLoaded(
+      notes: List<NoteModel>.from(_cachedNotes),
+      errorMessage: error,
+      errorId: error != null ? ++_errorSeq : 0,
+    ));
   }
 
   Future<void> _onLoadRequested(NotesLoadRequested event, Emitter<NotesState> emit) async {
@@ -36,7 +45,12 @@ class NotesBloc extends Bloc<NotesEvent, NotesState> {
       _emitLoaded(emit);
     } catch (e) {
       debugPrint('❌ NotesBloc: Error loading notes: $e');
-      emit(NotesError(e.toString()));
+      if (_hasLoaded || _cachedNotes.isNotEmpty) {
+        // Keep the notes we already have on screen; surface the error as a snackbar.
+        _emitLoaded(emit, error: 'Couldn\'t refresh notes: ${e.toString().replaceFirst('Exception: ', '')}');
+      } else {
+        emit(NotesError(e.toString()));
+      }
     }
   }
 
@@ -67,8 +81,7 @@ class NotesBloc extends Bloc<NotesEvent, NotesState> {
     } catch (e) {
       debugPrint('❌ NotesBloc: Error creating note: $e');
       _cachedNotes.removeWhere((n) => n.id == optimisticNote.id);
-      emit(NotesError(e.toString()));
-      _emitLoaded(emit);
+      _emitLoaded(emit, error: e.toString());
     }
   }
 
@@ -98,8 +111,7 @@ class NotesBloc extends Bloc<NotesEvent, NotesState> {
     } catch (e) {
       final restoreIdx = _cachedNotes.indexWhere((n) => n.id == event.noteId);
       if (restoreIdx != -1) _cachedNotes[restoreIdx] = old;
-      emit(NotesError(e.toString()));
-      _emitLoaded(emit);
+      _emitLoaded(emit, error: e.toString());
     }
   }
 

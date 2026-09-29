@@ -13,6 +13,7 @@ import '../../../services/call_service.dart';
 import '../../shared/widgets/refresh_fab.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import '../utils/debounced_json_cache.dart';
 
 class MessagesScreen extends StatefulWidget {
   const MessagesScreen({super.key});
@@ -23,6 +24,7 @@ class MessagesScreen extends StatefulWidget {
 
 class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProviderStateMixin {
   final StorageProvider _storageProvider = StorageProvider();
+  final DebouncedJsonCache _conversationCache = DebouncedJsonCache();
   String? _currentUserId;
   ConversationModel? _selectedConversation;
   late AnimationController _refreshAnimationController;
@@ -98,15 +100,32 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
     }
   }
 
-  Future<void> _saveCachedConversations(List<ConversationModel> conversations) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonList = conversations.map((c) => c.toJson()).toList();
-      await prefs.setString('cached_conversations', json.encode(jsonList));
-      debugPrint('✅ Cached ${conversations.length} conversations');
-    } catch (e) {
-      debugPrint('⚠️ Failed to cache conversations: $e');
+  /// Debounced (≈2s) cache write; JSON encoding moves off the UI thread for
+  /// large lists.
+  void _saveCachedConversations(List<ConversationModel> conversations) {
+    _conversationCache.schedule(
+      'cached_conversations',
+      () => conversations.map((c) => c.toJson()).toList(),
+    );
+  }
+
+  /// Applies conversations from bloc state, skipping the rebuild + cache write
+  /// when the list instance hasn't changed (message snapshots re-send the
+  /// same conversations list).
+  void _applyConversations(
+    List<ConversationModel> conversations, {
+    bool cache = true,
+    bool markInitialized = false,
+  }) {
+    if (identical(conversations, _conversations) &&
+        (!markInitialized || _isInitialized)) {
+      return;
     }
+    setState(() {
+      _conversations = conversations;
+      if (markInitialized) _isInitialized = true;
+    });
+    if (cache) _saveCachedConversations(conversations);
   }
 
   void _loadConversations() {
@@ -141,29 +160,22 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
 
     final isSameConversation = _selectedConversation?.id == conversation.id;
 
-    // Always update the conversation (to pick up enriched avatar data)
+    // Always update the conversation (to pick up enriched avatar data).
+    // Message loading is dispatched by ChatMessagesArea (initState /
+    // didUpdateWidget) — the single place that subscribes to a conversation.
     setState(() {
       _selectedConversation = conversation;
     });
 
-    // But don't reload messages if same conversation
     if (isSameConversation) {
-      debugPrint('⏭️ Same conversation, updated data but skipping message reload');
-      return;
-    }
-    
-    if (!conversation.id.startsWith('new_')) {
-      debugPrint('📨 Dispatching ConversationMessagesLoadRequested');
-      context.read<MessagesBloc>().add(
-        ConversationMessagesLoadRequested(conversation.id),
-      );
-    } else {
-      debugPrint('✨ New conversation - skipping message load');
+      debugPrint('⏭️ Same conversation, updated data only');
     }
   }
 
   @override
   void dispose() {
+    // Write any pending conversation cache now; never touches widget state.
+    _conversationCache.flush();
     _refreshAnimationController.dispose();
     super.dispose();
   }
@@ -192,27 +204,19 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
               child: BlocConsumer<MessagesBloc, MessagesState>(
                 listener: (context, state) {
                   if (state is MessagesLoaded) {
-                    setState(() {
-                      _conversations = state.conversations;
-                      _isInitialized = true;
-                    });
-                    _saveCachedConversations(state.conversations);
+                    _applyConversations(state.conversations, markInitialized: true);
                   } else if (state is ConversationMessagesLoaded) {
-                    setState(() {
-                      _conversations = state.conversations;
-                    });
-                    _saveCachedConversations(state.conversations);
+                    _applyConversations(state.conversations);
                   } else if (state is MessageSent) {
-                    setState(() {
-                      _conversations = state.conversations;
-                    });
-                    _saveCachedConversations(state.conversations);
+                    _applyConversations(state.conversations);
                   } else if (state is MessageSending) {
-                    setState(() {
-                      _conversations = state.conversations;
-                    });
+                    _applyConversations(state.conversations, cache: false);
                   }
                 },
+                // The builder only depends on the error state; conversation
+                // changes rebuild via setState in the listener.
+                buildWhen: (previous, current) =>
+                    current is MessagesError || previous is MessagesError,
                 builder: (context, state) {
                   debugPrint('🔄 MessagesBloc state: ${state.runtimeType}');
                   

@@ -1,14 +1,9 @@
-import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../auth/bloc/auth_bloc.dart';
 import '../../../auth/bloc/auth_event.dart';
 import '../../../auth/bloc/auth_state.dart';
-
-// Cache decoded avatar bytes so they don't re-decode on every navigation
-Uint8List? _cachedAvatarBytes;
-String? _cachedAvatarSource;
+import '../avatar_image.dart';
 
 class LayoutSidebarFooter extends StatefulWidget {
   const LayoutSidebarFooter({super.key});
@@ -58,22 +53,6 @@ class _LayoutSidebarFooterState extends State<LayoutSidebarFooter> {
           _lastAvatarBase64 = avatarBase64;
         }
 
-        // Cache decoded avatar bytes
-        Uint8List? avatarBytes;
-        if (avatarBase64 != null) {
-          if (_cachedAvatarSource == avatarBase64) {
-            avatarBytes = _cachedAvatarBytes;
-          } else {
-            try {
-              avatarBytes = base64Decode(avatarBase64.split(',')[1]);
-              _cachedAvatarBytes = avatarBytes;
-              _cachedAvatarSource = avatarBase64;
-            } catch (_) {
-              avatarBytes = null;
-            }
-          }
-        }
-
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -105,26 +84,19 @@ class _LayoutSidebarFooterState extends State<LayoutSidebarFooter> {
                         width: 2,
                       ),
                     ),
-                    child: avatarBytes != null
-                        ? ClipOval(
-                            child: Image.memory(
-                              avatarBytes,
-                              fit: BoxFit.cover,
-                              width: 48,
-                              height: 48,
-                              gaplessPlayback: true,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Center(
-                                  child: Text(
-                                    userInitial,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                );
-                              },
+                    child: avatarBase64 != null && avatarBase64.isNotEmpty
+                        ? AvatarImage(
+                            source: avatarBase64,
+                            size: 44,
+                            fallback: Center(
+                              child: Text(
+                                userInitial,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           )
                         : Center(

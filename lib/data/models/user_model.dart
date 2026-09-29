@@ -1,4 +1,8 @@
-class UserModel {
+import 'package:equatable/equatable.dart';
+
+/// Value-equal so re-emitting the same user (e.g. the cached user followed by
+/// an identical fresh copy from the server) doesn't trigger rebuilds.
+class UserModel extends Equatable {
   final String id;
   final String email;
   final String firstName;
@@ -52,6 +56,7 @@ class UserModel {
       'role': role,
       'status': status,
       'wiseEmail': wiseEmail,
+      'createdAt': createdAt?.toIso8601String(),
       'profile': profile?.toJson(),
       'hasCrmAccess': hasCrmAccess,
       'hasLeadTrackerAccess': hasLeadTrackerAccess,
@@ -60,9 +65,24 @@ class UserModel {
 
   String get fullName => '$firstName $lastName';
   String get initials => '${firstName[0]}${lastName[0]}'.toUpperCase();
+
+  @override
+  List<Object?> get props => [
+        id,
+        email,
+        firstName,
+        lastName,
+        role,
+        status,
+        wiseEmail,
+        createdAt,
+        profile,
+        hasCrmAccess,
+        hasLeadTrackerAccess,
+      ];
 }
 
-class UserProfile {
+class UserProfile extends Equatable {
   final String? phone;
   final String? company;
   final String? timezone;
@@ -148,4 +168,24 @@ class UserProfile {
       'deviceSpecs': deviceSpecs,
     };
   }
+
+  @override
+  List<Object?> get props => [
+        phone,
+        company,
+        timezone,
+        avatar,
+        secondaryEmail,
+        whatsapp,
+        dateOfBirth,
+        gender,
+        nationality,
+        emergencyContactName,
+        emergencyContactPhone,
+        emergencyContactRelationship,
+        bio,
+        skills,
+        languages,
+        deviceSpecs,
+      ];
 }

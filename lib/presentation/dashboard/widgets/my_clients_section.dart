@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../shared/layouts/main_layout.dart';
 import '../../../data/models/client_model.dart';
 import '../../../data/repositories/client_repository.dart';
 import '../../../core/di/service_locator.dart';
@@ -361,7 +362,7 @@ class _ClientCardState extends State<_ClientCard>
             ],
           ),
           child: GestureDetector(
-            onTap: () => Navigator.pushNamed(context, '/messages'),
+            onTap: () => MainLayout.navigateTo(context, 'messages'),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
@@ -493,7 +494,7 @@ class _ClientCardState extends State<_ClientCard>
                     onTapCancel: () =>
                         setState(() => _isMsgPressed = false),
                     onTap: () =>
-                        Navigator.pushNamed(context, '/messages'),
+                        MainLayout.navigateTo(context, 'messages'),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 150),
                       width: double.infinity,
@@ -576,4 +577,4 @@ class _ClientCardState extends State<_ClientCard>
       ),
     );
   }
-}
+}

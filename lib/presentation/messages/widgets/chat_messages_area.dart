@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/conversation_model.dart';
@@ -9,6 +10,7 @@ import '../bloc/messages_event.dart';
 import '../bloc/messages_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import '../utils/debounced_json_cache.dart';
 import 'message_bubble.dart';
 import 'messages_empty_state.dart';
 import 'messages_error_state.dart';
@@ -31,11 +33,27 @@ class ChatMessagesArea extends StatefulWidget {
 
 class _ChatMessagesAreaState extends State<ChatMessagesArea>
     with SingleTickerProviderStateMixin {
-  final ScrollController _scrollController = ScrollController();
-  late AnimationController _animationController;
+  /// Auto-scroll to newly arrived messages only when the user is this close
+  /// to the bottom (offset 0 in the reversed list).
+  static const double _autoScrollThreshold = 150;
 
+  /// Start loading older messages when this close to the top
+  /// (maxScrollExtent in the reversed list).
+  static const double _loadOlderThreshold = 200;
+
+  /// Only the most recent messages are persisted to the local cache.
+  static const int _cachedMessageLimit = 50;
+
+  final ScrollController _scrollController = ScrollController();
+  final DebouncedJsonCache _cache = DebouncedJsonCache();
+  late AnimationController _animationController;
+  late final MessagesBloc _messagesBloc;
+
+  /// Chronological order (oldest first); rendered reversed.
   List<MessageModel> _messages = [];
   bool _isLoaded = false;
+  bool _hasMoreMessages = true;
+  bool _isLoadingOlder = false;
 
   @override
   void initState() {
@@ -44,7 +62,9 @@ class _ChatMessagesAreaState extends State<ChatMessagesArea>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _loadCachedMessages();
+    _messagesBloc = context.read<MessagesBloc>();
+    _scrollController.addListener(_onScroll);
+    _restoreMessages();
     _loadMessages();
   }
 
@@ -52,15 +72,37 @@ class _ChatMessagesAreaState extends State<ChatMessagesArea>
   void didUpdateWidget(ChatMessagesArea oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.conversation.id != widget.conversation.id) {
-      _loadCachedMessages();
+      // Persist whatever was pending for the previous conversation.
+      _cache.flush();
+      _messages = [];
+      _isLoaded = false;
+      _hasMoreMessages = true;
+      _isLoadingOlder = false;
+      _scrollToBottom(animate: false);
+      _restoreMessages();
       _loadMessages();
     }
   }
 
+  /// Shows messages immediately when switching back to a conversation: from
+  /// the bloc's live subscription if it's still active, otherwise from the
+  /// local cache.
+  void _restoreMessages() {
+    final live = _messagesBloc.currentMessagesFor(widget.conversation.id);
+    if (live != null) {
+      _messages = live;
+      _isLoaded = true;
+      _hasMoreMessages = _messagesBloc.hasMoreMessages;
+      return;
+    }
+    _loadCachedMessages();
+  }
+
   Future<void> _loadCachedMessages() async {
+    final conversationId = widget.conversation.id;
     try {
       final prefs = await SharedPreferences.getInstance();
-      final cacheKey = 'messages_${widget.conversation.id}';
+      final cacheKey = 'messages_$conversationId';
       final cachedJson = prefs.getString(cacheKey);
 
       if (cachedJson != null && cachedJson.isNotEmpty) {
@@ -68,12 +110,15 @@ class _ChatMessagesAreaState extends State<ChatMessagesArea>
         final cachedMessages =
             jsonList.map((json) => MessageModel.fromJson(json)).toList();
 
-        if (mounted) {
+        // Don't clobber live data that arrived first, or apply a stale read
+        // after the user switched conversations.
+        if (mounted &&
+            widget.conversation.id == conversationId &&
+            _messages.isEmpty) {
           setState(() {
             _messages = cachedMessages;
             _isLoaded = true;
           });
-          _scrollToBottom(animate: false);
         }
       }
     } catch (e) {
@@ -81,43 +126,105 @@ class _ChatMessagesAreaState extends State<ChatMessagesArea>
     }
   }
 
-  Future<void> _saveCachedMessages(List<MessageModel> messages) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final cacheKey = 'messages_${widget.conversation.id}';
-      final jsonList = messages.map((m) => m.toJson()).toList();
-      await prefs.setString(cacheKey, json.encode(jsonList));
-    } catch (e) {
-      debugPrint('⚠️ Failed to cache messages: $e');
-    }
+  /// Debounced (≈2s) write of the most recent messages to the local cache.
+  void _saveCachedMessages(List<MessageModel> messages) {
+    final cacheKey = 'messages_${widget.conversation.id}';
+    _cache.schedule(cacheKey, () {
+      final recent = messages.length > _cachedMessageLimit
+          ? messages.sublist(messages.length - _cachedMessageLimit)
+          : messages;
+      return recent.map((m) => m.toJson()).toList();
+    });
   }
 
-  void _loadMessages() {
-    context.read<MessagesBloc>().add(
-          ConversationMessagesLoadRequested(widget.conversation.id),
-        );
+  /// The single place that requests the conversation's message subscription
+  /// (initial open, conversation switch, re-entering the screen). The bloc
+  /// ignores the request when that conversation is already subscribed.
+  void _loadMessages({bool force = false}) {
+    _messagesBloc.add(
+      ConversationMessagesLoadRequested(widget.conversation.id, force: force),
+    );
   }
 
+  void _retryLoadMessages() => _loadMessages(force: true);
+
+  bool get _isNearBottom =>
+      !_scrollController.hasClients ||
+      _scrollController.position.pixels <= _autoScrollThreshold;
+
+  /// Scrolls to the newest message (offset 0 in the reversed list).
   void _scrollToBottom({bool animate = true}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        if (animate) {
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        } else {
-          _scrollController.jumpTo(
-            _scrollController.position.maxScrollExtent,
-          );
-        }
+      if (!mounted || !_scrollController.hasClients) return;
+      if (animate) {
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      } else {
+        _scrollController.jumpTo(0);
       }
     });
   }
 
+  void _onScroll() {
+    if (!_shouldLoadOlder()) return;
+    // Scroll offsets can be corrected during layout; never setState mid-frame.
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _requestOlderMessages());
+    } else {
+      _requestOlderMessages();
+    }
+  }
+
+  bool _shouldLoadOlder() {
+    if (!mounted || !_scrollController.hasClients) return false;
+    if (!_hasMoreMessages || _isLoadingOlder || _messages.isEmpty) return false;
+    final position = _scrollController.position;
+    return position.pixels >= position.maxScrollExtent - _loadOlderThreshold;
+  }
+
+  void _requestOlderMessages() {
+    if (!_shouldLoadOlder()) return;
+    setState(() => _isLoadingOlder = true);
+    _messagesBloc.add(OlderMessagesLoadRequested(widget.conversation.id));
+    // Safety net: if the bloc ignores the request (e.g. not subscribed yet),
+    // no loaded state follows — don't leave the spinner up forever.
+    Future.delayed(const Duration(seconds: 16), () {
+      if (mounted && _isLoadingOlder) setState(() => _isLoadingOlder = false);
+    });
+  }
+
+  void _onMessagesLoaded(ConversationMessagesLoaded state) {
+    final previous = _messages;
+    final hasNewestMessage = state.messages.isNotEmpty &&
+        (previous.isEmpty || state.messages.last.id != previous.last.id);
+    final wasNearBottom = _isNearBottom;
+    final messagesChanged = !identical(state.messages, previous);
+
+    // Always update messages to pick up attachment/field changes
+    setState(() {
+      _messages = state.messages;
+      _isLoaded = true;
+      _hasMoreMessages = state.hasMoreMessages;
+      _isLoadingOlder = state.isLoadingOlder;
+    });
+    if (messagesChanged) _saveCachedMessages(state.messages);
+
+    if (hasNewestMessage && previous.isNotEmpty) {
+      final sentByMe = state.messages.last.senderId == widget.currentUserId;
+      if (wasNearBottom || sentByMe) _scrollToBottom();
+      _animationController.forward(from: 0.0);
+    }
+  }
+
   @override
   void dispose() {
+    // Flush pending cache writes; the writer never touches widget state.
+    _cache.flush();
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _animationController.dispose();
     super.dispose();
@@ -126,57 +233,48 @@ class _ChatMessagesAreaState extends State<ChatMessagesArea>
   @override
   Widget build(BuildContext context) {
     return BlocListener<MessagesBloc, MessagesState>(
+      listenWhen: (previous, current) =>
+          current is ConversationMessagesLoaded &&
+          current.conversationId == widget.conversation.id,
       listener: (context, state) {
-        if (state is ConversationMessagesLoaded) {
-          if (state.conversationId == widget.conversation.id) {
-            final hasNewMessages = state.messages.length != _messages.length ||
-                (state.messages.isNotEmpty &&
-                    _messages.isNotEmpty &&
-                    state.messages.last.id != _messages.last.id);
-            // Always update messages to pick up attachment/field changes
-            setState(() {
-              _messages = state.messages;
-              _isLoaded = true;
-            });
-            _saveCachedMessages(state.messages);
-            if (hasNewMessages) {
-              _scrollToBottom();
-              _animationController.forward(from: 0.0);
-            }
-          }
-        }
+        if (state is ConversationMessagesLoaded) _onMessagesLoaded(state);
       },
       child: _buildContent(),
     );
   }
 
   Widget _buildContent() {
-    final state = context.watch<MessagesBloc>().state;
+    // Only rebuild on this conversation's error changes — message updates
+    // arrive through the listener above (local state), not a whole-bloc watch.
+    return BlocSelector<MessagesBloc, MessagesState, String?>(
+      key: ValueKey(widget.conversation.id),
+      selector: (state) => state is ConversationMessagesError &&
+              state.conversationId == widget.conversation.id
+          ? state.message
+          : null,
+      builder: (context, error) {
+        if (error != null && _messages.isEmpty && _isLoaded) {
+          return MessagesErrorState(
+            error: error,
+            onRetry: _retryLoadMessages,
+          );
+        }
 
-    if (state is ConversationMessagesError) {
-      if (state.conversationId == widget.conversation.id &&
-          _messages.isEmpty &&
-          _isLoaded) {
-        return MessagesErrorState(
-          error: state.message,
-          onRetry: _loadMessages,
-        );
-      }
-    }
+        if (_messages.isEmpty) {
+          // Avoid flashing the empty state while switching conversations.
+          return _isLoaded ? const MessagesEmptyState() : const SizedBox.expand();
+        }
 
-    if (_messages.isEmpty) {
-      return const MessagesEmptyState();
-    }
-
-    return _buildMessagesList(_messages);
+        return _buildMessagesList(_messages);
+      },
+    );
   }
 
   Widget _buildMessagesList(List<MessageModel> messages) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-      }
-    });
+    final count = messages.length;
+    final indexById = <String, int>{
+      for (var i = 0; i < count; i++) messages[i].id: i,
+    };
 
     return Stack(
       children: [
@@ -265,26 +363,42 @@ class _ChatMessagesAreaState extends State<ChatMessagesArea>
         ),
 
         // ── Layer 4: Messages list ──
+        // reverse: true keeps the view anchored to the newest message without
+        // per-build jumps. Item 0 is the newest message; the date divider (and
+        // the older-messages loader) sit after the oldest message, i.e. on top.
         ListView.builder(
           controller: _scrollController,
+          reverse: true,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          itemCount: messages.length + 1, // +1 for date divider
+          itemCount: count + 1 + (_isLoadingOlder ? 1 : 0), // +1 for date divider
+          findChildIndexCallback: (key) {
+            if (key is ValueKey<String>) {
+              final msgIndex = indexById[key.value];
+              if (msgIndex != null) return count - 1 - msgIndex;
+            }
+            return null;
+          },
           itemBuilder: (context, index) {
-            if (index == 0) {
+            if (index == count) {
               return _buildDateDivider();
             }
+            if (index > count) {
+              return _buildOlderMessagesLoader();
+            }
 
-            final msgIndex = index - 1;
+            // Map reversed list index back to chronological order.
+            final msgIndex = count - 1 - index;
             final message = messages[msgIndex];
             final isMe = message.senderId == widget.currentUserId;
 
-            final isLastInGroup = msgIndex == messages.length - 1 ||
+            final isLastInGroup = msgIndex == count - 1 ||
                 messages[msgIndex + 1].senderId != message.senderId;
 
             final isFirstInGroup = msgIndex == 0 ||
                 messages[msgIndex - 1].senderId != message.senderId;
 
             return MessageBubble(
+              key: ValueKey<String>(message.id),
               message: message,
               isMe: isMe,
               conversationId: widget.conversation.id,
@@ -296,6 +410,22 @@ class _ChatMessagesAreaState extends State<ChatMessagesArea>
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildOlderMessagesLoader() {
+    return const Padding(
+      padding: EdgeInsets.only(bottom: 12),
+      child: Center(
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: Color(0xFFA78BFA),
+          ),
+        ),
+      ),
     );
   }
 

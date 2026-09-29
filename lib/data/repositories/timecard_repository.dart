@@ -8,6 +8,65 @@ class TimecardRepository {
   TimecardRepository({required this.apiProvider});
 
   // ============================================
+  // IN-MEMORY VIEW CACHE
+  // ============================================
+  // Last successful loadTimecardData() result per view (client + month or
+  // client + date range), so the timecard screen can render instantly on
+  // revisit while it refreshes in the background. Tied to the auth token that
+  // fetched it so a different user never sees a previous user's hours.
+
+  static const int _maxCachedViews = 12;
+  final Map<String, ({List<TimeEntry> entries, MonthlySummary summary})> _viewCache = {};
+  String? _viewCacheToken;
+
+  String _viewCacheKey({
+    String? clientId,
+    String? month,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) {
+    final client = clientId ?? '';
+    if (startDate != null && endDate != null) {
+      return '$client|${formatIsoDate(startDate)}|${formatIsoDate(endDate)}';
+    }
+    final effectiveMonth = month ?? '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}';
+    return '$client|$effectiveMonth';
+  }
+
+  /// Last loaded entries + summary for this view, or null if not cached.
+  ({List<TimeEntry> entries, MonthlySummary summary})? cachedTimecardData({
+    String? clientId,
+    String? month,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) {
+    if (_viewCacheToken != apiProvider.authToken) return null;
+    return _viewCache[_viewCacheKey(
+      clientId: clientId,
+      month: month,
+      startDate: startDate,
+      endDate: endDate,
+    )];
+  }
+
+  void _storeViewCache(
+    String key,
+    ({List<TimeEntry> entries, MonthlySummary summary}) data,
+  ) {
+    if (_viewCacheToken != apiProvider.authToken) {
+      _viewCache.clear();
+      _viewCacheToken = apiProvider.authToken;
+    }
+    _viewCache.remove(key); // re-insert so the map stays in LRU order
+    _viewCache[key] = data;
+    while (_viewCache.length > _maxCachedViews) {
+      _viewCache.remove(_viewCache.keys.first);
+    }
+  }
+
+  void clearViewCache() => _viewCache.clear();
+
+  // ============================================
   // CLOCK IN / OUT
   // ============================================
 
@@ -79,6 +138,25 @@ class TimecardRepository {
 
   /// Fetch entries + summary in parallel instead of sequentially
   Future<({List<TimeEntry> entries, MonthlySummary summary})> loadTimecardData({
+    String? clientId,
+    String? month,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final data = await _fetchTimecardData(
+      clientId: clientId,
+      month: month,
+      startDate: startDate,
+      endDate: endDate,
+    );
+    _storeViewCache(
+      _viewCacheKey(clientId: clientId, month: month, startDate: startDate, endDate: endDate),
+      data,
+    );
+    return data;
+  }
+
+  Future<({List<TimeEntry> entries, MonthlySummary summary})> _fetchTimecardData({
     String? clientId,
     String? month,
     DateTime? startDate,

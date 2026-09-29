@@ -52,7 +52,7 @@ class CrossHatchPatternPainter extends CustomPainter {
   }
 }
 
-/// A widget that overlays a subtle crosshatch pattern on top of its child.
+/// A widget that paints a subtle crosshatch pattern behind its child.
 /// 
 /// Usage:
 /// ```dart
@@ -78,20 +78,26 @@ class CrossHatchPatternOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // The actual screen content
-        child,
-        // The pattern overlay — IgnorePointer so it doesn't block taps
+        // The pattern is painted *behind* the content, in its own layer, so
+        // content repaints (timers, scrolling, hovers) never repaint the
+        // hundreds of diagonal lines — and vice versa.
         Positioned.fill(
           child: IgnorePointer(
-            child: CustomPaint(
-              painter: CrossHatchPatternPainter(
-                lineSpacing: lineSpacing,
-                strokeWidth: strokeWidth,
-                opacity: opacity,
+            child: RepaintBoundary(
+              child: CustomPaint(
+                isComplex: false,
+                willChange: false,
+                painter: CrossHatchPatternPainter(
+                  lineSpacing: lineSpacing,
+                  strokeWidth: strokeWidth,
+                  opacity: opacity,
+                ),
               ),
             ),
           ),
         ),
+        // The actual screen content
+        child,
       ],
     );
   }

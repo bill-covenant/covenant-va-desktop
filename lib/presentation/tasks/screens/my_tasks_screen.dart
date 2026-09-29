@@ -128,7 +128,8 @@ class _MyTasksScreenState extends State<MyTasksScreen> {
   Future<void> _handleArchiveTask(TaskModel task) async {
     // Optimistic removal + add to archive cache
     setState(() {
-      _allTasks.removeWhere((t) => t.id == task.id);
+      // New list (not in-place) so the memoized filter result is refreshed.
+      _allTasks = _allTasks.where((t) => t.id != task.id).toList();
       _cachedTasks = List.from(_allTasks);
     });
     // Pre-warm archive cache with the newly archived task
@@ -171,6 +172,24 @@ class _MyTasksScreenState extends State<MyTasksScreen> {
         );
       }
     }
+  }
+
+  // Filter result is reused until the task list (by identity) or a filter
+  // changes, so the lists below don't re-group/re-sort on unrelated rebuilds.
+  List<TaskModel>? _filteredCache;
+  List<TaskModel>? _filteredSource;
+  String? _filteredKey;
+
+  List<TaskModel> _memoizedFilteredTasks() {
+    final key = '$_statusFilter|$_priorityFilter|$_searchQuery';
+    if (_filteredCache == null ||
+        !identical(_filteredSource, _allTasks) ||
+        _filteredKey != key) {
+      _filteredCache = _filterTasks(_allTasks);
+      _filteredSource = _allTasks;
+      _filteredKey = key;
+    }
+    return _filteredCache!;
   }
 
   List<TaskModel> _filterTasks(List<TaskModel> tasks) {
@@ -221,9 +240,9 @@ class _MyTasksScreenState extends State<MyTasksScreen> {
   }
 
   Widget _buildContent() {
-    // Show empty instead of skeleton while loading
+    // First load with no cached data yet
     if (_isLoading && _isInitialLoad) {
-      return const SizedBox();
+      return const TasksSkeletonLoading();
     }
 
     if (_error != null && _allTasks.isEmpty) {
@@ -233,7 +252,7 @@ class _MyTasksScreenState extends State<MyTasksScreen> {
       );
     }
 
-    final filteredTasks = _filterTasks(_allTasks);
+    final filteredTasks = _memoizedFilteredTasks();
 
     return TasksContent(
       filteredTasks: filteredTasks,

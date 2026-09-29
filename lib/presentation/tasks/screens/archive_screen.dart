@@ -80,10 +80,11 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     try {
       final taskRepository = getIt<TaskRepository>();
       await taskRepository.updateTaskStatus(task.id, 'COMPLETED');
-      setState(() {
-        _archivedTasks.removeWhere((t) => t.id == task.id);
-        _cachedArchive = List.from(_archivedTasks);
-      });
+      // New list (not in-place) so the memoized filter result is refreshed.
+      final remaining = _archivedTasks.where((t) => t.id != task.id).toList();
+      _cachedArchive = List.from(remaining);
+      if (!mounted) return;
+      setState(() => _archivedTasks = remaining);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -108,13 +109,32 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     }
   }
 
+  // Filter result is reused until the list (by identity) or the query changes,
+  // instead of being recomputed several times per build.
+  List<TaskModel>? _filteredCache;
+  List<TaskModel>? _filteredSource;
+  String? _filteredQuery;
+
   List<TaskModel> get _filteredTasks {
-    if (_searchQuery.isEmpty) return _archivedTasks;
-    final query = _searchQuery.toLowerCase();
-    return _archivedTasks.where((task) {
-      return task.title.toLowerCase().contains(query) ||
-          (task.description?.toLowerCase().contains(query) ?? false);
-    }).toList();
+    if (_filteredCache != null &&
+        identical(_filteredSource, _archivedTasks) &&
+        _filteredQuery == _searchQuery) {
+      return _filteredCache!;
+    }
+    List<TaskModel> result;
+    if (_searchQuery.isEmpty) {
+      result = _archivedTasks;
+    } else {
+      final query = _searchQuery.toLowerCase();
+      result = _archivedTasks.where((task) {
+        return task.title.toLowerCase().contains(query) ||
+            (task.description?.toLowerCase().contains(query) ?? false);
+      }).toList();
+    }
+    _filteredCache = result;
+    _filteredSource = _archivedTasks;
+    _filteredQuery = _searchQuery;
+    return result;
   }
 
   @override
@@ -191,49 +211,60 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
       );
     }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(50, 24, 48, 40),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Search bar
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.15)),
-              boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
-            ),
-            child: TextField(
-              onChanged: (value) => setState(() => _searchQuery = value),
-              style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 14),
-              decoration: InputDecoration(
-                hintText: 'Search archived tasks...',
-                hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey[400]),
-                border: InputBorder.none,
-                icon: Icon(Icons.search, color: isDark ? Colors.white38 : Colors.grey[400], size: 20),
+    // Slivers so the archive rows are built lazily.
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(50, 24, 48, 40),
+          sliver: SliverMainAxisGroup(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Search bar
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.15)),
+                        boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
+                      ),
+                      child: TextField(
+                        onChanged: (value) => setState(() => _searchQuery = value),
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: 'Search archived tasks...',
+                          hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey[400]),
+                          border: InputBorder.none,
+                          icon: Icon(Icons.search, color: isDark ? Colors.white38 : Colors.grey[400], size: 20),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Count
+                    Text(
+                      '${_filteredTasks.length} archived ${_filteredTasks.length == 1 ? 'task' : 'tasks'}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white54 : Colors.grey[500],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
               ),
-            ),
+              // Task list
+              if (_filteredTasks.isEmpty)
+                SliverToBoxAdapter(child: _buildEmptyState(isDark))
+              else
+                _buildTaskList(isDark),
+            ],
           ),
-          const SizedBox(height: 16),
-          // Count
-          Text(
-            '${_filteredTasks.length} archived ${_filteredTasks.length == 1 ? 'task' : 'tasks'}',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white54 : Colors.grey[500],
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Task list
-          if (_filteredTasks.isEmpty)
-            _buildEmptyState(isDark)
-          else
-            _buildTaskList(isDark),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -273,8 +304,10 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     );
   }
 
+  /// Returns a sliver: the archive card with lazily built rows.
   Widget _buildTaskList(bool isDark) {
-    return Container(
+    final tasks = _filteredTasks;
+    return DecoratedSliver(
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1A1D2E) : Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -286,87 +319,109 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
               ],
         border: Border.all(color: isDark ? Colors.white.withOpacity(0.08) : Colors.grey.withOpacity(0.08)),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: Column(
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.fromLTRB(28, 22, 28, 18),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isDark
-                      ? [const Color(0xFF1E1535), const Color(0xFF1A1230)]
-                      : [const Color(0xFF6366F1), const Color(0xFF8B5CF6)],
+      // Inset by the border width, like a Container with this decoration.
+      sliver: SliverPadding(
+        padding: const EdgeInsets.all(1),
+        sliver: SliverMainAxisGroup(
+          slivers: [
+            SliverToBoxAdapter(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                child: Column(
+                  children: [
+                    // Header
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(28, 22, 28, 18),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: isDark
+                              ? [const Color(0xFF1E1535), const Color(0xFF1A1230)]
+                              : [const Color(0xFF6366F1), const Color(0xFF8B5CF6)],
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(colors: [Colors.white.withOpacity(0.22), Colors.white.withOpacity(0.08)]),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: Colors.white.withOpacity(0.2)),
+                            ),
+                            child: const Icon(Icons.archive_rounded, color: Colors.white, size: 20),
+                          ),
+                          const SizedBox(width: 14),
+                          const Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Archived Tasks', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.3)),
+                              SizedBox(height: 2),
+                            ],
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.18),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.white.withOpacity(0.25)),
+                            ),
+                            child: Text(
+                              '${tasks.length} ${tasks.length == 1 ? 'task' : 'tasks'}',
+                              style: TextStyle(color: Colors.white.withOpacity(0.95), fontSize: 12, fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Column headers
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: isDark
+                              ? [const Color(0xFF232738), const Color(0xFF1A1D2E)]
+                              : [const Color(0xFFF5F3FF), Colors.white.withOpacity(0.9)],
+                        ),
+                        border: Border(bottom: BorderSide(color: const Color(0xFF7C3AED).withOpacity(0.06))),
+                      ),
+                      child: Row(
+                        children: [
+                          const SizedBox(width: 44, child: _ColLabel(label: '#')),
+                          const Expanded(flex: 4, child: _ColLabel(label: 'TASK')),
+                          const Expanded(flex: 2, child: _ColLabel(label: 'PRIORITY')),
+                          const Expanded(flex: 3, child: _ColLabel(label: 'COMPLETED')),
+                          SizedBox(width: 120, child: Center(child: _ColLabel(label: 'ACTIONS'))),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [Colors.white.withOpacity(0.22), Colors.white.withOpacity(0.08)]),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.white.withOpacity(0.2)),
-                    ),
-                    child: const Icon(Icons.archive_rounded, color: Colors.white, size: 20),
-                  ),
-                  const SizedBox(width: 14),
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Archived Tasks', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.3)),
-                      SizedBox(height: 2),
-                    ],
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.18),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white.withOpacity(0.25)),
-                    ),
-                    child: Text(
-                      '${_filteredTasks.length} ${_filteredTasks.length == 1 ? 'task' : 'tasks'}',
-                      style: TextStyle(color: Colors.white.withOpacity(0.95), fontSize: 12, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Column headers
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isDark
-                      ? [const Color(0xFF232738), const Color(0xFF1A1D2E)]
-                      : [const Color(0xFFF5F3FF), Colors.white.withOpacity(0.9)],
-                ),
-                border: Border(bottom: BorderSide(color: const Color(0xFF7C3AED).withOpacity(0.06))),
-              ),
-              child: Row(
-                children: [
-                  const SizedBox(width: 44, child: _ColLabel(label: '#')),
-                  const Expanded(flex: 4, child: _ColLabel(label: 'TASK')),
-                  const Expanded(flex: 2, child: _ColLabel(label: 'PRIORITY')),
-                  const Expanded(flex: 3, child: _ColLabel(label: 'COMPLETED')),
-                  SizedBox(width: 120, child: Center(child: _ColLabel(label: 'ACTIONS'))),
-                ],
               ),
             ),
             // Rows
-            ...List.generate(_filteredTasks.length, (i) {
-              final task = _filteredTasks[i];
-              return _ArchiveRow(
-                task: task,
-                index: i + 1,
-                isLast: i == _filteredTasks.length - 1,
-                onUnarchive: () => _unarchiveTask(task),
-                onTap: () => showDialog(context: context, builder: (_) => TaskDetailModal(task: task)),
-              );
-            }),
+            SliverList.builder(
+              itemCount: tasks.length,
+              itemBuilder: (context, i) {
+                final task = tasks[i];
+                final isLast = i == tasks.length - 1;
+                final row = _ArchiveRow(
+                  key: ValueKey(task.id),
+                  task: task,
+                  index: i + 1,
+                  isLast: isLast,
+                  onUnarchive: () => _unarchiveTask(task),
+                  onTap: () => showDialog(context: context, builder: (_) => TaskDetailModal(task: task)),
+                );
+                // Last row gets the card's rounded bottom corners.
+                return isLast
+                    ? ClipRRect(
+                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+                        child: row,
+                      )
+                    : row;
+              },
+            ),
           ],
         ),
       ),
@@ -400,6 +455,7 @@ class _ArchiveRow extends StatefulWidget {
   final VoidCallback onTap;
 
   const _ArchiveRow({
+    super.key,
     required this.task,
     required this.index,
     required this.isLast,

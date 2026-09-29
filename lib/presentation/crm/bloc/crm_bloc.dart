@@ -10,7 +10,9 @@ class CrmBloc extends Bloc<CrmEvent, CrmState> {
 
   CrmBloc({required CrmRepository crmRepository})
       : _crmRepository = crmRepository,
-        super(const CrmInitial()) {
+        super(_initialState(crmRepository)) {
+    final initial = state;
+    if (initial is CrmLoaded) _customers = List.from(initial.customers);
     on<CrmLoadRequested>(_onLoad);
     on<CrmCustomerCreateRequested>(_onCreate);
     on<CrmCustomerUpdateRequested>(_onUpdate);
@@ -18,17 +20,39 @@ class CrmBloc extends Bloc<CrmEvent, CrmState> {
     on<CrmNotifyBranchRequested>(_onNotify);
   }
 
+  /// Start from the repository's last known list (if any) so a revisit renders
+  /// data on the very first frame instead of an empty body.
+  static CrmState _initialState(CrmRepository repository) {
+    final cached = repository.cachedCustomers;
+    return cached != null ? CrmLoaded(customers: cached) : const CrmInitial();
+  }
+
   void _emitLoaded(Emitter<CrmState> emit, {String? message}) {
     emit(CrmLoaded(customers: List.from(_customers), actionMessage: message));
   }
 
   Future<void> _onLoad(CrmLoadRequested event, Emitter<CrmState> emit) async {
-    if (_customers.isEmpty) emit(const CrmLoading());
+    // Show the last known list instantly (this bloc is re-created per visit,
+    // the repository cache survives), then refresh in the background.
+    // The spinner only appears on the very first load.
+    var hasData = state is CrmLoaded;
+    if (!hasData) {
+      final cached = _crmRepository.cachedCustomers;
+      if (cached != null) {
+        _customers = cached;
+        _emitLoaded(emit);
+        hasData = true;
+      } else {
+        emit(const CrmLoading());
+      }
+    }
     try {
       _customers = await _crmRepository.getCustomers();
       _emitLoaded(emit);
     } catch (e) {
       emit(CrmError(e.toString()));
+      // Keep showing the data we already have; the error surfaces as a snackbar.
+      if (hasData) _emitLoaded(emit);
     }
   }
 

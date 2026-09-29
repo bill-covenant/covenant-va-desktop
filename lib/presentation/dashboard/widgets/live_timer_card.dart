@@ -24,7 +24,9 @@ class LiveTimerCard extends StatefulWidget {
 
 class _LiveTimerCardState extends State<LiveTimerCard> {
   Timer? _timer;
-  Duration _elapsed = Duration.zero;
+  // Ticks every second; only the time Text listens, so the rest of the card
+  // (gradients, shadows, badges) is not rebuilt or repainted each tick.
+  final ValueNotifier<Duration> _elapsed = ValueNotifier(Duration.zero);
 
   @override
   void initState() {
@@ -46,21 +48,20 @@ class _LiveTimerCardState extends State<LiveTimerCard> {
       _updateElapsed();
       _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateElapsed());
     } else {
-      _elapsed = Duration.zero;
+      _elapsed.value = Duration.zero;
     }
   }
 
   void _updateElapsed() {
     if (widget.activeClockIn != null && mounted) {
-      setState(() {
-        _elapsed = DateTime.now().difference(widget.activeClockIn!);
-      });
+      _elapsed.value = DateTime.now().difference(widget.activeClockIn!);
     }
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _elapsed.dispose();
     super.dispose();
   }
 
@@ -82,7 +83,6 @@ class _LiveTimerCardState extends State<LiveTimerCard> {
   Widget build(BuildContext context) {
     final isDark = ThemeProvider().isDarkMode;
     final isLive = widget.activeClockIn != null;
-    final timeStr = isLive ? _formatDuration(_elapsed) : _formatStaticHours(widget.todayHoursWorked);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -129,12 +129,17 @@ class _LiveTimerCardState extends State<LiveTimerCard> {
             ],
           ),
           const Spacer(),
-          Text(
-            timeStr,
-            style: TextStyle(
-              fontSize: 34, fontWeight: FontWeight.w900,
-              color: isLive ? const Color(0xFF10B981) : (isDark ? Colors.white : Colors.black87),
-              letterSpacing: 2,
+          RepaintBoundary(
+            child: ValueListenableBuilder<Duration>(
+              valueListenable: _elapsed,
+              builder: (context, elapsed, _) => Text(
+                isLive ? _formatDuration(elapsed) : _formatStaticHours(widget.todayHoursWorked),
+                style: TextStyle(
+                  fontSize: 34, fontWeight: FontWeight.w900,
+                  color: isLive ? const Color(0xFF10B981) : (isDark ? Colors.white : Colors.black87),
+                  letterSpacing: 2,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 4),

@@ -10,6 +10,7 @@ import '../widgets/monthly_summary_card.dart';
 import '../widgets/pay_period_summary_card.dart';
 import '../widgets/time_entries_list.dart';
 import '../widgets/timecard_error_state.dart';
+import '../widgets/timecard_loading_skeleton.dart';
 import '../widgets/log_hours_dialog.dart';
 import '../../../data/models/time_entry.dart';
 import '../../../data/repositories/timecard_repository.dart';
@@ -52,7 +53,9 @@ class _TimecardScreenState extends State<TimecardScreen> {
   ({List<TimeEntry>? entries, MonthlySummary? summary})? _preLogSnapshot;
   final Map<String, ({List<TimeEntry>? entries, MonthlySummary? summary})> _preDeleteSnapshots = {};
 
-  // Cache last loaded data so we never flash a skeleton unnecessarily
+  // Data currently shown (incl. optimistic edits). Seeded from the repository's
+  // per-view cache so revisits / switching back to a viewed period render
+  // instantly while a fresh copy loads in the background.
   List<TimeEntry>? _cachedEntries;
   MonthlySummary? _cachedSummary;
 
@@ -65,6 +68,7 @@ class _TimecardScreenState extends State<TimecardScreen> {
   void initState() {
     super.initState();
     _selectedPayPeriod = _getPayPeriodOptions().first['key'] as String;
+    _seedFromCache();
     _loadData();
     _loadClockStatus();
   }
@@ -151,6 +155,23 @@ class _TimecardScreenState extends State<TimecardScreen> {
     }
   }
 
+  /// Show the last loaded data for the current selection (if any) instead of
+  /// clearing the view. Call inside setState when the selection changes.
+  void _seedFromCache() {
+    final range = _currentRange();
+    final hasQuery = _viewMode == TimecardViewMode.monthly || range != null;
+    final cached = hasQuery
+        ? _timecardRepo.cachedTimecardData(
+            clientId: widget.clientId,
+            month: _viewMode == TimecardViewMode.monthly ? _selectedMonth : null,
+            startDate: range?.start,
+            endDate: range?.end,
+          )
+        : null;
+    _cachedEntries = cached?.entries;
+    _cachedSummary = cached?.summary;
+  }
+
   void _silentRefresh() {
     final range = _currentRange();
     if (_viewMode == TimecardViewMode.monthly) {
@@ -182,8 +203,7 @@ class _TimecardScreenState extends State<TimecardScreen> {
   void _handleViewModeChanged(TimecardViewMode mode) {
     setState(() {
       _viewMode = mode;
-      _cachedEntries = null;
-      _cachedSummary = null;
+      _seedFromCache();
     });
     if (mode == TimecardViewMode.dateRange && _rangeStart == null) {
       _pickDateRange();
@@ -195,8 +215,7 @@ class _TimecardScreenState extends State<TimecardScreen> {
   void _handleMonthChanged(String month) {
     setState(() {
       _selectedMonth = month;
-      _cachedEntries = null;
-      _cachedSummary = null;
+      _seedFromCache();
     });
     _loadData();
   }
@@ -204,8 +223,7 @@ class _TimecardScreenState extends State<TimecardScreen> {
   void _handlePayPeriodChanged(String key) {
     setState(() {
       _selectedPayPeriod = key;
-      _cachedEntries = null;
-      _cachedSummary = null;
+      _seedFromCache();
     });
     _loadData();
   }
@@ -223,8 +241,7 @@ class _TimecardScreenState extends State<TimecardScreen> {
       setState(() {
         _rangeStart = picked.start;
         _rangeEnd = picked.end;
-        _cachedEntries = null;
-        _cachedSummary = null;
+        _seedFromCache();
       });
       _loadData();
     }
@@ -566,10 +583,16 @@ class _TimecardScreenState extends State<TimecardScreen> {
                           PointerDeviceKind.trackpad,
                         },
                       ),
-                      child: SingleChildScrollView(
+                      // Slivers so the entries list is built lazily (only
+                      // visible cards are laid out).
+                      child: CustomScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(50, 32, 48, 40),
-                        child: _buildContent(state),
+                        slivers: [
+                          SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(50, 32, 48, 40),
+                            sliver: _buildContent(state),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -582,29 +605,36 @@ class _TimecardScreenState extends State<TimecardScreen> {
     );
   }
 
+  /// Returns a sliver.
   Widget _buildContent(TimecardState state) {
     final entries = _cachedEntries;
     final summary = _cachedSummary;
 
     if (entries != null && summary != null) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Show appropriate summary card based on view mode
-          if (_viewMode == TimecardViewMode.payPeriod) ...[
-            Builder(builder: (context) {
-              final option = _selectedPayPeriodOption();
-              return PayPeriodSummaryCard(
-                summary: summary,
-                periodStart: option['start'] as DateTime,
-                periodEnd: option['end'] as DateTime,
-                payday: option['payday'] as DateTime,
-              );
-            }),
-          ] else ...[
-            MonthlySummaryCard(summary: summary),
-          ],
-          const SizedBox(height: 32),
+      return SliverMainAxisGroup(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Show appropriate summary card based on view mode
+                if (_viewMode == TimecardViewMode.payPeriod) ...[
+                  Builder(builder: (context) {
+                    final option = _selectedPayPeriodOption();
+                    return PayPeriodSummaryCard(
+                      summary: summary,
+                      periodStart: option['start'] as DateTime,
+                      periodEnd: option['end'] as DateTime,
+                      payday: option['payday'] as DateTime,
+                    );
+                  }),
+                ] else ...[
+                  MonthlySummaryCard(summary: summary),
+                ],
+                const SizedBox(height: 32),
+              ],
+            ),
+          ),
           TimeEntriesList(
             entries: entries,
             onDelete: (entryId) => _handleDelete(entryId),
@@ -614,12 +644,20 @@ class _TimecardScreenState extends State<TimecardScreen> {
     }
 
     if (state is TimecardError) {
-      return TimecardErrorState(
-        message: state.message,
-        onRetry: _loadData,
+      return SliverToBoxAdapter(
+        child: TimecardErrorState(
+          message: state.message,
+          onRetry: _loadData,
+        ),
       );
     }
 
-    return const SizedBox();
+    // Custom range mode before a range has been picked: nothing to load.
+    if (_viewMode == TimecardViewMode.dateRange && _currentRange() == null) {
+      return const SliverToBoxAdapter(child: SizedBox());
+    }
+
+    // First load for this view — no data yet.
+    return const SliverToBoxAdapter(child: TimecardLoadingSkeleton());
   }
 }

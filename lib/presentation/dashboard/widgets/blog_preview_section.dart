@@ -15,18 +15,33 @@ class BlogPreviewSection extends StatefulWidget {
 }
 
 class _BlogPreviewSectionState extends State<BlogPreviewSection> {
+  // Kept across dashboard visits so the card renders at its final size
+  // immediately (no spinner -> content jump); refreshed in the background.
+  static List<Map<String, dynamic>>? _cachedPosts;
+  static DateTime? _lastFetchTime;
+  static const Duration _cacheMaxAge = Duration(minutes: 2);
+
   List<Map<String, dynamic>> _posts = [];
   bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    final cached = _cachedPosts;
+    if (cached != null) {
+      _posts = cached;
+      _loading = false;
+    }
+    final stale = _lastFetchTime == null ||
+        DateTime.now().difference(_lastFetchTime!) > _cacheMaxAge;
+    if (cached == null || stale) _load();
   }
 
   Future<void> _load() async {
     try {
       final posts = await getIt<BlogRepository>().getVaBlogs();
+      _cachedPosts = posts;
+      _lastFetchTime = DateTime.now();
       if (mounted) setState(() { _posts = posts; _loading = false; });
     } catch (_) {
       if (mounted) setState(() => _loading = false);
@@ -128,18 +143,27 @@ class _BlogPreviewSectionState extends State<BlogPreviewSection> {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (cover.isNotEmpty)
-            ClipRRect(
+            // Fixed 16:9 box: the card has its final height before the image
+            // downloads, so nothing below it jumps when the cover arrives.
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: ClipRRect(
               borderRadius: BorderRadius.circular(14),
               child: Image.network(
                 cover,
                 width: double.infinity,
-                // Show the full image (no crop), scaled to the card width.
-                fit: BoxFit.fitWidth,
+                height: double.infinity,
+                fit: BoxFit.cover,
+                cacheWidth: 960,
+                gaplessPlayback: true,
+                frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                  if (wasSynchronouslyLoaded || frame != null) return child;
+                  return Container(color: const Color(0xFF7C3AED).withOpacity(isDark ? 0.18 : 0.08));
+                },
                 // Flutter web (CanvasKit) can't draw cross-origin images without
                 // CORS headers; fall back to an HTML <img> element so they show.
                 webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
                 errorBuilder: (_, __, ___) => Container(
-                  height: 150,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFFEC4899)]),
                     borderRadius: BorderRadius.circular(14),
@@ -147,6 +171,7 @@ class _BlogPreviewSectionState extends State<BlogPreviewSection> {
                   child: const Center(child: Icon(Icons.menu_book_rounded, color: Colors.white54, size: 32)),
                 ),
               ),
+            ),
             ),
           if (cover.isNotEmpty) const SizedBox(height: 14),
           if (tags.isNotEmpty)

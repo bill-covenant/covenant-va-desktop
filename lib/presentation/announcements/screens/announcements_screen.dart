@@ -16,6 +16,24 @@ class AnnouncementsScreen extends StatefulWidget {
     _AnnouncementsScreenState._lastFetchTime = DateTime.now();
   }
 
+  /// Forget cached announcements (e.g. on logout).
+  static void clearCache() {
+    _AnnouncementsScreenState._cachedAnnouncements = null;
+    _AnnouncementsScreenState._lastFetchTime = null;
+  }
+
+  /// Last fetched announcements (shared with the dashboard section), if any.
+  static List<AnnouncementModel>? get cachedAnnouncements =>
+      _AnnouncementsScreenState._cachedAnnouncements;
+
+  /// Whether the shared cache is missing or older than [maxAge].
+  static bool isCacheStale([Duration maxAge = const Duration(seconds: 30)]) {
+    final t = _AnnouncementsScreenState._lastFetchTime;
+    return _AnnouncementsScreenState._cachedAnnouncements == null ||
+        t == null ||
+        DateTime.now().difference(t) > maxAge;
+  }
+
   @override
   State<AnnouncementsScreen> createState() => _AnnouncementsScreenState();
 }

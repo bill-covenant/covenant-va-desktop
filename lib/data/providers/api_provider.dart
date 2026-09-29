@@ -35,6 +35,29 @@ class ApiProvider {
   // Deduplicate in-flight requests
   final Map<String, Future<Map<String, dynamic>>> _pendingRequests = {};
 
+  /// True while the first request of the session has been waiting > 3s for
+  /// the server (e.g. a Render cold start). Drives the small
+  /// "Connecting to server…" banner; goes false on the first response.
+  final ValueNotifier<bool> isConnectingSlowly = ValueNotifier(false);
+  bool _serverResponded = false;
+  Timer? _slowStartTimer;
+  static const Duration _slowStartThreshold = Duration(seconds: 3);
+
+  void _armSlowStartTimer() {
+    if (_serverResponded || _slowStartTimer != null) return;
+    _slowStartTimer = Timer(_slowStartThreshold, () {
+      if (!_serverResponded) isConnectingSlowly.value = true;
+    });
+  }
+
+  void _markServerResponded() {
+    if (_serverResponded) return;
+    _serverResponded = true;
+    _slowStartTimer?.cancel();
+    _slowStartTimer = null;
+    isConnectingSlowly.value = false;
+  }
+
   String? get authToken => _token;
 
   void setToken(String token) {
@@ -200,9 +223,11 @@ class ApiProvider {
         await _restoreStoredToken();
       }
 
+      _armSlowStartTimer();
       final usedToken = _token;
       var response = await request(_getHeaders(includeAuth: requiresAuth))
           .timeout(_requestTimeout);
+      _markServerResponded();
 
       if (response.statusCode == 401 && requiresAuth) {
         final stored = await _storageProvider.getToken();
@@ -304,6 +329,8 @@ class ApiProvider {
   }
 
   void dispose() {
+    _slowStartTimer?.cancel();
+    isConnectingSlowly.dispose();
     _client.close();
     _cache.clear();
     _pendingRequests.clear();

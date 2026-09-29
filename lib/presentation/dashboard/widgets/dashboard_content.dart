@@ -27,12 +27,16 @@ class DashboardContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<DashboardBloc, DashboardState>(
       builder: (context, state) {
-        final displayState = (cachedState != null && state is DashboardLoading)
+        // A fresh bloc starts in DashboardInitial (e.g. when the 30s throttle
+        // skipped the reload) — treat it like Loading: show the last loaded
+        // dashboard if we have one, otherwise the skeleton.
+        final isPending = state is DashboardLoading || state is DashboardInitial;
+        final displayState = (cachedState != null && isPending)
             ? cachedState!
             : state;
 
-        if (displayState is DashboardLoading) {
-          return const SizedBox();
+        if (displayState is DashboardLoading || displayState is DashboardInitial) {
+          return _buildShimmerLoading();
         }
 
         if (displayState is DashboardError) {
@@ -57,7 +61,7 @@ class DashboardContent extends StatelessWidget {
           return _buildDashboard(context, displayState);
         }
 
-        return const SizedBox();
+        return _buildShimmerLoading();
       },
     );
   }
@@ -496,7 +500,9 @@ class DashboardContent extends StatelessWidget {
           child: Icon(icon, size: 17, color: _textSecondary()),
         );
 
-    return Container(
+    // Own layer: the 42 day tiles only repaint when the calendar itself changes.
+    return RepaintBoundary(
+      child: Container(
       padding: const EdgeInsets.all(24),
       decoration: _cardDecoration(),
       child: Column(
@@ -591,9 +597,7 @@ class DashboardContent extends StatelessWidget {
                             BoxShadow(color: const Color(0xFF7C3AED).withOpacity(0.55), blurRadius: 14, offset: const Offset(0, 6)),
                             BoxShadow(color: const Color(0xFF8B5CF6).withOpacity(0.30), blurRadius: 4, offset: const Offset(0, 1)),
                           ]
-                        : (isDark
-                            ? null
-                            : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 2))]),
+                        : null, // No per-tile shadows on plain days (41 blurred shadows).
                   ),
                   child: Center(
                     child: Text(
@@ -618,6 +622,7 @@ class DashboardContent extends StatelessWidget {
           }),
         ],
       ),
+    ),
     );
   }
 

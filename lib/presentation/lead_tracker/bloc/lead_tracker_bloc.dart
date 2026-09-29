@@ -7,10 +7,18 @@ import 'lead_tracker_state.dart';
 class LeadTrackerBloc extends Bloc<LeadTrackerEvent, LeadTrackerState> {
   final LeadRepository _leadRepository;
   List<LeadModel> _leads = [];
+  // True once a lead list (fresh or cached) has been shown, so failures can
+  // keep it on screen instead of replacing it with the full error view.
+  bool _hasData = false;
 
   LeadTrackerBloc({required LeadRepository leadRepository})
       : _leadRepository = leadRepository,
-        super(const LeadTrackerInitial()) {
+        super(_initialState(leadRepository)) {
+    final initial = state;
+    if (initial is LeadTrackerLoaded) {
+      _leads = List.from(initial.leads);
+      _hasData = true;
+    }
     on<LeadTrackerLoadRequested>(_onLoad);
     on<LeadTrackerCreateRequested>(_onCreate);
     on<LeadTrackerUpdateRequested>(_onUpdate);
@@ -18,17 +26,43 @@ class LeadTrackerBloc extends Bloc<LeadTrackerEvent, LeadTrackerState> {
     on<LeadTrackerImportRequested>(_onImport);
   }
 
+  /// Start from the repository's last known list (if any) so a revisit renders
+  /// data on the very first frame instead of an empty body.
+  static LeadTrackerState _initialState(LeadRepository repository) {
+    final cached = repository.cachedLeads;
+    return cached != null ? LeadTrackerLoaded(leads: cached) : const LeadTrackerInitial();
+  }
+
   void _emitLoaded(Emitter<LeadTrackerState> emit, {String? message}) {
+    _hasData = true;
     emit(LeadTrackerLoaded(leads: List.from(_leads), actionMessage: message));
   }
 
+  /// Emits [message] (shown as a snackbar) and, when there is data to show,
+  /// immediately restores the loaded view.
+  void _emitError(Emitter<LeadTrackerState> emit, String message) {
+    emit(LeadTrackerError(message));
+    if (_hasData) _emitLoaded(emit);
+  }
+
   Future<void> _onLoad(LeadTrackerLoadRequested event, Emitter<LeadTrackerState> emit) async {
-    emit(const LeadTrackerLoading());
+    // Show the last known list instantly (this bloc is re-created per visit,
+    // the repository cache survives), then refresh in the background.
+    // The spinner only appears on the very first load.
+    if (state is! LeadTrackerLoaded) {
+      final cached = _leadRepository.cachedLeads;
+      if (cached != null) {
+        _leads = cached;
+        _emitLoaded(emit);
+      } else if (!_hasData) {
+        emit(const LeadTrackerLoading());
+      }
+    }
     try {
       _leads = await _leadRepository.getLeads();
       _emitLoaded(emit);
     } catch (e) {
-      emit(LeadTrackerError('Failed to load leads: $e'));
+      _emitError(emit, 'Failed to load leads: $e');
     }
   }
 
@@ -46,7 +80,7 @@ class LeadTrackerBloc extends Bloc<LeadTrackerEvent, LeadTrackerState> {
       _leads.add(lead);
       _emitLoaded(emit, message: 'Lead added');
     } catch (e) {
-      emit(LeadTrackerError('Failed to create lead: $e'));
+      _emitError(emit, 'Failed to create lead: $e');
     }
   }
 
@@ -56,7 +90,7 @@ class LeadTrackerBloc extends Bloc<LeadTrackerEvent, LeadTrackerState> {
       _leads = _leads.where((l) => l.id != event.id).toList();
       _emitLoaded(emit, message: 'Lead deleted');
     } catch (e) {
-      emit(LeadTrackerError('Failed to delete lead: $e'));
+      _emitError(emit, 'Failed to delete lead: $e');
     }
   }
 
@@ -66,7 +100,7 @@ class LeadTrackerBloc extends Bloc<LeadTrackerEvent, LeadTrackerState> {
       _leads = await _leadRepository.getLeads();
       _emitLoaded(emit, message: 'Imported $count lead${count == 1 ? '' : 's'}');
     } catch (e) {
-      emit(LeadTrackerError('Failed to import leads: $e'));
+      _emitError(emit, 'Failed to import leads: $e');
     }
   }
 
@@ -76,7 +110,7 @@ class LeadTrackerBloc extends Bloc<LeadTrackerEvent, LeadTrackerState> {
       _leads = _leads.map((l) => l.id == event.id ? updated : l).toList();
       _emitLoaded(emit);
     } catch (e) {
-      emit(LeadTrackerError('Failed to update lead: $e'));
+      _emitError(emit, 'Failed to update lead: $e');
     }
   }
 }

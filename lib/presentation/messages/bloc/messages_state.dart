@@ -64,15 +64,35 @@ class ConversationMessagesLoaded extends MessagesState {
   final String conversationId;
   final List<MessageModel> messages;
   final List<ConversationModel> conversations; // Keep conversations in state
+  final bool hasMoreMessages; // Older messages may exist beyond the loaded page(s)
+  final bool isLoadingOlder; // An older-page load is in flight
 
   const ConversationMessagesLoaded({
     required this.conversationId,
     required this.messages,
     required this.conversations,
+    this.hasMoreMessages = true,
+    this.isLoadingOlder = false,
   });
 
+  ConversationMessagesLoaded copyWith({
+    List<MessageModel>? messages,
+    List<ConversationModel>? conversations,
+    bool? hasMoreMessages,
+    bool? isLoadingOlder,
+  }) {
+    return ConversationMessagesLoaded(
+      conversationId: conversationId,
+      messages: messages ?? this.messages,
+      conversations: conversations ?? this.conversations,
+      hasMoreMessages: hasMoreMessages ?? this.hasMoreMessages,
+      isLoadingOlder: isLoadingOlder ?? this.isLoadingOlder,
+    );
+  }
+
   @override
-  List<Object?> get props => [conversationId, messages, conversations];
+  List<Object?> get props =>
+      [conversationId, messages, conversations, hasMoreMessages, isLoadingOlder];
 }
 
 class ConversationMessagesError extends MessagesState {

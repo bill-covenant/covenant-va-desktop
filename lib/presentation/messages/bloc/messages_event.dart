@@ -31,7 +31,21 @@ class MessagesRefreshRequested extends MessagesEvent {
 class ConversationMessagesLoadRequested extends MessagesEvent {
   final String conversationId;
 
-  const ConversationMessagesLoadRequested(this.conversationId);
+  /// When true, resubscribes even if already subscribed to this
+  /// conversation (e.g. retry after an error).
+  final bool force;
+
+  const ConversationMessagesLoadRequested(this.conversationId, {this.force = false});
+
+  @override
+  List<Object> get props => [conversationId, force];
+}
+
+/// Loads the next page of older messages for the active conversation.
+class OlderMessagesLoadRequested extends MessagesEvent {
+  final String conversationId;
+
+  const OlderMessagesLoadRequested(this.conversationId);
 
   @override
   List<Object> get props => [conversationId];

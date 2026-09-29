@@ -135,6 +135,17 @@ class _NotesScreenState extends State<NotesScreen> {
   }
 
   void _onStateChanged(BuildContext context, NotesState state) {
+    if (state is NotesLoaded && state.errorMessage != null) {
+      // A refresh/save failed but the last known notes are still shown.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(state.errorMessage!),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
     if (state is NotesLoaded && state.notes.isNotEmpty) {
       if (_selectedNote != null && _selectedNote!.id.startsWith('temp_')) {
         // We're creating a new note — find the real one from the server

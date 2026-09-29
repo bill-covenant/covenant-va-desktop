@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../shared/layouts/main_layout.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/theme/card_decoration.dart';
@@ -107,7 +108,7 @@ class _MessagesPreviewState extends State<MessagesPreview> {
               Text('Messages', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: textPrimary())),
               const Spacer(),
               GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/messages'),
+                onTap: () => MainLayout.navigateTo(context, 'messages'),
                 child: const Text('View all', style: TextStyle(fontSize: 12, color: Color(0xFF8B5CF6), fontWeight: FontWeight.w700)),
               ),
             ],

@@ -37,6 +37,18 @@ class CallService extends ChangeNotifier {
   Timer? _durationTimer;
   Timer? _pollTimer;
   Timer? _signalPollTimer;
+  // HTTP polling is only a fallback for the socket. While the socket is
+  // connected we poll much less often; when it drops we go back to the
+  // fast intervals (the timers keep ticking at the fast rate and skip).
+  static const Duration _callPollFallbackInterval = Duration(seconds: 30);
+  static const Duration _signalPollFallbackInterval = Duration(seconds: 2);
+  DateTime? _lastCallPoll;
+  DateTime? _lastSignalPoll;
+
+  bool _shouldSkipPoll(DateTime? last, Duration fallbackInterval) {
+    if (!_socket.isConnected || last == null) return false;
+    return DateTime.now().difference(last) < fallbackInterval;
+  }
 
   // WebRTC
   RTCPeerConnection? _peerConnection;
@@ -225,6 +237,8 @@ class CallService extends ChangeNotifier {
     _pollTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
       if (_authToken == null) return;
       if (_callState == CallState.connected) return;
+      if (_shouldSkipPoll(_lastCallPoll, _callPollFallbackInterval)) return;
+      _lastCallPoll = DateTime.now();
 
       try {
         final url = '${ApiConstants.baseUrl}/calls/pending';
@@ -261,12 +275,15 @@ class CallService extends ChangeNotifier {
 
   void _startSignalPolling() {
     _signalPollTimer?.cancel();
+    _lastSignalPoll = null;
     _signalPollTimer = Timer.periodic(const Duration(milliseconds: 500), (_) async {
       if (_authToken == null) return;
       if (_callState == CallState.idle) {
         _signalPollTimer?.cancel();
         return;
       }
+      if (_shouldSkipPoll(_lastSignalPoll, _signalPollFallbackInterval)) return;
+      _lastSignalPoll = DateTime.now();
 
       try {
         final url = '${ApiConstants.baseUrl}/calls/signals';

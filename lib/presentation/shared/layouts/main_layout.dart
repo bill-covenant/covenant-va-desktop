@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:covenant_va_desktop/presentation/shared/widgets/cross_hatch_pattern.dart';
 import 'package:covenant_va_desktop/services/update_banner.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/theme_provider.dart';
@@ -13,30 +12,124 @@ import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/bloc/auth_state.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/di/service_locator.dart';
-import '../../../data/providers/storage_provider.dart';
+import '../../../data/providers/api_provider.dart';
 import '../widgets/layout/layout_sidebar_header.dart';
 import '../widgets/layout/layout_sidebar_nav_item.dart';
 import '../widgets/layout/layout_sidebar_footer.dart';
 import '../widgets/layout/layout_notification_overlay.dart';
 import '../widgets/layout/layout_dark_mode_toggle.dart';
+import '../../dashboard/bloc/dashboard_bloc.dart';
+import '../../dashboard/screens/dashboard_screen.dart';
 import '../../tasks/screens/my_tasks_screen.dart';
+import '../../tasks/screens/archive_screen.dart';
+import '../../messages/screens/messages_screen.dart';
+import '../../notes/screens/notes_screen.dart';
+import '../../notes/bloc/notes_bloc.dart';
+import '../../profile/screens/profile_screen.dart';
+import '../../announcements/screens/announcements_screen.dart';
+import '../../timecard/bloc/timecard_bloc.dart';
+import '../../timecard/screens/timecard_screen.dart';
+import '../../crm/screens/crm_screen.dart';
+import '../../crm/bloc/crm_bloc.dart';
+import '../../lead_tracker/screens/lead_tracker_screen.dart';
+import '../../lead_tracker/bloc/lead_tracker_bloc.dart';
 
+/// The persistent app shell: sidebar + content area.
+///
+/// One MainLayout stays mounted while the user moves between screens — the
+/// sidebar only swaps the content widget (via [MainLayout.navigateTo]) instead
+/// of pushing a new route. That keeps the Firestore unread listener, socket
+/// callbacks, badge timer and sidebar state alive across navigations, so a
+/// click no longer re-subscribes / re-fetches everything.
+///
+/// Named routes (`/tasks`, `/messages`, …) still exist for deep links and for
+/// restoring the last screen; each simply opens a shell on that screen.
 class MainLayout extends StatefulWidget {
-  final Widget child;
+  /// The screen shown when the shell is first mounted.
   final String currentRoute;
 
   const MainLayout({
     super.key,
-    required this.child,
     this.currentRoute = 'dashboard',
   });
+
+  /// Screens the shell can show (route names without the leading slash).
+  static const List<String> routes = [
+    'dashboard', 'tasks', 'notes', 'messages', 'timecard', 'crm',
+    'lead-tracker', 'archive', 'announcements', 'profile',
+  ];
+
+  /// Switch the shell's content to [route] (e.g. `'messages'`).
+  /// Falls back to a named-route replacement when called outside a shell.
+  static void navigateTo(BuildContext context, String route) {
+    final shell = context.findAncestorStateOfType<_MainLayoutState>();
+    if (shell != null) {
+      shell._navigateTo(route);
+    } else {
+      Navigator.pushReplacementNamed(context, '/$route');
+    }
+  }
+
+  /// Builds the content widget for [route], including any screen-scoped
+  /// BLoC it needs. Called once per visit (not on every shell rebuild).
+  static Widget buildPage(String route) {
+    switch (route) {
+      case 'tasks':
+        return const MyTasksScreen();
+      case 'notes':
+        // Global singleton BLoC — cache persists across navigations.
+        return BlocProvider.value(
+          value: getIt<NotesBloc>(),
+          child: const NotesScreen(),
+        );
+      case 'messages':
+        return const MessagesScreen();
+      case 'timecard':
+        return BlocProvider(
+          create: (context) => getIt<TimecardBloc>(),
+          child: const TimecardScreen(clientId: ''),
+        );
+      case 'profile':
+        return const ProfileScreen();
+      case 'archive':
+        return const ArchiveScreen();
+      case 'announcements':
+        return const AnnouncementsScreen();
+      case 'crm':
+        return BlocProvider(
+          create: (context) => getIt<CrmBloc>(),
+          child: const CrmScreen(),
+        );
+      case 'lead-tracker':
+        return BlocProvider(
+          create: (context) => getIt<LeadTrackerBloc>(),
+          child: const LeadTrackerScreen(),
+        );
+      case 'dashboard':
+      default:
+        // DashboardScreen decides whether to load (30s throttle) — the
+        // bloc is created idle so a quick revisit shows the cached dashboard.
+        return BlocProvider(
+          create: (context) => getIt<DashboardBloc>(),
+          child: const DashboardScreen(),
+        );
+    }
+  }
 
   @override
   State<MainLayout> createState() => _MainLayoutState();
 }
 
 class _MainLayoutState extends State<MainLayout> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   String _selectedRoute = 'dashboard';
+
+  // Current content. Built only when the route changes, so shell rebuilds
+  // (badges, theme, auth refresh) don't rebuild the whole screen subtree.
+  late Widget _page;
+  // Bumped on every navigation so re-selecting the current item reloads it
+  // (same as the old pushReplacementNamed behaviour).
+  int _pageSerial = 0;
 
   // Badge counts
   int _messagesBadge = 0;
@@ -47,12 +140,24 @@ class _MainLayoutState extends State<MainLayout> {
   StreamSubscription? _messagesStreamSub;
   static int _lastKnownUnread = -1; // -1 means first load, don't trigger notification
 
+  // Last /me/badge-counts response (totals used for the "last seen" marks).
+  _BadgeTotals? _lastTotals;
+
+  static const _badgeCountsTimeout = Duration(seconds: 15);
+  static const _lastSeenTasksKey = 'badge_lastSeen_tasks';
+  // New key: the value is now the total entry count (was the approved count).
+  static const _lastSeenTimeEntriesKey = 'badge_lastSeen_timeEntries';
+  static const _lastSeenAnnouncementsKey = 'badge_lastSeen_announcements';
+
   static final String _apiBaseUrl = ApiConstants.baseUrl;
 
   @override
   void initState() {
     super.initState();
-    _selectedRoute = widget.currentRoute;
+    _selectedRoute = MainLayout.routes.contains(widget.currentRoute)
+        ? widget.currentRoute
+        : 'dashboard';
+    _page = _buildPage();
 
     debugPrint('🔔 MainLayout: Setting up notification callback');
     final socketService = SocketService();
@@ -85,6 +190,13 @@ class _MainLayoutState extends State<MainLayout> {
     _badgeTimer = Timer.periodic(const Duration(minutes: 1), (_) => _fetchBadgeCounts());
   }
 
+  Widget _buildPage() {
+    return KeyedSubtree(
+      key: ValueKey('$_selectedRoute#$_pageSerial'),
+      child: MainLayout.buildPage(_selectedRoute),
+    );
+  }
+
   void _showNotificationBanner(String title, String body) {
     if (mounted) {
       LayoutNotificationOverlay.show(
@@ -105,6 +217,7 @@ class _MainLayoutState extends State<MainLayout> {
       final userData = json.decode(userJson);
       final userId = userData['id']?.toString() ?? '';
       if (userId.isEmpty) return;
+      if (!mounted) return;
 
       _messagesStreamSub = FirebaseFirestore.instance
           .collection('conversations')
@@ -127,7 +240,9 @@ class _MainLayoutState extends State<MainLayout> {
         }
 
         _lastKnownUnread = totalUnread;
-        if (mounted) setState(() => _messagesBadge = totalUnread);
+        if (mounted && _messagesBadge != totalUnread) {
+          setState(() => _messagesBadge = totalUnread);
+        }
       }, onError: (e) {
         // Silently handle permission errors during logout
         debugPrint('⚠️ Firestore stream error (expected during logout): $e');
@@ -145,123 +260,94 @@ class _MainLayoutState extends State<MainLayout> {
     super.dispose();
   }
 
+  /// One cheap request (GET /me/badge-counts) instead of downloading the full
+  /// task, time-entry and announcement lists just to count them.
+  Future<_BadgeTotals?> _requestBadgeTotals() async {
+    try {
+      final data = await getIt<ApiProvider>()
+          .get('/me/badge-counts', requiresAuth: true, forceRefresh: true)
+          .timeout(_badgeCountsTimeout);
+      final totals = _BadgeTotals.fromJson(data);
+      _lastTotals = totals;
+      return totals;
+    } catch (e) {
+      debugPrint('⚠️ Badge counts request failed: $e');
+      return null;
+    }
+  }
+
   Future<void> _fetchBadgeCounts() async {
+    // Messages: handled by real-time Firestore stream (_listenToMessagesStream)
+    final totals = await _requestBadgeTotals();
+    if (totals == null || !mounted) return;
+
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = await getIt<StorageProvider>().getToken();
-      if (token == null) return;
+      if (!mounted) return;
 
-      final headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      };
+      // Tasks: active (non-archived) total vs last seen
+      final lastSeenTasks = prefs.getInt(_lastSeenTasksKey) ?? 0;
+      final tasksBadge = (totals.activeTasks - lastSeenTasks).clamp(0, 999);
 
-      // Messages: handled by real-time Firestore stream (_listenToMessagesStream)
+      // Timecard: total entries vs last seen. First run with the new key —
+      // take the current total as the baseline instead of badging everything.
+      var lastSeenEntries = prefs.getInt(_lastSeenTimeEntriesKey);
+      if (lastSeenEntries == null) {
+        lastSeenEntries = totals.timeEntries;
+        await prefs.setInt(_lastSeenTimeEntriesKey, lastSeenEntries);
+      }
+      final timecardBadge = (totals.timeEntries - lastSeenEntries).clamp(0, 999);
 
-      // Tasks: total count vs last seen
-      try {
-        final res = await http.get(
-          Uri.parse('$_apiBaseUrl/tasks'),
-          headers: headers,
-        );
-        if (res.statusCode == 200 && mounted) {
-          final data = json.decode(res.body);
-          final tasks = (data['tasks'] as List?) ?? [];
-          final activeTasks = tasks.where((t) => t['status'] != 'ARCHIVED').toList();
-          final total = activeTasks.length;
-          final lastSeen = prefs.getInt('badge_lastSeen_tasks') ?? 0;
-          final countBadge = (total - lastSeen).clamp(0, 999);
-          // Keep the higher value — socket events may have incremented it
-          if (countBadge > _tasksBadge) {
-            setState(() => _tasksBadge = countBadge);
-          }
-        }
-      } catch (_) {}
+      // Announcements: published total vs last seen
+      final lastSeenAnnouncements = prefs.getInt(_lastSeenAnnouncementsKey) ?? 0;
+      final announcementBadge =
+          (totals.announcements - lastSeenAnnouncements).clamp(0, 999);
 
-      // Timecard: approved entries vs last seen
-      try {
-        final res = await http.get(
-          Uri.parse('$_apiBaseUrl/timecard/entries'),
-          headers: headers,
-        );
-        if (res.statusCode == 200 && mounted) {
-          final data = json.decode(res.body);
-          final entries = (data['entries'] as List?) ?? [];
-          final approvedCount = entries.where((e) => e['status'] == 'APPROVED').length;
-          final lastSeen = prefs.getInt('badge_lastSeen_timecard') ?? 0;
-          setState(() => _timecardBadge = (approvedCount - lastSeen).clamp(0, 999));
-        }
-      } catch (_) {}
-
-      // Announcements: total count vs last seen
-      try {
-        final res = await http.get(
-          Uri.parse('$_apiBaseUrl/announcements/published'),
-          headers: headers,
-        );
-        if (res.statusCode == 200 && mounted) {
-          final data = json.decode(res.body);
-          final announcements = (data['announcements'] as List?) ?? [];
-          final total = announcements.length;
-          final lastSeen = prefs.getInt('badge_lastSeen_announcements') ?? 0;
-          setState(() => _announcementBadge = (total - lastSeen).clamp(0, 999));
-        }
-      } catch (_) {}
+      if (!mounted) return;
+      // Keep the higher task value — socket events may have incremented it.
+      final newTasksBadge = tasksBadge > _tasksBadge ? tasksBadge : _tasksBadge;
+      if (newTasksBadge != _tasksBadge ||
+          timecardBadge != _timecardBadge ||
+          announcementBadge != _announcementBadge) {
+        setState(() {
+          _tasksBadge = newTasksBadge;
+          _timecardBadge = timecardBadge;
+          _announcementBadge = announcementBadge;
+        });
+      }
     } catch (_) {}
   }
 
+  /// Marks the current totals as "seen" for [route]. Uses the (cheap) badge
+  /// counts endpoint — never re-downloads the lists.
   Future<void> _clearBadge(String route) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = await getIt<StorageProvider>().getToken();
-    final headers = {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ${token ?? ''}',
-    };
+    String? key;
+    int Function(_BadgeTotals t)? pick;
 
-    if (route == 'messages') {
-      // Don't force to 0 — re-fetch after a short delay to reflect
-      // conversations that get marked as read when opened
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) _fetchBadgeCounts();
-      });
-    }
-
+    // Messages: the Firestore stream updates the badge as conversations are read.
     if (route == 'tasks') {
-      if (mounted) setState(() => _tasksBadge = 0);
-      try {
-        final res = await http.get(Uri.parse('$_apiBaseUrl/tasks'), headers: headers);
-        if (res.statusCode == 200) {
-          final data = json.decode(res.body);
-          final total = ((data['tasks'] as List?) ?? []).length;
-          await prefs.setInt('badge_lastSeen_tasks', total);
-        }
-      } catch (_) {}
+      if (mounted && _tasksBadge != 0) setState(() => _tasksBadge = 0);
+      key = _lastSeenTasksKey;
+      pick = (t) => t.activeTasks;
+    } else if (route == 'timecard') {
+      if (mounted && _timecardBadge != 0) setState(() => _timecardBadge = 0);
+      key = _lastSeenTimeEntriesKey;
+      pick = (t) => t.timeEntries;
+    } else if (route == 'announcements') {
+      if (mounted && _announcementBadge != 0) setState(() => _announcementBadge = 0);
+      key = _lastSeenAnnouncementsKey;
+      pick = (t) => t.announcements;
     }
+    if (key == null || pick == null) return;
 
-    if (route == 'timecard') {
-      if (mounted) setState(() => _timecardBadge = 0);
-      try {
-        final res = await http.get(Uri.parse('$_apiBaseUrl/timecard/entries'), headers: headers);
-        if (res.statusCode == 200) {
-          final data = json.decode(res.body);
-          final entries = (data['entries'] as List?) ?? [];
-          final approvedCount = entries.where((e) => e['status'] == 'APPROVED').length;
-          await prefs.setInt('badge_lastSeen_timecard', approvedCount);
-        }
-      } catch (_) {}
-    }
-
-    if (route == 'announcements') {
-      if (mounted) setState(() => _announcementBadge = 0);
-      try {
-        final res = await http.get(Uri.parse('$_apiBaseUrl/announcements/published'), headers: headers);
-        if (res.statusCode == 200) {
-          final data = json.decode(res.body);
-          final total = ((data['announcements'] as List?) ?? []).length;
-          await prefs.setInt('badge_lastSeen_announcements', total);
-        }
-      } catch (_) {}
-    }
+    try {
+      // Prefer fresh totals (something may have arrived since the last poll);
+      // fall back to the last known ones if the request fails.
+      final totals = await _requestBadgeTotals() ?? _lastTotals;
+      if (totals == null) return;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(key, pick(totals));
+    } catch (_) {}
   }
 
   @override
@@ -298,6 +384,7 @@ class _MainLayoutState extends State<MainLayout> {
 
     if (isMobile) {
       return Scaffold(
+        key: _scaffoldKey,
         drawer: Drawer(
           width: 280,
           backgroundColor: Colors.transparent,
@@ -355,7 +442,7 @@ class _MainLayoutState extends State<MainLayout> {
                   ),
                 ),
                 UpdateBanner(apiBaseUrl: _apiBaseUrl),
-                Expanded(child: widget.child),
+                Expanded(child: _page),
               ],
             ),
           ),
@@ -365,6 +452,7 @@ class _MainLayoutState extends State<MainLayout> {
 
     // Desktop layout — fixed sidebar
     return Scaffold(
+      key: _scaffoldKey,
       body: Container(
         decoration: gradient,
         child: CrossHatchPatternOverlay(
@@ -375,7 +463,7 @@ class _MainLayoutState extends State<MainLayout> {
                 child: Column(
                   children: [
                     UpdateBanner(apiBaseUrl: _apiBaseUrl),
-                    Expanded(child: widget.child),
+                    Expanded(child: _page),
                   ],
                 ),
               ),
@@ -540,14 +628,21 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   void _navigateTo(String route) {
-    // Close drawer on mobile before navigating
-    if (Scaffold.maybeOf(context)?.isDrawerOpen ?? false) {
-      Navigator.of(context).pop();
+    if (!mounted) return;
+    if (!MainLayout.routes.contains(route)) route = 'dashboard';
+
+    // Close drawer on mobile before switching content
+    final scaffold = _scaffoldKey.currentState;
+    if (scaffold != null && scaffold.isDrawerOpen) {
+      scaffold.closeDrawer();
     }
-    setState(() => _selectedRoute = route);
     _clearBadge(route);
     _saveLastRoute(route);
-    Navigator.pushReplacementNamed(context, '/$route');
+    setState(() {
+      _selectedRoute = route;
+      _pageSerial++;
+      _page = _buildPage();
+    });
   }
 
   Future<void> _saveLastRoute(String route) async {
@@ -555,5 +650,35 @@ class _MainLayoutState extends State<MainLayout> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('last_route', route);
     } catch (_) {}
+  }
+}
+
+/// Totals from GET /me/badge-counts that the sidebar badges compare against
+/// their stored "last seen" values.
+class _BadgeTotals {
+  final int activeTasks;
+  final int timeEntries;
+  final int announcements;
+
+  const _BadgeTotals({
+    required this.activeTasks,
+    required this.timeEntries,
+    required this.announcements,
+  });
+
+  static int _int(dynamic v) => v is num ? v.toInt() : 0;
+
+  factory _BadgeTotals.fromJson(Map<String, dynamic> json) {
+    final tasks = json['tasks'] is Map ? json['tasks'] as Map : const {};
+    final byStatus = tasks['byStatus'] is Map ? tasks['byStatus'] as Map : const {};
+    final timeEntries = json['timeEntries'] is Map ? json['timeEntries'] as Map : const {};
+    final announcements = json['announcements'] is Map ? json['announcements'] as Map : const {};
+    // The sidebar counts active tasks only (archived ones don't badge).
+    final activeTasks = _int(tasks['total']) - _int(byStatus['ARCHIVED']);
+    return _BadgeTotals(
+      activeTasks: activeTasks < 0 ? 0 : activeTasks,
+      timeEntries: _int(timeEntries['total']),
+      announcements: _int(announcements['published']),
+    );
   }
 }

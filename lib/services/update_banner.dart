@@ -11,8 +11,14 @@ class UpdateBanner extends StatefulWidget {
 }
 
 class _UpdateBannerState extends State<UpdateBanner> {
+  // The version check runs once per app session (not on every navigation).
+  // A failed check (null) is forgotten so a later mount can try again.
+  static Future<UpdateInfo?>? _sessionCheck;
+  static bool _dismissedThisSession = false;
+
   UpdateInfo? _updateInfo;
-  bool _dismissed = false;
+  bool get _dismissed => _dismissedThisSession;
+  set _dismissed(bool value) => _dismissedThisSession = value;
 
   @override
   void initState() {
@@ -21,7 +27,9 @@ class _UpdateBannerState extends State<UpdateBanner> {
   }
 
   Future<void> _checkForUpdate() async {
-    final info = await UpdateService.checkForUpdate(widget.apiBaseUrl);
+    final check = _sessionCheck ??= UpdateService.checkForUpdate(widget.apiBaseUrl);
+    final info = await check;
+    if (info == null && identical(_sessionCheck, check)) _sessionCheck = null;
     if (info != null && info.updateAvailable && mounted) {
       setState(() => _updateInfo = info);
     }

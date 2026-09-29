@@ -5,7 +5,7 @@ import '../../dashboard/widgets/task_filter.dart';
 import 'tasks_list.dart';
 import 'tasks_empty_state.dart';
 
-class TasksContent extends StatelessWidget {
+class TasksContent extends StatefulWidget {
   final List<TaskModel> filteredTasks;
   final String statusFilter;
   final String priorityFilter;
@@ -32,6 +32,40 @@ class TasksContent extends StatelessWidget {
   });
 
   @override
+  State<TasksContent> createState() => _TasksContentState();
+}
+
+class _TasksContentState extends State<TasksContent> {
+  // Grouped once per new task list (not on every build) so TasksList can
+  // memoize its sorting by list identity.
+  late List<TaskModel> _ongoingTasks;
+  late List<TaskModel> _deadlineTasks;
+
+  List<TaskModel> get filteredTasks => widget.filteredTasks;
+  String get statusFilter => widget.statusFilter;
+  String get priorityFilter => widget.priorityFilter;
+  String get searchQuery => widget.searchQuery;
+
+  @override
+  void initState() {
+    super.initState();
+    _groupTasks();
+  }
+
+  @override
+  void didUpdateWidget(TasksContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.filteredTasks, widget.filteredTasks)) {
+      _groupTasks();
+    }
+  }
+
+  void _groupTasks() {
+    _ongoingTasks = filteredTasks.where((t) => t.dueDate == null).toList();
+    _deadlineTasks = filteredTasks.where((t) => t.dueDate != null).toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ScrollConfiguration(
       behavior: ScrollConfiguration.of(context).copyWith(
@@ -42,28 +76,38 @@ class TasksContent extends StatelessWidget {
         },
       ),
       child: RefreshIndicator(
-        onRefresh: onRefresh,
-        child: SingleChildScrollView(
+        onRefresh: widget.onRefresh,
+        child: CustomScrollView(
           physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-          padding: const EdgeInsets.fromLTRB(48, 32, 48, 40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TaskFilterBar(
-              statusFilter: statusFilter,
-              priorityFilter: priorityFilter,
-              searchQuery: searchQuery,
-              onStatusChanged: onStatusChanged,
-              onPriorityChanged: onPriorityChanged,
-              onSearchChanged: onSearchChanged,
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(48, 32, 48, 40),
+              sliver: SliverMainAxisGroup(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TaskFilterBar(
+                          statusFilter: statusFilter,
+                          priorityFilter: priorityFilter,
+                          searchQuery: searchQuery,
+                          onStatusChanged: widget.onStatusChanged,
+                          onPriorityChanged: widget.onPriorityChanged,
+                          onSearchChanged: widget.onSearchChanged,
+                        ),
+                        const SizedBox(height: 20),
+                        _buildTaskCount(),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                  ..._buildTasksList(),
+                ],
+              ),
             ),
-            const SizedBox(height: 20),
-            _buildTaskCount(),
-            const SizedBox(height: 20),
-            _buildTasksList(),
           ],
         ),
-      ),
       ),
     );
   }
@@ -79,60 +123,70 @@ class TasksContent extends StatelessWidget {
     );
   }
 
-  Widget _buildTasksList() {
+  /// Returns slivers.
+  List<Widget> _buildTasksList() {
     if (filteredTasks.isEmpty) {
-      return TasksEmptyState(
-        searchQuery: searchQuery,
-        statusFilter: statusFilter,
-        priorityFilter: priorityFilter,
-      );
+      return [
+        SliverToBoxAdapter(
+          child: TasksEmptyState(
+            searchQuery: searchQuery,
+            statusFilter: statusFilter,
+            priorityFilter: priorityFilter,
+          ),
+        ),
+      ];
     }
 
-    final ongoingTasks = filteredTasks.where((t) => t.dueDate == null).toList();
-    final deadlineTasks = filteredTasks.where((t) => t.dueDate != null).toList();
+    final ongoingTasks = _ongoingTasks;
+    final deadlineTasks = _deadlineTasks;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // On-going Tasks
-        _buildSectionHeader(
-          icon: Icons.access_time_rounded,
-          title: 'On-going Tasks',
-          subtitle: 'Tasks without a deadline',
-          count: ongoingTasks.length,
-          color: const Color(0xFF7C3AED),
-        ),
-        const SizedBox(height: 12),
-        if (ongoingTasks.isEmpty)
-          _buildEmptySection('No on-going tasks')
-        else
-          TasksList(
-            tasks: ongoingTasks,
-            onTaskUpdated: onTaskUpdated,
-            onArchiveTask: onArchiveTask,
+    return [
+      // On-going Tasks
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _buildSectionHeader(
+            icon: Icons.access_time_rounded,
+            title: 'On-going Tasks',
+            subtitle: 'Tasks without a deadline',
+            count: ongoingTasks.length,
+            color: const Color(0xFF7C3AED),
           ),
-
-        const SizedBox(height: 32),
-
-        // Deadline Tasks
-        _buildSectionHeader(
-          icon: Icons.calendar_month_rounded,
-          title: 'Deadline Tasks',
-          subtitle: 'Tasks with a due date',
-          count: deadlineTasks.length,
-          color: const Color(0xFFF97316),
         ),
-        const SizedBox(height: 12),
-        if (deadlineTasks.isEmpty)
-          _buildEmptySection('No deadline tasks')
-        else
-          TasksList(
-            tasks: deadlineTasks,
-            onTaskUpdated: onTaskUpdated,
-            onArchiveTask: onArchiveTask,
+      ),
+      if (ongoingTasks.isEmpty)
+        SliverToBoxAdapter(child: _buildEmptySection('No on-going tasks'))
+      else
+        TasksList(
+          key: const ValueKey('ongoing-tasks'),
+          tasks: ongoingTasks,
+          onTaskUpdated: widget.onTaskUpdated,
+          onArchiveTask: widget.onArchiveTask,
+        ),
+
+      // Deadline Tasks
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.only(top: 32, bottom: 12),
+          child: _buildSectionHeader(
+            icon: Icons.calendar_month_rounded,
+            title: 'Deadline Tasks',
+            subtitle: 'Tasks with a due date',
+            count: deadlineTasks.length,
+            color: const Color(0xFFF97316),
           ),
-      ],
-    );
+        ),
+      ),
+      if (deadlineTasks.isEmpty)
+        SliverToBoxAdapter(child: _buildEmptySection('No deadline tasks'))
+      else
+        TasksList(
+          key: const ValueKey('deadline-tasks'),
+          tasks: deadlineTasks,
+          onTaskUpdated: widget.onTaskUpdated,
+          onArchiveTask: widget.onArchiveTask,
+        ),
+    ];
   }
 
   Widget _buildSectionHeader({

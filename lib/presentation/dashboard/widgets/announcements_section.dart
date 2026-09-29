@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/announcement_model.dart';
 import '../../../data/repositories/announcement_repository.dart';
+import '../../announcements/screens/announcements_screen.dart';
 
 class AnnouncementsSection extends StatefulWidget {
   const AnnouncementsSection({super.key});
@@ -18,7 +19,16 @@ class _AnnouncementsSectionState extends State<AnnouncementsSection> {
   @override
   void initState() {
     super.initState();
-    _fetchAnnouncements();
+    // Start from the shared announcements cache (pre-warmed at login) so the
+    // dashboard doesn't jump down when the list arrives; refresh if stale.
+    final cached = AnnouncementsScreen.cachedAnnouncements;
+    if (cached != null) {
+      _announcements = List.of(cached);
+      _loaded = true;
+    }
+    if (AnnouncementsScreen.isCacheStale()) {
+      _fetchAnnouncements();
+    }
   }
 
   Future<void> _fetchAnnouncements() async {
@@ -26,9 +36,10 @@ class _AnnouncementsSectionState extends State<AnnouncementsSection> {
       final repo = GetIt.I<AnnouncementRepository>();
       // Backend already filters out dismissed announcements for this user
       final announcements = await repo.getPublishedAnnouncements();
+      AnnouncementsScreen.updateCache(announcements);
       if (mounted) {
         setState(() {
-          _announcements = announcements;
+          _announcements = List.of(announcements);
           _loaded = true;
         });
       }
@@ -41,6 +52,7 @@ class _AnnouncementsSectionState extends State<AnnouncementsSection> {
   Future<void> _dismiss(String id) async {
     // Remove from UI immediately
     setState(() => _announcements.removeWhere((a) => a.id == id));
+    AnnouncementsScreen.updateCache(List.of(_announcements));
 
     // Persist dismissal server-side (fire and forget)
     try {
@@ -53,14 +65,19 @@ class _AnnouncementsSectionState extends State<AnnouncementsSection> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_loaded) return const SizedBox.shrink();
-    if (_announcements.isEmpty) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        children: _announcements.map((a) => _buildAnnouncementCard(a)).toList(),
-      ),
+    // AnimatedSize: if announcements arrive after first paint (no cache yet),
+    // the content below slides down smoothly instead of jumping.
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 200),
+      alignment: Alignment.topCenter,
+      child: (!_loaded || _announcements.isEmpty)
+          ? const SizedBox(width: double.infinity)
+          : Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Column(
+                children: _announcements.map((a) => _buildAnnouncementCard(a)).toList(),
+              ),
+            ),
     );
   }
 

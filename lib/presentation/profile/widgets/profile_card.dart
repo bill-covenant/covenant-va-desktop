@@ -6,6 +6,7 @@ import '../../../../core/theme/theme_provider.dart';
 import '../../../../data/models/user_model.dart';
 import '../../../../data/repositories/user_repository.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../shared/widgets/avatar_image.dart';
 
 class ProfileCard extends StatelessWidget {
   final UserModel user;
@@ -132,24 +133,19 @@ class ProfileCard extends StatelessWidget {
               ),
             ],
           ),
-          child: user.profile?.avatar != null
-              ? ClipOval(
-                  child: Image.memory(
-                    base64Decode(user.profile!.avatar!.split(',')[1]),
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      debugPrint('❌ Error loading avatar: $error');
-                      return Center(
-                        child: Text(
-                          user.initials,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 40,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      );
-                    },
+          child: user.profile?.avatar != null && user.profile!.avatar!.isNotEmpty
+              ? AvatarImage(
+                  source: user.profile!.avatar!,
+                  size: 112,
+                  fallback: Center(
+                    child: Text(
+                      user.initials,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 40,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 )
               : Center(

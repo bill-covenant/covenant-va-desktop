@@ -9,6 +9,13 @@ import '../widgets/dashboard_content.dart';
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
+  /// Forget the cached dashboard (e.g. on logout) so the next user never
+  /// sees it and the next visit loads fresh.
+  static void clearCache() {
+    _DashboardScreenState._cachedState = null;
+    _DashboardScreenState._lastFetchTime = null;
+  }
+
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
@@ -48,4 +55,4 @@ class _DashboardScreenState extends State<DashboardScreen> {
       },
     );
   }
-}
+}

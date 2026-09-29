@@ -17,9 +17,15 @@ class NotesLoading extends NotesState {
 
 class NotesLoaded extends NotesState {
   final List<NoteModel> notes;
-  const NotesLoaded({required this.notes});
+  /// Set when a load/save failed but [notes] (the last known list) is still
+  /// shown. The UI surfaces it as a snackbar instead of a full error view.
+  final String? errorMessage;
+  /// Distinguishes repeated failures with the same message (Equatable would
+  /// otherwise swallow the second emit).
+  final int errorId;
+  const NotesLoaded({required this.notes, this.errorMessage, this.errorId = 0});
   @override
-  List<Object?> get props => [notes];
+  List<Object?> get props => [notes, errorMessage, errorId];
 }
 
 class NotesError extends NotesState {

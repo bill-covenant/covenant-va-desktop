@@ -1,6 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../auth/bloc/auth_bloc.dart';
+import '../../auth/bloc/auth_state.dart';
 
 class GreetingHeader extends StatelessWidget {
   final Widget? trailing;
@@ -8,14 +9,17 @@ class GreetingHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Name comes straight from the auth state (already in memory) instead of
+    // re-reading + JSON-decoding SharedPreferences in a FutureBuilder on
+    // every build, which briefly showed "Hi, there!" and caused a relayout.
+    final vaName = context.select<AuthBloc, String>((bloc) => _nameFrom(bloc.state));
     return Container(
       padding: const EdgeInsets.fromLTRB(32, 20, 32, 12),
       child: Row(
         children: [
-          FutureBuilder<String>(
-            future: _getVAName(),
-            builder: (context, snapshot) {
-              final name = snapshot.data ?? 'there';
+          Builder(
+            builder: (context) {
+              final name = vaName.isNotEmpty ? vaName : 'there';
               final firstName = name.split(' ').first;
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,10 +52,9 @@ class GreetingHeader extends StatelessWidget {
             const SizedBox(width: 12),
           ],
           // Profile avatar
-          FutureBuilder<String>(
-            future: _getVAName(),
-            builder: (context, snapshot) {
-              final name = snapshot.data ?? 'VA';
+          Builder(
+            builder: (context) {
+              final name = vaName.isNotEmpty ? vaName : 'VA';
               final initials = name.split(' ').map((w) => w.isNotEmpty ? w[0] : '').take(2).join().toUpperCase();
               return Container(
                 width: 42,
@@ -81,21 +84,12 @@ class GreetingHeader extends StatelessWidget {
     return 'Good evening! Wrapping up for the day?';
   }
 
-  Future<String> _getVAName() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final userJson = prefs.getString('user_data');
-      if (userJson != null) {
-        final data = Map<String, dynamic>.from(
-          const JsonCodec().decode(userJson) as Map,
-        );
-        final firstName = data['firstName'] as String? ?? '';
-        final lastName = data['lastName'] as String? ?? '';
-        if (firstName.isNotEmpty) return '$firstName $lastName'.trim();
-      }
-      return 'there';
-    } catch (_) {
-      return 'there';
+  static String _nameFrom(AuthState state) {
+    if (state is AuthAuthenticated) {
+      final firstName = state.user.firstName;
+      final lastName = state.user.lastName;
+      if (firstName.isNotEmpty) return '$firstName $lastName'.trim();
     }
+    return '';
   }
 }

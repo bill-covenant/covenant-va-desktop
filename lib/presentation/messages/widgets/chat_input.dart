@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -511,240 +510,237 @@ class _ChatInputState extends State<ChatInput>
           // Input bar
           ClipRect(
             key: _inputBarKey,
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
-                decoration: BoxDecoration(
-                  gradient: isDark
-                      ? const LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [
-                            Color(0xFF1A1230),
-                            Color(0xFF1E1535),
-                          ],
-                        )
-                      : const LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [
-                            Color(0xFF7C3AED),
-                            Color(0xFFEC4899),
-                          ],
-                        ),
-                  border: Border(
-                    top: BorderSide(
-                      color: isDark
-                          ? Colors.white.withOpacity(0.08)
-                          : Colors.white.withOpacity(0.15),
-                    ),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
+              decoration: BoxDecoration(
+                gradient: isDark
+                    ? const LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [
+                          Color(0xFF1A1230),
+                          Color(0xFF1E1535),
+                        ],
+                      )
+                    : const LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [
+                          Color(0xFF7C3AED),
+                          Color(0xFFEC4899),
+                        ],
+                      ),
+                border: Border(
+                  top: BorderSide(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.08)
+                        : Colors.white.withOpacity(0.15),
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF7C3AED).withOpacity(
-                          isDark ? 0.1 : 0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, -4),
-                    ),
-                  ],
                 ),
-                child: SafeArea(
-                  top: false,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      // Main input container
-                      Expanded(
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeOutCubic,
-                          constraints: const BoxConstraints(maxHeight: 120),
-                          decoration: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF7C3AED).withOpacity(
+                        isDark ? 0.1 : 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                top: false,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // Main input container
+                    Expanded(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOutCubic,
+                        constraints: const BoxConstraints(maxHeight: 120),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? (_isFocused
+                                  ? Colors.white.withOpacity(0.15)
+                                  : Colors.white.withOpacity(0.1))
+                              : (_isFocused
+                                  ? Colors.white.withOpacity(0.97)
+                                  : Colors.white.withOpacity(0.9)),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
                             color: isDark
                                 ? (_isFocused
-                                    ? Colors.white.withOpacity(0.15)
-                                    : Colors.white.withOpacity(0.1))
+                                    ? Colors.white.withOpacity(0.3)
+                                    : Colors.white.withOpacity(0.15))
                                 : (_isFocused
-                                    ? Colors.white.withOpacity(0.97)
-                                    : Colors.white.withOpacity(0.9)),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: isDark
-                                  ? (_isFocused
-                                      ? Colors.white.withOpacity(0.3)
-                                      : Colors.white.withOpacity(0.15))
-                                  : (_isFocused
-                                      ? Colors.white
-                                      : Colors.white.withOpacity(0.6)),
-                              width: _isFocused ? 1.5 : 1,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: _isFocused ? 16 : 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                                    ? Colors.white
+                                    : Colors.white.withOpacity(0.6)),
+                            width: _isFocused ? 1.5 : 1,
                           ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Padding(
-                                padding:
-                                    const EdgeInsets.only(left: 6, bottom: 4),
-                                child: _buildInlineButton(
-                                  Icons.attach_file_rounded,
-                                  onTap: _pickFiles,
-                                ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: _isFocused ? 16 : 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Padding(
+                              padding:
+                                  const EdgeInsets.only(left: 6, bottom: 4),
+                              child: _buildInlineButton(
+                                Icons.attach_file_rounded,
+                                onTap: _pickFiles,
                               ),
-                              Expanded(
-                                child: KeyboardListener(
-                                  focusNode: FocusNode(),
-                                  onKeyEvent: (KeyEvent event) {
-                                    if (event is KeyDownEvent &&
-                                        event.logicalKey ==
-                                            LogicalKeyboardKey.enter &&
-                                        !HardwareKeyboard
-                                            .instance.isShiftPressed) {
-                                      _sendMessage();
-                                    }
-                                  },
-                                  child: TextField(
-                                    controller: _messageController,
-                                    focusNode: _focusNode,
-                                    maxLines: null,
-                                    keyboardType: TextInputType.multiline,
-                                    textInputAction: TextInputAction.send,
-                                    style: TextStyle(
+                            ),
+                            Expanded(
+                              child: KeyboardListener(
+                                focusNode: FocusNode(),
+                                onKeyEvent: (KeyEvent event) {
+                                  if (event is KeyDownEvent &&
+                                      event.logicalKey ==
+                                          LogicalKeyboardKey.enter &&
+                                      !HardwareKeyboard
+                                          .instance.isShiftPressed) {
+                                    _sendMessage();
+                                  }
+                                },
+                                child: TextField(
+                                  controller: _messageController,
+                                  focusNode: _focusNode,
+                                  maxLines: null,
+                                  keyboardType: TextInputType.multiline,
+                                  textInputAction: TextInputAction.send,
+                                  style: TextStyle(
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF2D2252),
+                                    fontSize: 14.5,
+                                    height: 1.45,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: 'Type a message...',
+                                    hintStyle: TextStyle(
                                       color: isDark
-                                          ? Colors.white
-                                          : const Color(0xFF2D2252),
+                                          ? Colors.white.withOpacity(0.5)
+                                          : const Color(0xFF9CA3AF)
+                                              .withOpacity(0.8),
                                       fontSize: 14.5,
-                                      height: 1.45,
                                       fontWeight: FontWeight.w400,
                                     ),
-                                    decoration: InputDecoration(
-                                      hintText: 'Type a message...',
-                                      hintStyle: TextStyle(
-                                        color: isDark
-                                            ? Colors.white.withOpacity(0.5)
-                                            : const Color(0xFF9CA3AF)
-                                                .withOpacity(0.8),
-                                        fontSize: 14.5,
-                                        fontWeight: FontWeight.w400,
-                                      ),
-                                      border: InputBorder.none,
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                        vertical: 14,
-                                      ),
+                                    border: InputBorder.none,
+                                    contentPadding:
+                                        const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 14,
                                     ),
-                                    onSubmitted: (_) => _sendMessage(),
                                   ),
-                                ),
-                              ),
-                              Padding(
-                                padding:
-                                    const EdgeInsets.only(right: 6, bottom: 4),
-                                child: _buildInlineButton(
-                                  _showEmojiPicker
-                                      ? Icons.keyboard_rounded
-                                      : Icons.emoji_emotions_outlined,
-                                  onTap: _toggleEmojiPicker,
-                                  isActive: _showEmojiPicker,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(width: 10),
-
-                      // Send button
-                      AnimatedBuilder(
-                        animation: _sendButtonScale,
-                        builder: (context, child) {
-                          return Transform.scale(
-                            scale: _canSend ? _sendButtonScale.value : 0.85,
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 250),
-                              curve: Curves.easeOutCubic,
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                gradient: _canSend
-                                    ? const LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: [
-                                          Color(0xFF8B5CF6),
-                                          Color(0xFF7C3AED),
-                                        ],
-                                      )
-                                    : null,
-                                color: _canSend
-                                    ? null
-                                    : Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: _canSend
-                                    ? [
-                                        BoxShadow(
-                                          color: const Color(0xFF7C3AED)
-                                              .withOpacity(0.35),
-                                          blurRadius: 14,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                        BoxShadow(
-                                          color: const Color(0xFF7C3AED)
-                                              .withOpacity(0.15),
-                                          blurRadius: 24,
-                                          offset: const Offset(0, 8),
-                                        ),
-                                      ]
-                                    : [],
-                              ),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: _canSend ? _sendMessage : null,
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: Center(
-                                    child: _isUploading
-                                        ? const SizedBox(
-                                            width: 20,
-                                            height: 20,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              valueColor:
-                                                  AlwaysStoppedAnimation<Color>(
-                                                      Colors.white),
-                                            ),
-                                          )
-                                        : AnimatedRotation(
-                                            turns: _canSend ? -0.05 : 0,
-                                            duration: const Duration(
-                                                milliseconds: 200),
-                                            child: Icon(
-                                              Icons.send_rounded,
-                                              color: _canSend
-                                                  ? Colors.white
-                                                  : Colors.white
-                                                      .withOpacity(0.5),
-                                              size: 20,
-                                            ),
-                                          ),
-                                  ),
+                                  onSubmitted: (_) => _sendMessage(),
                                 ),
                               ),
                             ),
-                          );
-                        },
+                            Padding(
+                              padding:
+                                  const EdgeInsets.only(right: 6, bottom: 4),
+                              child: _buildInlineButton(
+                                _showEmojiPicker
+                                    ? Icons.keyboard_rounded
+                                    : Icons.emoji_emotions_outlined,
+                                onTap: _toggleEmojiPicker,
+                                isActive: _showEmojiPicker,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ],
-                  ),
+                    ),
+
+                    const SizedBox(width: 10),
+
+                    // Send button
+                    AnimatedBuilder(
+                      animation: _sendButtonScale,
+                      builder: (context, child) {
+                        return Transform.scale(
+                          scale: _canSend ? _sendButtonScale.value : 0.85,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            curve: Curves.easeOutCubic,
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              gradient: _canSend
+                                  ? const LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        Color(0xFF8B5CF6),
+                                        Color(0xFF7C3AED),
+                                      ],
+                                    )
+                                  : null,
+                              color: _canSend
+                                  ? null
+                                  : Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: _canSend
+                                  ? [
+                                      BoxShadow(
+                                        color: const Color(0xFF7C3AED)
+                                            .withOpacity(0.35),
+                                        blurRadius: 14,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                      BoxShadow(
+                                        color: const Color(0xFF7C3AED)
+                                            .withOpacity(0.15),
+                                        blurRadius: 24,
+                                        offset: const Offset(0, 8),
+                                      ),
+                                    ]
+                                  : [],
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: _canSend ? _sendMessage : null,
+                                borderRadius: BorderRadius.circular(16),
+                                child: Center(
+                                  child: _isUploading
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                    Colors.white),
+                                          ),
+                                        )
+                                      : AnimatedRotation(
+                                          turns: _canSend ? -0.05 : 0,
+                                          duration: const Duration(
+                                              milliseconds: 200),
+                                          child: Icon(
+                                            Icons.send_rounded,
+                                            color: _canSend
+                                                ? Colors.white
+                                                : Colors.white
+                                                    .withOpacity(0.5),
+                                            size: 20,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ),
             ),

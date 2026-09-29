@@ -19,13 +19,22 @@ class FirebaseMessageRepository {
             .toList());
   }
 
-  /// Stream of messages for a specific conversation.
-  Stream<List<MessageModel>> messagesStream(String conversationId) {
+  /// Default number of messages loaded per page.
+  static const int messagesPageSize = 50;
+
+  /// Stream of the most recent [limit] messages for a conversation, in
+  /// chronological order (oldest first). Increase [limit] to page in older
+  /// messages while keeping every loaded message live.
+  Stream<List<MessageModel>> messagesStream(
+    String conversationId, {
+    int limit = messagesPageSize,
+  }) {
     return _firestore
         .collection('conversations')
         .doc(conversationId)
         .collection('messages')
         .orderBy('createdAt', descending: false)
+        .limitToLast(limit)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => MessageModel.fromFirestore(doc))

@@ -12,30 +12,20 @@ import 'presentation/auth/bloc/auth_bloc.dart';
 import 'presentation/auth/bloc/auth_event.dart';
 import 'presentation/auth/bloc/auth_state.dart';
 import 'presentation/auth/screens/login_screen.dart';
-import 'presentation/dashboard/bloc/dashboard_bloc.dart';
-import 'presentation/dashboard/bloc/dashboard_event.dart';
-import 'presentation/dashboard/screens/dashboard_screen.dart';
-import 'presentation/tasks/screens/my_tasks_screen.dart';
-import 'presentation/tasks/screens/archive_screen.dart';
-import 'presentation/messages/screens/messages_screen.dart';
 import 'presentation/messages/bloc/messages_bloc.dart';
-import 'presentation/notes/screens/notes_screen.dart';
 import 'presentation/notes/bloc/notes_bloc.dart';
 import 'presentation/notes/bloc/notes_event.dart';
 import 'presentation/notes/bloc/notes_state.dart';
-import 'presentation/profile/screens/profile_screen.dart';
 import 'presentation/announcements/screens/announcements_screen.dart';
+import 'presentation/dashboard/screens/dashboard_screen.dart';
+import 'presentation/dashboard/widgets/my_clients_section.dart';
+import 'presentation/tasks/screens/my_tasks_screen.dart';
 import 'data/repositories/announcement_repository.dart';
 import 'presentation/shared/layouts/main_layout.dart';
+import 'presentation/shared/widgets/connecting_banner.dart';
 import 'presentation/notifications/bloc/notification_bloc.dart';
 import 'presentation/notifications/bloc/notification_event.dart';
 import 'presentation/splash/splash_screen.dart';
-import 'presentation/timecard/bloc/timecard_bloc.dart';
-import 'presentation/timecard/screens/timecard_screen.dart';
-import 'presentation/crm/screens/crm_screen.dart';
-import 'presentation/crm/bloc/crm_bloc.dart';
-import 'presentation/lead_tracker/screens/lead_tracker_screen.dart';
-import 'presentation/lead_tracker/bloc/lead_tracker_bloc.dart';
 import 'data/repositories/notification_repository.dart';
 import 'data/providers/api_provider.dart';
 import 'services/socket_service.dart';
@@ -49,12 +39,23 @@ void main() async {
 
   await SocketService().initNotifications();
   await setupServiceLocator();
-  
-  runApp(const CovenantVAApp());
+
+  // Read the last visited screen once, up front, instead of in a
+  // FutureBuilder that re-ran on every rebuild of the home route.
+  String? lastRoute;
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    lastRoute = prefs.getString('last_route');
+  } catch (_) {}
+
+  runApp(CovenantVAApp(initialLastRoute: lastRoute));
 }
 
 class CovenantVAApp extends StatelessWidget {
-  const CovenantVAApp({super.key});
+  /// Screen to restore after sign-in (from `last_route`), if any.
+  final String? initialLastRoute;
+
+  const CovenantVAApp({super.key, this.initialLastRoute});
 
   @override
   Widget build(BuildContext context) {
@@ -75,13 +76,15 @@ class CovenantVAApp extends StatelessWidget {
           create: (context) => getIt<MessagesBloc>(),
         ),
       ],
-      child: const _AppContent(),
+      child: _AppContent(initialLastRoute: initialLastRoute),
     );
   }
 }
 
 class _AppContent extends StatefulWidget {
-  const _AppContent();
+  final String? initialLastRoute;
+
+  const _AppContent({this.initialLastRoute});
 
   @override
   State<_AppContent> createState() => _AppContentState();
@@ -94,43 +97,70 @@ class _AppContentState extends State<_AppContent> {
   final SocketService _socketService = SocketService();
   final CallService _callService = CallService();
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
-  bool _restoredLastRoute = false;
   static const _restorableRoutes = {
     'tasks', 'notes', 'messages', 'timecard', 'crm', 'lead-tracker',
     'archive', 'announcements', 'profile',
   };
 
+  /// `last_route` as read at startup. Consumed by the first authenticated
+  /// home build; cleared on logout so the next sign-in starts on the dashboard.
+  String? _pendingLastRoute;
+
+  /// Screen the current signed-in session's shell opened on (stable across
+  /// rebuilds of the home route).
+  String? _homeRoute;
+
   @override
   void initState() {
     super.initState();
+    _pendingLastRoute = widget.initialLastRoute;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setupAuthListener();
     });
   }
 
+  /// Warms the notes + announcements caches after sign-in. On a cold backend
+  /// the first attempt can fail; retry with exponential backoff (5s, 10s).
+  /// An empty notes list is a valid result, not a failure.
   Future<void> _preloadData({int attempt = 1}) async {
-    const maxRetries = 3;
-    const retryDelay = Duration(seconds: 5);
+    const maxAttempts = 3;
+    const baseRetryDelay = Duration(seconds: 5);
 
-    // Pre-load notes
-    getIt<NotesBloc>().add(const NotesLoadRequested());
-
-    // Pre-load announcements
-    try {
-      final announcements = await getIt<AnnouncementRepository>().getPublishedAnnouncements();
-      AnnouncementsScreen.updateCache(announcements);
-    } catch (_) {
-      // Will retry below
+    final notesBloc = getIt<NotesBloc>();
+    bool notesOk() {
+      final s = notesBloc.state;
+      return s is NotesLoaded && s.errorMessage == null;
     }
 
-    // Check if notes loaded successfully
-    await Future.delayed(const Duration(seconds: 2));
-    final notesState = getIt<NotesBloc>().state;
-    final notesFailed = notesState is! NotesLoaded || notesState.notes.isEmpty;
+    // Pre-load notes (only if a previous attempt didn't already succeed)
+    if (!notesOk()) {
+      notesBloc.add(const NotesLoadRequested());
+    }
 
-    if (notesFailed && attempt < maxRetries) {
-      await Future.delayed(retryDelay);
-      if (mounted) {
+    // Pre-load announcements
+    bool announcementsOk = !AnnouncementsScreen.isCacheStale(const Duration(minutes: 5));
+    if (!announcementsOk) {
+      try {
+        final announcements = await getIt<AnnouncementRepository>().getPublishedAnnouncements();
+        AnnouncementsScreen.updateCache(announcements);
+        announcementsOk = true;
+      } catch (_) {
+        // Will retry below
+      }
+    }
+
+    // Wait for the notes request to settle (success or error).
+    if (!notesOk()) {
+      try {
+        await notesBloc.stream
+            .firstWhere((s) => s is NotesLoaded || s is NotesError)
+            .timeout(const Duration(seconds: 35));
+      } catch (_) {}
+    }
+
+    if ((!notesOk() || !announcementsOk) && attempt < maxAttempts && mounted) {
+      await Future.delayed(baseRetryDelay * (1 << (attempt - 1)));
+      if (mounted && _hasLoadedNotifications) {
         _preloadData(attempt: attempt + 1);
       }
     }
@@ -138,7 +168,7 @@ class _AppContentState extends State<_AppContent> {
 
   void _setupAuthListener() {
     final authBloc = context.read<AuthBloc>();
-    
+
     authBloc.stream.listen((authState) {
       if (!mounted) return;
       if (authState is AuthAuthenticated && !_hasLoadedNotifications) {
@@ -159,19 +189,16 @@ class _AppContentState extends State<_AppContent> {
         }
         _callService.initialize();
 
+        // Only endpoints whose cache keys match what the screens actually
+        // request (same URL, no forceRefresh) — anything else is wasted work.
         apiProvider.warmUp([
           '/tasks',
           '/tasks/stats',
-          '/timecard/entries',
-          '/conversations',
-          '/notifications',
-          '/notes',
-          '/announcements/published',
         ]);
 
         // Pre-load data with retry on cold start failure
         _preloadData();
-        
+
         _notificationTimer = Timer.periodic(
           const Duration(seconds: 30),
           (timer) {
@@ -185,10 +212,15 @@ class _AppContentState extends State<_AppContent> {
         _notificationTimer?.cancel();
         _notificationTimer = null;
         _socketService.disconnect();
-        
+
         final apiProvider = getIt<ApiProvider>();
         apiProvider.clearCache();
-        
+        // Screen-level caches must not leak into the next user's session.
+        DashboardScreen.clearCache();
+        MyTasksScreen.clearCache();
+        MyClientsSection.clearCache();
+        AnnouncementsScreen.clearCache();
+
         if (_splashComplete) {
           _navigatorKey.currentState?.pushNamedAndRemoveUntil(
             '/home',
@@ -223,9 +255,20 @@ class _AppContentState extends State<_AppContent> {
       themeAnimationDuration: Duration.zero,
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
-        return CallOverlay(
-          callService: _callService,
-          child: child ?? const SizedBox.shrink(),
+        return Stack(
+          children: [
+            CallOverlay(
+              callService: _callService,
+              child: child ?? const SizedBox.shrink(),
+            ),
+            // Cold-start hint; non-blocking (ignores pointer events).
+            const Positioned(
+              top: 12,
+              left: 0,
+              right: 0,
+              child: Center(child: ConnectingBanner()),
+            ),
+          ],
         );
       },
       initialRoute: '/home',
@@ -236,71 +279,11 @@ class _AppContentState extends State<_AppContent> {
           return _buildHome(context);
         },
         '/login': (context) => const LoginScreen(),
-        '/dashboard': (context) => BlocProvider(
-              create: (context) => getIt<DashboardBloc>()
-                ..add(const DashboardLoadRequested()),
-              child: const MainLayout(
-                currentRoute: 'dashboard',
-                child: DashboardScreen(),
-              ),
-            ),
-        '/tasks': (context) => BlocProvider(
-              create: (context) => getIt<DashboardBloc>()
-                ..add(const DashboardLoadRequested()),
-              child: const MainLayout(
-                currentRoute: 'tasks',
-                child: MyTasksScreen(),
-              ),
-            ),
-        // ✅ Notes route — uses global singleton BLoC
-        '/notes': (context) => BlocProvider.value(
-              value: getIt<NotesBloc>(),
-              child: const MainLayout(
-                currentRoute: 'notes',
-                child: NotesScreen(),
-              ),
-            ),
-        '/messages': (context) => const MainLayout(
-              currentRoute: 'messages',
-              child: MessagesScreen(),
-            ),
-        '/timecard': (context) {
-          return BlocProvider(
-            create: (context) => getIt<TimecardBloc>(),
-            child: const MainLayout(
-              currentRoute: 'timecard',
-              child: TimecardScreen(
-                clientId: '',
-              ),
-            ),
-          );
-        },
-        '/profile': (context) => const MainLayout(
-              currentRoute: 'profile',
-              child: ProfileScreen(),
-            ),
-        '/archive': (context) => const MainLayout(
-              currentRoute: 'archive',
-              child: ArchiveScreen(),
-            ),
-        '/announcements': (context) => const MainLayout(
-              currentRoute: 'announcements',
-              child: AnnouncementsScreen(),
-            ),
-        '/crm': (context) => BlocProvider(
-              create: (context) => getIt<CrmBloc>(),
-              child: const MainLayout(
-                currentRoute: 'crm',
-                child: CrmScreen(),
-              ),
-            ),
-        '/lead-tracker': (context) => BlocProvider(
-              create: (context) => getIt<LeadTrackerBloc>(),
-              child: const MainLayout(
-                currentRoute: 'lead-tracker',
-                child: LeadTrackerScreen(),
-              ),
-            ),
+        // Deep links / direct named routes: each opens the persistent shell on
+        // that screen. In-app navigation switches the shell's content instead
+        // of pushing these (see MainLayout.navigateTo).
+        for (final route in MainLayout.routes)
+          '/$route': (context) => MainLayout(currentRoute: route),
       },
     );
       },
@@ -309,6 +292,10 @@ class _AppContentState extends State<_AppContent> {
 
   Widget _buildHome(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
+      // Only rebuild when the *kind* of auth state changes. A refreshed user
+      // (AuthAuthenticated -> AuthAuthenticated) must not rebuild the home
+      // route and remount the whole app shell.
+      buildWhen: (previous, current) => previous.runtimeType != current.runtimeType,
       builder: (context, state) {
         if (state is AuthLoading || state is AuthInitial) {
           return const Scaffold(
@@ -317,46 +304,29 @@ class _AppContentState extends State<_AppContent> {
             ),
           );
         }
-        
+
         if (state is AuthAuthenticated) {
           // On (web) reload the app restarts at /home. Restore the last screen
           // the user was on instead of always dropping them on the dashboard.
-          return FutureBuilder<String?>(
-            future: SharedPreferences.getInstance()
-                .then((p) => p.getString('last_route')),
-            builder: (context, snap) {
-              if (snap.connectionState != ConnectionState.done) {
-                return const Scaffold(body: Center(child: CircularProgressIndicator()));
-              }
-              final last = snap.data;
-              final shouldRestore = last != null &&
-                  last != 'dashboard' &&
-                  _restorableRoutes.contains(last);
-              if (shouldRestore) {
-                if (!_restoredLastRoute) {
-                  _restoredLastRoute = true;
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    _navigatorKey.currentState?.pushReplacementNamed('/$last');
-                  });
-                }
-                return const Scaffold(body: Center(child: CircularProgressIndicator()));
-              }
-              return BlocProvider(
-                create: (context) => getIt<DashboardBloc>()
-                  ..add(const DashboardLoadRequested()),
-                child: const MainLayout(
-                  currentRoute: 'dashboard',
-                  child: DashboardScreen(),
-                ),
-              );
-            },
-          );
+          _homeRoute ??= _takeRestoredRoute();
+          return MainLayout(currentRoute: _homeRoute!);
         }
 
         // Not authenticated (e.g. after logout) — forget the saved screen.
+        _homeRoute = null;
+        _pendingLastRoute = null;
         SharedPreferences.getInstance().then((p) => p.remove('last_route')).ignore();
         return const LoginScreen();
       },
     );
+  }
+
+  /// The screen to open the shell on for this session: the saved
+  /// `last_route` (once), otherwise the dashboard.
+  String _takeRestoredRoute() {
+    final last = _pendingLastRoute;
+    _pendingLastRoute = null;
+    if (last != null && _restorableRoutes.contains(last)) return last;
+    return 'dashboard';
   }
 }
