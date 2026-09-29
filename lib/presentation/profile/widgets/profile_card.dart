@@ -32,15 +32,15 @@ class ProfileCard extends StatelessWidget {
       );
 
       if (image == null) {
-        print('❌ No image selected');
+        debugPrint('❌ No image selected');
         return;
       }
 
-      print('📸 Image selected: ${image.path}');
+      debugPrint('📸 Image selected: ${image.path}');
 
       // Read file
       final bytes = await image.readAsBytes();
-      print('📦 File size: ${bytes.length} bytes');
+      debugPrint('📦 File size: ${bytes.length} bytes');
 
       // Check file size (max 2MB)
       if (bytes.length > 2 * 1024 * 1024) {
@@ -56,12 +56,12 @@ class ProfileCard extends StatelessWidget {
 
       // Convert to base64
       final base64Image = 'data:image/jpeg;base64,${base64Encode(bytes)}';
-      print('🔄 Uploading avatar...');
+      debugPrint('🔄 Uploading avatar...');
 
       final userRepository = getIt<UserRepository>();
       await userRepository.uploadAvatar(base64Image);
 
-      print('✅ Avatar uploaded successfully!');
+      debugPrint('✅ Avatar uploaded successfully!');
 
       if (!context.mounted) return;
 
@@ -74,7 +74,7 @@ class ProfileCard extends StatelessWidget {
 
       onAvatarUpload();
     } catch (e) {
-      print('❌ Avatar upload error: $e');
+      debugPrint('❌ Avatar upload error: $e');
       
       if (!context.mounted) return;
       
@@ -138,7 +138,7 @@ class ProfileCard extends StatelessWidget {
                     base64Decode(user.profile!.avatar!.split(',')[1]),
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
-                      print('❌ Error loading avatar: $error');
+                      debugPrint('❌ Error loading avatar: $error');
                       return Center(
                         child: Text(
                           user.initials,

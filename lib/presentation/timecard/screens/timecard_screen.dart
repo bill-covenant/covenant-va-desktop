@@ -9,12 +9,12 @@ import '../widgets/timecard_header.dart';
 import '../widgets/monthly_summary_card.dart';
 import '../widgets/pay_period_summary_card.dart';
 import '../widgets/time_entries_list.dart';
-import '../widgets/timecard_loading_skeleton.dart';
 import '../widgets/timecard_error_state.dart';
 import '../widgets/log_hours_dialog.dart';
 import '../../../data/models/time_entry.dart';
 import '../../../data/repositories/timecard_repository.dart';
 import '../../../core/di/service_locator.dart';
+import '../../../core/utils/pay_period.dart';
 import '../widgets/date_range_picker_dialog.dart' as custom;
 import '../../shared/widgets/refresh_fab.dart';
 
@@ -46,6 +46,11 @@ class _TimecardScreenState extends State<TimecardScreen> {
   // A shift that was clocked out but not yet saved as an entry.
   final TimecardRepository _timecardRepo = getIt<TimecardRepository>();
   ({DateTime clockIn, DateTime clockOut})? _pendingShift;
+  String? _clockStatusError; // last clock-status fetch failed (offline?)
+
+  // Data as it was before optimistic updates, restored if the server rejects them.
+  ({List<TimeEntry>? entries, MonthlySummary? summary})? _preLogSnapshot;
+  final Map<String, ({List<TimeEntry>? entries, MonthlySummary? summary})> _preDeleteSnapshots = {};
 
   // Cache last loaded data so we never flash a skeleton unnecessarily
   List<TimeEntry>? _cachedEntries;
@@ -65,145 +70,101 @@ class _TimecardScreenState extends State<TimecardScreen> {
   }
 
   /// Check the backend for a pending (clocked-out, unsaved) shift so we can nag
-  /// the VA to save it before it's lost.
+  /// the VA to save it before it's lost. On failure the last known state is
+  /// kept and an offline banner is shown — a failed request must not look
+  /// like "no pending shift".
   Future<void> _loadClockStatus() async {
-    final status = await _timecardRepo.getClockStatus();
-    if (!mounted) return;
-    setState(() {
-      _pendingShift = (status.pendingClockIn != null && status.pendingClockOut != null)
-          ? (clockIn: status.pendingClockIn!, clockOut: status.pendingClockOut!)
-          : null;
-    });
+    try {
+      final status = await _timecardRepo.getClockStatus();
+      if (!mounted) return;
+      setState(() {
+        _clockStatusError = null;
+        _pendingShift = (status.pendingClockIn != null && status.pendingClockOut != null)
+            ? (clockIn: status.pendingClockIn!, clockOut: status.pendingClockOut!)
+            : null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _clockStatusError = e.toString().replaceFirst('Exception: ', '');
+      });
+    }
   }
 
   // ============================================
   // PAY PERIOD HELPERS (Semi-monthly: cut-off on the 2nd & 4th Thursday of
   // each month, payday the following Friday. A period runs from the day after
-  // the previous cut-off through the cut-off Thursday.)
+  // the previous cut-off through the cut-off Thursday.) Math lives in
+  // core/utils/pay_period.dart.
   // ============================================
 
-  /// nth (1-based) Thursday of a month.
-  static DateTime _nthThursday(int year, int month, int n) {
-    final first = DateTime(year, month, 1);
-    final offset = (4 - first.weekday + 7) % 7; // days to first Thursday (Thu = 4)
-    return DateTime(year, month, 1 + offset + 7 * (n - 1));
-  }
-
-  /// The cut-off immediately before [cutoff] (a 2nd/4th Thursday).
-  static DateTime _previousCutoff(DateTime cutoff) {
-    final second = _nthThursday(cutoff.year, cutoff.month, 2);
-    if (cutoff == second) {
-      final pm = cutoff.month == 1 ? 12 : cutoff.month - 1;
-      final py = cutoff.month == 1 ? cutoff.year - 1 : cutoff.year;
-      return _nthThursday(py, pm, 4);
-    }
-    return second;
-  }
-
-  /// Builds a pay period option map from a cut-off Thursday.
-  static Map<String, dynamic> _payPeriod(DateTime cutoff) {
-    final start = _previousCutoff(cutoff).add(const Duration(days: 1));
-    final payday = cutoff.add(const Duration(days: 1)); // Friday after the cut-off
-    final key =
-        '${cutoff.year}-${cutoff.month.toString().padLeft(2, '0')}-${cutoff.day.toString().padLeft(2, '0')}';
-    final label = '${_fmtShort(start)} – ${_fmtShort(cutoff)}, ${cutoff.year}  •  Payday ${_fmtShort(payday)}';
-    return {
-      'key': key,
-      'label': label,
-      'start': start,
-      'end': cutoff,
-      'payday': payday,
-    };
-  }
-
-  /// Returns the 12 most recent pay periods (current period first).
+  /// The 12 most recent pay periods, current (open) period first.
   List<Map<String, dynamic>> _getPayPeriodOptions() {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final cutoffs = <DateTime>[];
-    for (int back = 0; back <= 7; back++) {
-      final d = DateTime(now.year, now.month - back, 1); // normalizes month underflow
-      cutoffs.add(_nthThursday(d.year, d.month, 2));
-      cutoffs.add(_nthThursday(d.year, d.month, 4));
-    }
-    cutoffs.sort((a, b) => b.compareTo(a)); // most recent first
-    return cutoffs.where((c) => !c.isAfter(today)).take(12).map(_payPeriod).toList();
+    return recentPayPeriods(DateTime.now()).map((p) => p.toOption()).toList();
   }
 
-  static String _fmtShort(DateTime d) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return '${months[d.month - 1]} ${d.day}';
+  Map<String, dynamic> _selectedPayPeriodOption() {
+    final options = _getPayPeriodOptions();
+    return options.firstWhere(
+      (o) => o['key'] == _selectedPayPeriod,
+      orElse: () => options.first,
+    );
   }
 
   // ============================================
   // DATA LOADING
   // ============================================
 
-  void _loadData() {
+  // Date filters are inclusive calendar days: the server filters with
+  // gte startDate / lte endDate and entries are stored at midnight of their
+  // date, so the cut-off (or range end) itself is sent — not end + 1 day,
+  // which pulled the next day's entries into two periods.
+  ({DateTime start, DateTime end})? _currentRange() {
     switch (_viewMode) {
       case TimecardViewMode.monthly:
-        context.read<TimecardBloc>().add(
-          LoadTimecardData(clientId: widget.clientId, month: _selectedMonth),
-        );
-        break;
+        return null;
       case TimecardViewMode.payPeriod:
-        final option = _getPayPeriodOptions().firstWhere(
-          (o) => o['key'] == _selectedPayPeriod,
-          orElse: () => _getPayPeriodOptions().first,
-        );
-        context.read<TimecardBloc>().add(
-          LoadTimecardData(
-            clientId: widget.clientId,
-            startDate: option['start'] as DateTime,
-            endDate: (option['end'] as DateTime).add(const Duration(days: 1)),
-          ),
-        );
-        break;
+        final option = _selectedPayPeriodOption();
+        return (start: option['start'] as DateTime, end: option['end'] as DateTime);
       case TimecardViewMode.dateRange:
         if (_rangeStart != null && _rangeEnd != null) {
-          context.read<TimecardBloc>().add(
-            LoadTimecardData(
-              clientId: widget.clientId,
-              startDate: _rangeStart!,
-              endDate: _rangeEnd!.add(const Duration(days: 1)),
-            ),
-          );
+          return (start: dateOnly(_rangeStart!), end: dateOnly(_rangeEnd!));
         }
-        break;
+        return null;
+    }
+  }
+
+  void _loadData() {
+    final range = _currentRange();
+    if (_viewMode == TimecardViewMode.monthly) {
+      context.read<TimecardBloc>().add(
+        LoadTimecardData(clientId: widget.clientId, month: _selectedMonth),
+      );
+    } else if (range != null) {
+      context.read<TimecardBloc>().add(
+        LoadTimecardData(
+          clientId: widget.clientId,
+          startDate: range.start,
+          endDate: range.end,
+        ),
+      );
     }
   }
 
   void _silentRefresh() {
-    switch (_viewMode) {
-      case TimecardViewMode.monthly:
-        context.read<TimecardBloc>().add(
-          RefreshTimecard(clientId: widget.clientId, month: _selectedMonth),
-        );
-        break;
-      case TimecardViewMode.payPeriod:
-        final option = _getPayPeriodOptions().firstWhere(
-          (o) => o['key'] == _selectedPayPeriod,
-          orElse: () => _getPayPeriodOptions().first,
-        );
-        context.read<TimecardBloc>().add(
-          RefreshTimecard(
-            clientId: widget.clientId,
-            startDate: option['start'] as DateTime,
-            endDate: (option['end'] as DateTime).add(const Duration(days: 1)),
-          ),
-        );
-        break;
-      case TimecardViewMode.dateRange:
-        if (_rangeStart != null && _rangeEnd != null) {
-          context.read<TimecardBloc>().add(
-            RefreshTimecard(
-              clientId: widget.clientId,
-              startDate: _rangeStart!,
-              endDate: _rangeEnd!.add(const Duration(days: 1)),
-            ),
-          );
-        }
-        break;
+    final range = _currentRange();
+    if (_viewMode == TimecardViewMode.monthly) {
+      context.read<TimecardBloc>().add(
+        RefreshTimecard(clientId: widget.clientId, month: _selectedMonth),
+      );
+    } else if (range != null) {
+      context.read<TimecardBloc>().add(
+        RefreshTimecard(
+          clientId: widget.clientId,
+          startDate: range.start,
+          endDate: range.end,
+        ),
+      );
     }
   }
 
@@ -258,7 +219,7 @@ class _TimecardScreenState extends State<TimecardScreen> {
       ),
     );
 
-    if (picked != null) {
+    if (picked != null && mounted) {
       setState(() {
         _rangeStart = picked.start;
         _rangeEnd = picked.end;
@@ -285,11 +246,11 @@ class _TimecardScreenState extends State<TimecardScreen> {
     );
 
     if (result != null && mounted) {
-      setState(() {
-        _activeClockIn = null;
-        _activeClockOut = null;
-        _pendingShift = null; // saved — no longer pending
-      });
+      // Keep _activeClockIn/_activeClockOut/_pendingShift until the server
+      // confirms the save (HoursLoggedSuccess) so a failed save never loses
+      // the shift. Snapshot the list so a failure can roll back the
+      // optimistic entry.
+      _preLogSnapshot = (entries: _cachedEntries, summary: _cachedSummary);
 
       final date = result['date'] as DateTime;
       final hoursWorked = result['hoursWorked'] as double;
@@ -344,6 +305,12 @@ class _TimecardScreenState extends State<TimecardScreen> {
   void _handleDelete(String entryId) {
     TimeEntry? deletedEntry;
 
+    // Optimistic entries don't exist on the server yet — nothing to delete.
+    if (entryId.startsWith('temp_')) {
+      _showErrorMessage('This entry is still being saved. Please try again in a moment.');
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -366,6 +333,9 @@ class _TimecardScreenState extends State<TimecardScreen> {
 
                 if (deletedEntry != null) {
                   final hours = deletedEntry!.hoursWorked;
+                  // Keep a copy so a failed server delete can be rolled back
+                  _preDeleteSnapshots[entryId] =
+                      (entries: _cachedEntries, summary: _cachedSummary);
                   setState(() {
                     _cachedEntries = _cachedEntries!.where((e) => e.id != entryId).toList();
 
@@ -419,6 +389,36 @@ class _TimecardScreenState extends State<TimecardScreen> {
         backgroundColor: Colors.red,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  Widget _buildClockStatusErrorBanner() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(50, 12, 48, 0),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEF4444).withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.cloud_off_rounded, color: Color(0xFFEF4444), size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Couldn\'t check your clock status — showing the last known state. $_clockStatusError',
+                style: const TextStyle(color: Color(0xFFEF4444), fontSize: 12.5, height: 1.3),
+              ),
+            ),
+            TextButton(
+              onPressed: _loadClockStatus,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -487,10 +487,44 @@ class _TimecardScreenState extends State<TimecardScreen> {
         return BlocConsumer<TimecardBloc, TimecardState>(
           listener: (context, state) {
             if (state is HoursLoggedSuccess) {
+              // Server confirmed the save — only now drop the local shift.
+              setState(() {
+                _activeClockIn = null;
+                _activeClockOut = null;
+                _pendingShift = null;
+                _preLogSnapshot = null;
+              });
               _showSuccessMessage('Hours logged successfully!');
+              // The server clears the pending shift only when the entry date
+              // matches the pending clock-in date — re-check to be sure.
+              _loadClockStatus();
+            } else if (state is LogHoursFailed) {
+              // Roll back the optimistic entry; pending shift/clock state were
+              // never cleared, so the VA can retry.
+              final snap = _preLogSnapshot;
+              if (snap != null) {
+                setState(() {
+                  _cachedEntries = snap.entries;
+                  _cachedSummary = snap.summary;
+                  _preLogSnapshot = null;
+                });
+              }
+              _showErrorMessage(state.message);
+              _loadClockStatus();
+            } else if (state is DeleteEntryFailed) {
+              final snap = _preDeleteSnapshots.remove(state.entryId);
+              if (snap != null) {
+                setState(() {
+                  _cachedEntries = snap.entries;
+                  _cachedSummary = snap.summary;
+                });
+              }
+              _showErrorMessage(state.message);
             } else if (state is TimecardError) {
+              // Load/refresh failed (e.g. offline) — keep showing cached data.
               _showErrorMessage(state.message);
             } else if (state is TimeEntryDeleted) {
+              _preDeleteSnapshots.remove(state.entryId);
               _showSuccessMessage('Time entry deleted successfully!');
             } else if (state is TimecardLoaded) {
               setState(() {
@@ -520,6 +554,7 @@ class _TimecardScreenState extends State<TimecardScreen> {
                   trailing: RefreshFAB(onRefresh: () async => _silentRefresh()),
                 ),
                 if (_pendingShift != null) _buildPendingBanner(),
+                if (_clockStatusError != null) _buildClockStatusErrorBanner(),
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: () async => _silentRefresh(),
@@ -558,10 +593,7 @@ class _TimecardScreenState extends State<TimecardScreen> {
           // Show appropriate summary card based on view mode
           if (_viewMode == TimecardViewMode.payPeriod) ...[
             Builder(builder: (context) {
-              final option = _getPayPeriodOptions().firstWhere(
-                (o) => o['key'] == _selectedPayPeriod,
-                orElse: () => _getPayPeriodOptions().first,
-              );
+              final option = _selectedPayPeriodOption();
               return PayPeriodSummaryCard(
                 summary: summary,
                 periodStart: option['start'] as DateTime,

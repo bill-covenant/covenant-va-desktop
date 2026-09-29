@@ -1,8 +1,12 @@
 import 'dart:convert';
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/api_constants.dart';
+import '../../core/errors/api_exception.dart';
+import 'storage_provider.dart';
+
+export '../../core/errors/api_exception.dart';
 
 class _CacheEntry {
   final Map<String, dynamic> data;
@@ -16,7 +20,13 @@ class _CacheEntry {
 
 class ApiProvider {
   final http.Client _client = http.Client();
+  final StorageProvider _storageProvider;
   String? _token;
+
+  ApiProvider({StorageProvider? storageProvider})
+      : _storageProvider = storageProvider ?? StorageProvider();
+
+  static const Duration _requestTimeout = Duration(seconds: 30);
 
   // In-memory cache
   final Map<String, _CacheEntry> _cache = {};
@@ -99,7 +109,10 @@ class ApiProvider {
     }
 
     // 3. Make the actual request
-    final future = _doGet(fullUrl, requiresAuth: requiresAuth);
+    final future = _send(
+      (headers) => _client.get(Uri.parse(fullUrl), headers: headers),
+      requiresAuth: requiresAuth,
+    );
     _pendingRequests[cacheKey] = future;
 
     try {
@@ -111,68 +124,25 @@ class ApiProvider {
     }
   }
 
-  Future<Map<String, dynamic>> _doGet(
-    String fullUrl, {
-    required bool requiresAuth,
-  }) async {
-    try {
-      // If auth required but no token, try restoring from storage first
-      if (requiresAuth && _token == null) {
-        await _tryRestoreToken();
-      }
-
-      final response = await _client
-          .get(
-            Uri.parse(fullUrl),
-            headers: _getHeaders(includeAuth: requiresAuth),
-          )
-          .timeout(const Duration(seconds: 30));
-
-      // On 401, try restoring token and retry once
-      if (response.statusCode == 401 && requiresAuth) {
-        final restored = await _tryRestoreToken();
-        if (restored) {
-          final retryResponse = await _client
-              .get(Uri.parse(fullUrl), headers: _getHeaders(includeAuth: true))
-              .timeout(const Duration(seconds: 30));
-          return _handleResponse(retryResponse);
-        }
-      }
-
-      return _handleResponse(response);
-    } on TimeoutException {
-      throw Exception('Request timed out. Please try again.');
-    } catch (e) {
-      throw Exception('Network error: $e');
-    }
-  }
-
   /// POST request (clears related cache)
   Future<Map<String, dynamic>> post(
     String endpoint,
     Map<String, dynamic> body, {
     bool requiresAuth = false,
   }) async {
+    final fullUrl = _buildUrl(endpoint);
     try {
-      if (requiresAuth && _token == null) await _tryRestoreToken();
-      final fullUrl = _buildUrl(endpoint);
-
-      final response = await _client
-          .post(
-            Uri.parse(fullUrl),
-            headers: _getHeaders(includeAuth: requiresAuth),
-            body: jsonEncode(body),
-          )
-          .timeout(const Duration(seconds: 30));
-
+      return await _send(
+        (headers) => _client.post(
+          Uri.parse(fullUrl),
+          headers: headers,
+          body: jsonEncode(body),
+        ),
+        requiresAuth: requiresAuth,
+      );
+    } finally {
       // Invalidate related cache on mutations
       _invalidateRelatedCache(endpoint);
-
-      return _handleResponse(response);
-    } on TimeoutException {
-      throw Exception('Request timed out. Please try again.');
-    } catch (e) {
-      throw Exception('Network error: $e');
     }
   }
 
@@ -182,25 +152,18 @@ class ApiProvider {
     Map<String, dynamic> body, {
     bool requiresAuth = false,
   }) async {
+    final fullUrl = _buildUrl(endpoint);
     try {
-      if (requiresAuth && _token == null) await _tryRestoreToken();
-      final fullUrl = _buildUrl(endpoint);
-
-      final response = await _client
-          .put(
-            Uri.parse(fullUrl),
-            headers: _getHeaders(includeAuth: requiresAuth),
-            body: jsonEncode(body),
-          )
-          .timeout(const Duration(seconds: 30));
-
+      return await _send(
+        (headers) => _client.put(
+          Uri.parse(fullUrl),
+          headers: headers,
+          body: jsonEncode(body),
+        ),
+        requiresAuth: requiresAuth,
+      );
+    } finally {
       _invalidateRelatedCache(endpoint);
-
-      return _handleResponse(response);
-    } on TimeoutException {
-      throw Exception('Request timed out. Please try again.');
-    } catch (e) {
-      throw Exception('Network error: $e');
     }
   }
 
@@ -209,24 +172,58 @@ class ApiProvider {
     String endpoint, {
     bool requiresAuth = false,
   }) async {
+    final fullUrl = _buildUrl(endpoint);
     try {
-      if (requiresAuth && _token == null) await _tryRestoreToken();
-      final fullUrl = _buildUrl(endpoint);
-
-      final response = await _client
-          .delete(
-            Uri.parse(fullUrl),
-            headers: _getHeaders(includeAuth: requiresAuth),
-          )
-          .timeout(const Duration(seconds: 30));
-
+      return await _send(
+        (headers) => _client.delete(Uri.parse(fullUrl), headers: headers),
+        requiresAuth: requiresAuth,
+      );
+    } finally {
       _invalidateRelatedCache(endpoint);
+    }
+  }
+
+  /// Performs a request and normalizes every failure into an [ApiException]:
+  /// transport failures (offline, DNS/TLS, timeout) have `statusCode == null`,
+  /// HTTP errors carry the status code and the server's message.
+  ///
+  /// On a 401, if storage holds a *different* token than the one just sent
+  /// (e.g. the in-memory token is stale after a re-login), the request is
+  /// retried once with the stored token. Otherwise the 401 is surfaced.
+  Future<Map<String, dynamic>> _send(
+    Future<http.Response> Function(Map<String, String> headers) request, {
+    required bool requiresAuth,
+  }) async {
+    try {
+      // If auth required but no token, try restoring from storage first
+      if (requiresAuth && _token == null) {
+        await _restoreStoredToken();
+      }
+
+      final usedToken = _token;
+      var response = await request(_getHeaders(includeAuth: requiresAuth))
+          .timeout(_requestTimeout);
+
+      if (response.statusCode == 401 && requiresAuth) {
+        final stored = await _storageProvider.getToken();
+        if (stored != null && stored != usedToken) {
+          _token = stored;
+          response = await request(_getHeaders(includeAuth: true))
+              .timeout(_requestTimeout);
+        }
+      }
 
       return _handleResponse(response);
+    } on ApiException {
+      rethrow;
     } on TimeoutException {
-      throw Exception('Request timed out. Please try again.');
+      throw const ApiException('Request timed out. Please try again.',
+          isTimeout: true);
     } catch (e) {
-      throw Exception('Network error: $e');
+      // SocketException / http.ClientException / HandshakeException etc.
+      if (kDebugMode) debugPrint('⚠️ ApiProvider transport error: $e');
+      throw const ApiException(
+          'Network error: could not reach the server. Check your connection and try again.');
     }
   }
 
@@ -262,36 +259,48 @@ class ApiProvider {
     }
   }
 
-  /// Try to restore token from storage if current token is missing
-  Future<bool> _tryRestoreToken() async {
-    if (_token != null) return false;
+  /// Load the token from (secure) storage when none is held in memory.
+  Future<void> _restoreStoredToken() async {
+    if (_token != null) return;
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final storedToken = prefs.getString('auth_token');
-      if (storedToken != null) {
-        _token = storedToken;
-        return true;
-      }
+      final storedToken = await _storageProvider.getToken();
+      if (storedToken != null) _token = storedToken;
     } catch (_) {}
-    return false;
   }
 
   Map<String, dynamic> _handleResponse(http.Response response) {
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return jsonDecode(response.body) as Map<String, dynamic>;
-    } else if (response.statusCode == 401) {
-      throw Exception('Unauthorized - Please login again');
-    } else if (response.statusCode == 404) {
-      throw Exception('Resource not found');
-    } else {
+    final status = response.statusCode;
+    if (status >= 200 && status < 300) {
       try {
-        final error = jsonDecode(response.body);
-        throw Exception(error['message'] ?? 'Request failed');
-      } catch (e) {
-        if (e is Exception) rethrow;
-        throw Exception('Request failed with status ${response.statusCode}');
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      } catch (_) {
+        throw ApiException('Unexpected response from server.', statusCode: status);
       }
     }
+
+    // Backend errors use { error: ... } or { message: ... }
+    String? serverMessage;
+    try {
+      final body = jsonDecode(response.body);
+      if (body is Map) {
+        final m = body['message'] ?? body['error'];
+        if (m != null) serverMessage = m.toString();
+      }
+    } catch (_) {}
+
+    if (status == 401) {
+      throw ApiException(
+        serverMessage ?? 'Unauthorized - Please login again',
+        statusCode: status,
+      );
+    }
+    if (status == 404) {
+      throw ApiException(serverMessage ?? 'Resource not found', statusCode: status);
+    }
+    throw ApiException(
+      serverMessage ?? 'Request failed with status $status',
+      statusCode: status,
+    );
   }
 
   void dispose() {

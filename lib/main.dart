@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -20,7 +19,6 @@ import 'presentation/tasks/screens/my_tasks_screen.dart';
 import 'presentation/tasks/screens/archive_screen.dart';
 import 'presentation/messages/screens/messages_screen.dart';
 import 'presentation/messages/bloc/messages_bloc.dart';
-import 'presentation/messages/bloc/messages_event.dart';
 import 'presentation/notes/screens/notes_screen.dart';
 import 'presentation/notes/bloc/notes_bloc.dart';
 import 'presentation/notes/bloc/notes_event.dart';
@@ -128,7 +126,7 @@ class _AppContentState extends State<_AppContent> {
     // Check if notes loaded successfully
     await Future.delayed(const Duration(seconds: 2));
     final notesState = getIt<NotesBloc>().state;
-    final notesFailed = notesState is! NotesLoaded || (notesState as NotesLoaded).notes.isEmpty;
+    final notesFailed = notesState is! NotesLoaded || notesState.notes.isEmpty;
 
     if (notesFailed && attempt < maxRetries) {
       await Future.delayed(retryDelay);
@@ -142,6 +140,7 @@ class _AppContentState extends State<_AppContent> {
     final authBloc = context.read<AuthBloc>();
     
     authBloc.stream.listen((authState) {
+      if (!mounted) return;
       if (authState is AuthAuthenticated && !_hasLoadedNotifications) {
         _hasLoadedNotifications = true;
 
@@ -150,7 +149,7 @@ class _AppContentState extends State<_AppContent> {
           ..add(LoadUnreadCount());
 
         final userId = authState.user.id;
-        _socketService.connect(userId);
+        _socketService.connect(userId, authState.token);
 
         // Initialize CallService with auth token
         final apiProvider = getIt<ApiProvider>();

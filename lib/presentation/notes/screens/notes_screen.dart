@@ -215,7 +215,7 @@ class _NotesScreenState extends State<NotesScreen> {
                 final title = _titleController.text.trim();
                 if (title.isEmpty) return;
                 
-                print('💾 Save clicked — noteId: ${_selectedNote!.id}, title: $title');
+                debugPrint('💾 Save clicked — noteId: ${_selectedNote!.id}');
                 
                 if (!_selectedNote!.id.startsWith('temp_')) {
                   context.read<NotesBloc>().add(NoteUpdateRequested(

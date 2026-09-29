@@ -10,14 +10,14 @@ class LayoutNotificationOverlay {
     required String title,
     required String body,
   }) async {
-    print('🎉 LayoutNotificationOverlay.show called');
+    debugPrint('🎉 LayoutNotificationOverlay.show called');
 
     // Play notification sound (skipped on web)
     if (!kIsWeb) {
       try {
         await NotificationSoundPlayer.play();
       } catch (e) {
-        print('❌ Failed to play notification sound: $e');
+        debugPrint('❌ Failed to play notification sound: $e');
       }
     }
 
@@ -117,8 +117,12 @@ class LayoutNotificationOverlay {
       ),
     );
 
+    if (!context.mounted) {
+      _overlayEntry = null;
+      return;
+    }
     Overlay.of(context).insert(_overlayEntry!);
-    print('✅ Notification banner inserted');
+    debugPrint('✅ Notification banner inserted');
 
     // Auto-dismiss after 5 seconds
     Future.delayed(const Duration(seconds: 5), () {

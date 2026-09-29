@@ -1,5 +1,6 @@
 import '../models/time_entry.dart';
 import '../providers/api_provider.dart';
+import '../../core/utils/pay_period.dart' show formatIsoDate;
 
 class TimecardRepository {
   final ApiProvider apiProvider;
@@ -10,43 +11,39 @@ class TimecardRepository {
   // CLOCK IN / OUT
   // ============================================
 
+  /// Active clock-in time, or null when not clocked in.
+  /// Throws (e.g. [ApiException]) when the status can't be fetched — callers
+  /// must not treat a failed request as "not clocked in".
   Future<DateTime?> getActiveClock() async {
-    try {
-      final response = await apiProvider.get(
-        '/timecard/clock',
-        requiresAuth: true,
-        cacheDuration: const Duration(seconds: 10),
-      );
-      final clockIn = response['activeClockIn'];
-      if (clockIn != null) {
-        return DateTime.parse(clockIn);
-      }
-      return null;
-    } catch (e) {
-      return null;
+    final response = await apiProvider.get(
+      '/timecard/clock',
+      requiresAuth: true,
+      cacheDuration: const Duration(seconds: 10),
+    );
+    final clockIn = response['activeClockIn'];
+    if (clockIn != null) {
+      return DateTime.parse(clockIn);
     }
+    return null;
   }
 
   /// Full clock status, including a pending (clocked-out but unsaved) shift.
   /// [clockIn] is non-null only while actively clocked in; when a shift is
   /// pending save, [pendingClockIn]/[pendingClockOut] carry its times instead.
+  /// Throws when the status can't be fetched (offline, server error).
   Future<({DateTime? clockIn, DateTime? pendingClockIn, DateTime? pendingClockOut})> getClockStatus() async {
-    try {
-      final response = await apiProvider.get(
-        '/timecard/clock',
-        requiresAuth: true,
-        cacheDuration: const Duration(seconds: 5),
-      );
-      final active = response['activeClockIn'];
-      final pending = response['pendingShift'];
-      return (
-        clockIn: active != null ? DateTime.parse(active) : null,
-        pendingClockIn: pending != null ? DateTime.parse(pending['clockIn']) : null,
-        pendingClockOut: pending != null ? DateTime.parse(pending['clockOut']) : null,
-      );
-    } catch (e) {
-      return (clockIn: null, pendingClockIn: null, pendingClockOut: null);
-    }
+    final response = await apiProvider.get(
+      '/timecard/clock',
+      requiresAuth: true,
+      cacheDuration: const Duration(seconds: 5),
+    );
+    final active = response['activeClockIn'];
+    final pending = response['pendingShift'];
+    return (
+      clockIn: active != null ? DateTime.parse(active) : null,
+      pendingClockIn: pending != null ? DateTime.parse(pending['clockIn']) : null,
+      pendingClockOut: pending != null ? DateTime.parse(pending['clockOut']) : null,
+    );
   }
 
   /// Discard the current/pending shift without recording an entry.
@@ -161,10 +158,12 @@ class TimecardRepository {
       }
       if (month != null) queryParams['month'] = month;
       if (startDate != null) {
-        queryParams['startDate'] = startDate.toIso8601String();
+        // Calendar dates (YYYY-MM-DD). Entries are stored at midnight of their
+        // date, so the server's gte/lte on these includes both end days fully.
+        queryParams['startDate'] = formatIsoDate(startDate);
       }
       if (endDate != null) {
-        queryParams['endDate'] = endDate.toIso8601String();
+        queryParams['endDate'] = formatIsoDate(endDate);
       }
     }
 
@@ -204,4 +203,4 @@ class TimecardRepository {
       requiresAuth: true,
     );
   }
-}
+}

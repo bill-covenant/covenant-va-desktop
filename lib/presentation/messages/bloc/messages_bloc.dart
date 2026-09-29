@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'messages_event.dart';
@@ -41,14 +42,14 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
           return MessagesLoaded(conversations);
         },
         onError: (error, _) {
-          print('❌ Conversations stream error: $error');
+          debugPrint('❌ Conversations stream error: $error');
           return _cachedConversations.isNotEmpty
               ? MessagesLoaded(_cachedConversations)
               : MessagesError(error.toString());
         },
       );
     } catch (e) {
-      print('❌ MessagesLoadRequested error: $e');
+      debugPrint('❌ MessagesLoadRequested error: $e');
       emit(_cachedConversations.isNotEmpty
           ? MessagesLoaded(_cachedConversations)
           : MessagesError(e.toString()));
@@ -89,7 +90,7 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
         ),
       );
     } catch (e) {
-      print('❌ ConversationMessagesLoadRequested error: $e');
+      debugPrint('❌ ConversationMessagesLoadRequested error: $e');
       emit(ConversationMessagesError(
         conversationId: event.conversationId,
         message: e.toString(),
@@ -126,7 +127,7 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
         replyTo: event.replyTo,
       );
     } catch (error) {
-      print('❌ Failed to send message: $error');
+      debugPrint('❌ Failed to send message: $error');
       emit(MessageSendError(
         conversationId: event.conversationId,
         message: error.toString(),
@@ -146,7 +147,7 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
         messageId: event.messageId,
       );
     } catch (error) {
-      print('❌ Failed to delete message: $error');
+      debugPrint('❌ Failed to delete message: $error');
     }
   }
 
@@ -162,7 +163,7 @@ class MessagesBloc extends Bloc<MessagesEvent, MessagesState> {
         userId: event.userId,
       );
     } catch (error) {
-      print('❌ Failed to toggle reaction: $error');
+      debugPrint('❌ Failed to toggle reaction: $error');
     }
   }
 

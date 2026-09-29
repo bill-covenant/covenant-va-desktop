@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../data/models/login_request.dart';
 import '../../../data/repositories/auth_repository.dart';
@@ -40,8 +41,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         token: loginResponse.token,
       ));
     } catch (e) {
-      print('❌ Login failed: $e');
-      emit(AuthError(message: e.toString()));
+      debugPrint('❌ Login failed: $e');
+      emit(AuthError(message: e.toString().replaceFirst('Exception: ', '')));
       emit(const AuthUnauthenticated());
     }
   }

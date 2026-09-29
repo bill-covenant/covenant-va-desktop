@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../models/client_model.dart';
 import '../providers/api_provider.dart';
 
@@ -24,8 +25,8 @@ class ClientRepository {
       
       return [];
     } catch (e) {
-      print('❌ Error fetching assigned clients: $e');
+      debugPrint('❌ Error fetching assigned clients: $e');
       rethrow;
     }
   }
-}
+}

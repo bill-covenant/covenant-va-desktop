@@ -38,6 +38,30 @@ class TimecardError extends TimecardState {
   List<Object?> get props => [message];
 }
 
+/// Saving an entry failed. The UI should roll back its optimistic entry and
+/// keep any pending clock-in/clock-out so the shift isn't lost.
+class LogHoursFailed extends TimecardError {
+  // Distinguishes repeated failures with the same message (Equatable would
+  // otherwise swallow the second emit and the UI would never roll back).
+  final int attempt;
+
+  const LogHoursFailed({required super.message, this.attempt = 0});
+
+  @override
+  List<Object?> get props => [message, attempt];
+}
+
+/// Deleting [entryId] failed. The UI should restore the entry it removed.
+class DeleteEntryFailed extends TimecardError {
+  final String entryId;
+  final int attempt;
+
+  const DeleteEntryFailed({required this.entryId, required super.message, this.attempt = 0});
+
+  @override
+  List<Object?> get props => [message, entryId, attempt];
+}
+
 class HoursLoggedSuccess extends TimecardState {
   final TimeEntry entry;
 
@@ -48,5 +72,10 @@ class HoursLoggedSuccess extends TimecardState {
 }
 
 class TimeEntryDeleted extends TimecardState {
-  const TimeEntryDeleted();
-}
+  final String entryId;
+
+  const TimeEntryDeleted({this.entryId = ''});
+
+  @override
+  List<Object?> get props => [entryId];
+}

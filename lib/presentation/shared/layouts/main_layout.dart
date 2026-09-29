@@ -12,11 +12,12 @@ import '../../../services/socket_service.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/bloc/auth_state.dart';
 import '../../../core/constants/api_constants.dart';
+import '../../../core/di/service_locator.dart';
+import '../../../data/providers/storage_provider.dart';
 import '../widgets/layout/layout_sidebar_header.dart';
 import '../widgets/layout/layout_sidebar_nav_item.dart';
 import '../widgets/layout/layout_sidebar_footer.dart';
 import '../widgets/layout/layout_notification_overlay.dart';
-import '../widgets/layout/layout_update_section.dart';
 import '../widgets/layout/layout_dark_mode_toggle.dart';
 import '../../tasks/screens/my_tasks_screen.dart';
 
@@ -53,7 +54,7 @@ class _MainLayoutState extends State<MainLayout> {
     super.initState();
     _selectedRoute = widget.currentRoute;
 
-    print('🔔 MainLayout: Setting up notification callback');
+    debugPrint('🔔 MainLayout: Setting up notification callback');
     final socketService = SocketService();
     socketService.onNotification = (title, body) {
       _showNotificationBanner(title, body);
@@ -129,10 +130,10 @@ class _MainLayoutState extends State<MainLayout> {
         if (mounted) setState(() => _messagesBadge = totalUnread);
       }, onError: (e) {
         // Silently handle permission errors during logout
-        print('⚠️ Firestore stream error (expected during logout): $e');
+        debugPrint('⚠️ Firestore stream error (expected during logout): $e');
       });
     } catch (e) {
-      print('⚠️ Failed to listen to messages stream: $e');
+      debugPrint('⚠️ Failed to listen to messages stream: $e');
     }
   }
 
@@ -147,7 +148,7 @@ class _MainLayoutState extends State<MainLayout> {
   Future<void> _fetchBadgeCounts() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
+      final token = await getIt<StorageProvider>().getToken();
       if (token == null) return;
 
       final headers = {
@@ -211,7 +212,7 @@ class _MainLayoutState extends State<MainLayout> {
 
   Future<void> _clearBadge(String route) async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final token = await getIt<StorageProvider>().getToken();
     final headers = {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer ${token ?? ''}',

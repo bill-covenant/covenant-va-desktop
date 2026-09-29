@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'notes_event.dart';
 import 'notes_state.dart';
@@ -29,12 +30,12 @@ class NotesBloc extends Bloc<NotesEvent, NotesState> {
       emit(const NotesLoading());
     }
     try {
-      print('📝 NotesBloc: Fetching notes...');
+      debugPrint('📝 NotesBloc: Fetching notes...');
       _cachedNotes = await _noteRepository.getNotes();
-      print('📝 NotesBloc: Got ${_cachedNotes.length} notes');
+      debugPrint('📝 NotesBloc: Got ${_cachedNotes.length} notes');
       _emitLoaded(emit);
     } catch (e) {
-      print('❌ NotesBloc: Error loading notes: $e');
+      debugPrint('❌ NotesBloc: Error loading notes: $e');
       emit(NotesError(e.toString()));
     }
   }
@@ -54,17 +55,17 @@ class NotesBloc extends Bloc<NotesEvent, NotesState> {
 
     // Background: create on server and replace temp note
     try {
-      print('📝 NotesBloc: Creating note on server...');
+      debugPrint('📝 NotesBloc: Creating note on server...');
       final note = await _noteRepository.createNote(
         title: event.title,
         content: event.content,
       );
-      print('📝 NotesBloc: Note created with id: ${note.id}');
+      debugPrint('📝 NotesBloc: Note created with id: ${note.id}');
       final idx = _cachedNotes.indexWhere((n) => n.id == optimisticNote.id);
       if (idx != -1) _cachedNotes[idx] = note;
       _emitLoaded(emit);
     } catch (e) {
-      print('❌ NotesBloc: Error creating note: $e');
+      debugPrint('❌ NotesBloc: Error creating note: $e');
       _cachedNotes.removeWhere((n) => n.id == optimisticNote.id);
       emit(NotesError(e.toString()));
       _emitLoaded(emit);
@@ -135,4 +136,4 @@ class NotesBloc extends Bloc<NotesEvent, NotesState> {
       _emitLoaded(emit);
     }
   }
-}
+}

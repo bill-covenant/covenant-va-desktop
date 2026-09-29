@@ -53,7 +53,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
       final repo = GetIt.I<AnnouncementRepository>();
       await repo.dismissAnnouncement(id);
     } catch (e) {
-      print('⚠️ Failed to persist dismissal: $e');
+      debugPrint('⚠️ Failed to persist dismissal: $e');
     }
   }
 

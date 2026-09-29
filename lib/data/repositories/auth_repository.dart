@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import '../../core/constants/api_constants.dart';
-import 'dart:convert';
 import '../models/login_request.dart';
 import '../models/login_response.dart';
 import '../models/user_model.dart';
@@ -38,13 +38,15 @@ class AuthRepository {
       if (loginResponse.firebaseToken != null) {
         try {
           await FirebaseAuth.instance.signInWithCustomToken(loginResponse.firebaseToken!);
-          print('✅ Firebase auth successful');
+          debugPrint('✅ Firebase auth successful');
         } catch (e) {
-          print('⚠️ Firebase sign-in failed: $e');
+          debugPrint('⚠️ Firebase sign-in failed: $e');
         }
       }
 
       return loginResponse;
+    } on ApiException {
+      rethrow; // keep status code + server message (e.g. invalid credentials)
     } catch (e) {
       throw Exception('Login failed: $e');
     }
@@ -62,6 +64,8 @@ class AuthRepository {
       final user = UserModel.fromJson(response['user'] as Map<String, dynamic>);
       await _storageProvider.saveUser(user);
       return user;
+    } on ApiException {
+      rethrow;
     } catch (e) {
       throw Exception('Failed to get user: $e');
     }
@@ -112,17 +116,17 @@ class AuthRepository {
         final firebaseToken = response['token'] as String?;
         if (firebaseToken != null) {
           await FirebaseAuth.instance.signInWithCustomToken(firebaseToken);
-          print('✅ Firebase re-auth successful on session restore');
+          debugPrint('✅ Firebase re-auth successful on session restore');
           return;
         }
       } catch (e) {
-        print('⚠️ Firebase re-auth attempt $attempt/$maxRetries failed: $e');
+        debugPrint('⚠️ Firebase re-auth attempt $attempt/$maxRetries failed: $e');
         if (attempt < maxRetries) {
           // Wait before retrying (3s, 6s)
           await Future.delayed(Duration(seconds: attempt * 3));
         }
       }
     }
-    print('❌ Firebase re-auth failed after $maxRetries attempts');
+    debugPrint('❌ Firebase re-auth failed after $maxRetries attempts');
   }
 }

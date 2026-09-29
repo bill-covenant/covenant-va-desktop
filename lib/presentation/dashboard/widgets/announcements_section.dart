@@ -33,7 +33,7 @@ class _AnnouncementsSectionState extends State<AnnouncementsSection> {
         });
       }
     } catch (e) {
-      print('❌ AnnouncementsSection: Failed to fetch announcements: $e');
+      debugPrint('❌ AnnouncementsSection: Failed to fetch announcements: $e');
       if (mounted) setState(() => _loaded = true);
     }
   }
@@ -47,7 +47,7 @@ class _AnnouncementsSectionState extends State<AnnouncementsSection> {
       final repo = GetIt.I<AnnouncementRepository>();
       await repo.dismissAnnouncement(id);
     } catch (e) {
-      print('⚠️ Failed to persist dismissal: $e');
+      debugPrint('⚠️ Failed to persist dismissal: $e');
     }
   }
 

@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:http/http.dart' as http;
 import 'socket_service.dart';
 import 'tone_service.dart';
 import '../core/constants/api_constants.dart';
-import 'call_service_web_helpers.dart' if (dart.library.io) 'call_service_web_helpers_stub.dart';
+import 'call_service_web_helpers_stub.dart' if (dart.library.js_interop) 'call_service_web_helpers.dart';
 
 enum CallState { idle, calling, ringing, connected }
 
@@ -99,7 +99,7 @@ class CallService extends ChangeNotifier {
 
   void setAuthToken(String token) {
     _authToken = token;
-    print('📞 CallService: Auth token set');
+    debugPrint('📞 CallService: Auth token set');
   }
 
   Future<void> initialize() async {
@@ -107,12 +107,12 @@ class CallService extends ChangeNotifier {
       await localRenderer.initialize();
       await remoteRenderer.initialize();
     } catch (e) {
-      print('⚠️ Failed to initialize video renderers: $e');
+      debugPrint('⚠️ Failed to initialize video renderers: $e');
     }
     _setupSocketListeners();
     _startCallPolling();
     await refreshDevices();
-    print('📞 CallService initialized with HTTP polling');
+    debugPrint('📞 CallService initialized with HTTP polling');
   }
 
   Future<void> refreshDevices() async {
@@ -121,10 +121,10 @@ class CallService extends ChangeNotifier {
       _audioInputs = devices.where((d) => d.kind == 'audioinput').toList();
       _audioOutputs = devices.where((d) => d.kind == 'audiooutput').toList();
       _videoInputs = devices.where((d) => d.kind == 'videoinput').toList();
-      print('📞 Devices: ${_audioInputs.length} mics, ${_audioOutputs.length} speakers, ${_videoInputs.length} cameras');
+      debugPrint('📞 Devices: ${_audioInputs.length} mics, ${_audioOutputs.length} speakers, ${_videoInputs.length} cameras');
       notifyListeners();
     } catch (e) {
-      print('⚠️ Failed to enumerate devices: $e');
+      debugPrint('⚠️ Failed to enumerate devices: $e');
     }
   }
 
@@ -149,10 +149,10 @@ class CallService extends ChangeNotifier {
           final oldTrack = audioSender.track;
           await audioSender.replaceTrack(newTrack);
           oldTrack?.stop();
-          print('📞 Switched mic to: $deviceId');
+          debugPrint('📞 Switched mic to: $deviceId');
         }
       } catch (e) {
-        print('❌ Failed to switch mic: $e');
+        debugPrint('❌ Failed to switch mic: $e');
       }
     }
     notifyListeners();
@@ -163,9 +163,9 @@ class CallService extends ChangeNotifier {
     // flutter_webrtc on desktop: set sink ID on the renderer
     try {
       await remoteRenderer.audioOutput(deviceId);
-      print('📞 Switched speaker to: $deviceId');
+      debugPrint('📞 Switched speaker to: $deviceId');
     } catch (e) {
-      print('⚠️ Failed to switch speaker: $e');
+      debugPrint('⚠️ Failed to switch speaker: $e');
     }
     notifyListeners();
   }
@@ -192,11 +192,11 @@ class CallService extends ChangeNotifier {
           }
           if (videoSender != null) {
             await videoSender.replaceTrack(newTrack);
-            print('📞 Replaced video track in peer connection');
+            debugPrint('📞 Replaced video track in peer connection');
           } else {
             // No video sender — add the track
             await _peerConnection!.addTrack(newTrack, newStream);
-            print('📞 Added new video track to peer connection');
+            debugPrint('📞 Added new video track to peer connection');
           }
         }
 
@@ -207,10 +207,10 @@ class CallService extends ChangeNotifier {
         }
         _localStream!.addTrack(newTrack);
         localRenderer.srcObject = _localStream;
-        print('📞 Switched camera to: $deviceId');
+        debugPrint('📞 Switched camera to: $deviceId');
         notifyListeners();
       } catch (e) {
-        print('❌ Failed to switch camera: $e');
+        debugPrint('❌ Failed to switch camera: $e');
       }
     }
     notifyListeners();
@@ -240,9 +240,9 @@ class CallService extends ChangeNotifier {
           final data = jsonDecode(response.body);
           if (data['hasCall'] == true && _callState == CallState.idle) {
             final call = data['call'];
-            print('📞 ========== INCOMING CALL (HTTP) ==========');
-            print('📞 From: ${call['callerName']} (${call['callerId']})');
-            print('📞 Type: ${call['callType']}');
+            debugPrint('📞 ========== INCOMING CALL (HTTP) ==========');
+            if (kDebugMode) debugPrint('📞 From: ${call['callerName']} (${call['callerId']})');
+            debugPrint('📞 Type: ${call['callType']}');
 
             _remoteUserId = call['callerId'];
             _remoteUserName = call['callerName'];
@@ -286,12 +286,12 @@ class CallService extends ChangeNotifier {
             final type = signal['type'];
             final signalData = signal['data'] ?? {};
 
-            print('📨 Signal received (HTTP): $type');
+            debugPrint('📨 Signal received (HTTP): $type');
 
             switch (type) {
               case 'call-accepted':
                 if (!_isCaller) {
-                  print('📞 Ignoring call-accepted signal (VA is the accepter)');
+                  debugPrint('📞 Ignoring call-accepted signal (VA is the accepter)');
                   break;
                 }
                 _toneService.stop();
@@ -308,7 +308,7 @@ class CallService extends ChangeNotifier {
               case 'call-ended':
                 // Ignore stale call-ended from previous calls
                 if (_callState == CallState.calling) {
-                  print('⚠️ Ignoring stale call-ended signal (still in calling state)');
+                  debugPrint('⚠️ Ignoring stale call-ended signal (still in calling state)');
                   break;
                 }
                 _cleanup();
@@ -330,7 +330,7 @@ class CallService extends ChangeNotifier {
                     _remoteDescriptionSet = true;
                     await _flushPendingCandidates();
                   } else {
-                    print('⚠️ Ignoring duplicate answer (state: ${_peerConnection!.signalingState})');
+                    debugPrint('⚠️ Ignoring duplicate answer (state: ${_peerConnection!.signalingState})');
                   }
                 }
                 break;
@@ -370,9 +370,9 @@ class CallService extends ChangeNotifier {
         },
         body: jsonEncode({'callerId': _remoteUserId}),
       );
-      print('✅ Call accepted via HTTP');
+      debugPrint('✅ Call accepted via HTTP');
     } catch (e) {
-      print('❌ Error accepting call via HTTP: $e');
+      debugPrint('❌ Error accepting call via HTTP: $e');
     }
   }
 
@@ -387,9 +387,9 @@ class CallService extends ChangeNotifier {
           'Authorization': 'Bearer $_authToken',
         },
       );
-      print('❌ Call declined via HTTP');
+      debugPrint('❌ Call declined via HTTP');
     } catch (e) {
-      print('❌ Error declining call via HTTP: $e');
+      debugPrint('❌ Error declining call via HTTP: $e');
     }
   }
 
@@ -405,9 +405,9 @@ class CallService extends ChangeNotifier {
         },
         body: jsonEncode({'remoteUserId': remoteUserId}),
       );
-      print('📴 Call ended via HTTP');
+      debugPrint('📴 Call ended via HTTP');
     } catch (e) {
-      print('❌ Error ending call via HTTP: $e');
+      debugPrint('❌ Error ending call via HTTP: $e');
     }
   }
 
@@ -428,7 +428,7 @@ class CallService extends ChangeNotifier {
         }),
       );
     } catch (e) {
-      print('❌ Error sending signal via HTTP: $e');
+      debugPrint('❌ Error sending signal via HTTP: $e');
     }
   }
 
@@ -450,7 +450,7 @@ class CallService extends ChangeNotifier {
 
     _socket.onCallAccepted = () async {
       if (!_isCaller) {
-        print('📞 Ignoring call-accepted echo (VA is the accepter, not caller)');
+        debugPrint('📞 Ignoring call-accepted echo (VA is the accepter, not caller)');
         return;
       }
       _toneService.stop();
@@ -492,7 +492,7 @@ class CallService extends ChangeNotifier {
         _remoteDescriptionSet = true;
         await _flushPendingCandidates();
       } else {
-        print('⚠️ Ignoring duplicate answer via socket');
+        debugPrint('⚠️ Ignoring duplicate answer via socket');
       }
     };
 
@@ -541,7 +541,7 @@ class CallService extends ChangeNotifier {
     try {
       await _getLocalStream();
     } catch (e) {
-      print('⚠️ Pre-fetch stream failed: $e');
+      debugPrint('⚠️ Pre-fetch stream failed: $e');
     }
     await _httpAcceptCall();
     _socket.acceptCall(_remoteUserId!);
@@ -619,12 +619,12 @@ class CallService extends ChangeNotifier {
 
       _localStream = await navigator.mediaDevices.getUserMedia(constraints);
       localRenderer.srcObject = _localStream;
-      print('📞 Local stream: ${_localStream!.getAudioTracks().length} audio, ${_localStream!.getVideoTracks().length} video tracks');
+      debugPrint('📞 Local stream: ${_localStream!.getAudioTracks().length} audio, ${_localStream!.getVideoTracks().length} video tracks');
     } catch (e) {
-      print('⚠️ getUserMedia failed: $e');
+      debugPrint('⚠️ getUserMedia failed: $e');
       // Fallback: try audio-only if video failed
       if (_callType == 'video') {
-        print('⚠️ Retrying with audio only...');
+        debugPrint('⚠️ Retrying with audio only...');
         try {
           _localStream = await navigator.mediaDevices.getUserMedia({
             'audio': true,
@@ -632,7 +632,7 @@ class CallService extends ChangeNotifier {
           });
           localRenderer.srcObject = _localStream;
         } catch (e2) {
-          print('❌ Audio-only also failed: $e2');
+          debugPrint('❌ Audio-only also failed: $e2');
           rethrow;
         }
       } else {
@@ -650,13 +650,13 @@ class CallService extends ChangeNotifier {
     if (_peerConnection != null && _remoteDescriptionSet) {
       try {
         await _peerConnection!.addCandidate(candidate);
-        print('📞 Added ICE candidate directly');
+        debugPrint('📞 Added ICE candidate directly');
         return;
       } catch (e) {
-        print('⚠️ Error adding ICE candidate: $e');
+        debugPrint('⚠️ Error adding ICE candidate: $e');
       }
     }
-    print('📞 Queuing ICE candidate (remote description not set yet)');
+    debugPrint('📞 Queuing ICE candidate (remote description not set yet)');
     _pendingCandidates.add(candidate);
   }
 
@@ -665,9 +665,9 @@ class CallService extends ChangeNotifier {
     for (final candidate in _pendingCandidates) {
       try {
         await _peerConnection!.addCandidate(candidate);
-        print('📞 Flushed queued ICE candidate');
+        debugPrint('📞 Flushed queued ICE candidate');
       } catch (e) {
-        print('Error flushing ICE candidate: $e');
+        debugPrint('Error flushing ICE candidate: $e');
       }
     }
     _pendingCandidates.clear();
@@ -702,19 +702,15 @@ class CallService extends ChangeNotifier {
         }
       }
     } catch (e) {
-      print('⚠️ Failed to fetch ICE servers, using fallback: $e');
+      debugPrint('⚠️ Failed to fetch ICE servers, using fallback: $e');
     }
 
-    // Fallback to static credentials
+    // Fallback to public STUN only (TURN credentials come from the backend)
     return {
       'iceServers': [
         {'urls': 'stun:stun.l.google.com:19302'},
         {'urls': 'stun:stun1.l.google.com:19302'},
         {'urls': 'stun:stun.relay.metered.ca:80'},
-        {'urls': 'turn:global.relay.metered.ca:80', 'username': 'e8dd65c092d0109410299e70', 'credential': 'mHj+thls0x0TEtv3'},
-        {'urls': 'turn:global.relay.metered.ca:80?transport=tcp', 'username': 'e8dd65c092d0109410299e70', 'credential': 'mHj+thls0x0TEtv3'},
-        {'urls': 'turn:global.relay.metered.ca:443', 'username': 'e8dd65c092d0109410299e70', 'credential': 'mHj+thls0x0TEtv3'},
-        {'urls': 'turns:global.relay.metered.ca:443?transport=tcp', 'username': 'e8dd65c092d0109410299e70', 'credential': 'mHj+thls0x0TEtv3'},
       ],
       'iceCandidatePoolSize': 10,
     };
@@ -728,17 +724,7 @@ class CallService extends ChangeNotifier {
     }
     _pendingCandidates.clear();
 
-    final config = {
-      'iceServers': [
-        {'urls': 'stun:stun.l.google.com:19302'},
-        {'urls': 'stun:stun.relay.metered.ca:80'},
-        {'urls': 'turn:global.relay.metered.ca:80', 'username': '1e8a2eed6c2a06031d3db848', 'credential': 'uDLx4lO/dbVFJB7a'},
-        {'urls': 'turn:global.relay.metered.ca:80?transport=tcp', 'username': '1e8a2eed6c2a06031d3db848', 'credential': 'uDLx4lO/dbVFJB7a'},
-        {'urls': 'turn:global.relay.metered.ca:443', 'username': '1e8a2eed6c2a06031d3db848', 'credential': 'uDLx4lO/dbVFJB7a'},
-        {'urls': 'turns:global.relay.metered.ca:443?transport=tcp', 'username': '1e8a2eed6c2a06031d3db848', 'credential': 'uDLx4lO/dbVFJB7a'},
-      ],
-      'iceCandidatePoolSize': 10,
-    };
+    final config = await _getIceConfig();
     final pc = await createPeerConnection(config);
 
     pc.onIceCandidate = (candidate) {
@@ -750,7 +736,7 @@ class CallService extends ChangeNotifier {
     };
 
     pc.onTrack = (event) {
-      print('🎥 onTrack fired: kind=${event.track.kind}, streams=${event.streams.length}');
+      debugPrint('🎥 onTrack fired: kind=${event.track.kind}, streams=${event.streams.length}');
       if (event.streams.isNotEmpty) {
         _remoteStream = event.streams[0];
         remoteRenderer.srcObject = _remoteStream;
@@ -758,13 +744,13 @@ class CallService extends ChangeNotifier {
         // Ensure audio tracks are enabled
         for (final track in _remoteStream!.getAudioTracks()) {
           track.enabled = true;
-          print('🔊 Remote audio track enabled: ${track.id}');
+          debugPrint('🔊 Remote audio track enabled: ${track.id}');
         }
         for (final track in _remoteStream!.getVideoTracks()) {
           track.enabled = true;
-          print('🎥 Remote video track enabled: ${track.id}');
+          debugPrint('🎥 Remote video track enabled: ${track.id}');
         }
-        print('🎥 Remote stream set with ${_remoteStream!.getTracks().length} tracks (key=$_remoteStreamKey)');
+        debugPrint('🎥 Remote stream set with ${_remoteStream!.getTracks().length} tracks (key=$_remoteStreamKey)');
 
         // On web: attach stream to an HTML audio element as backup for audio playback
         if (kIsWeb) {
@@ -774,46 +760,47 @@ class CallService extends ChangeNotifier {
         // Set audio output device if selected
         if (_selectedAudioOutput != null) {
           remoteRenderer.audioOutput(_selectedAudioOutput!).catchError((e) {
-            print('⚠️ Could not set audio output: $e');
+            debugPrint('⚠️ Could not set audio output: $e');
+            return false;
           });
         }
         notifyListeners();
       } else {
-        print('🎥 No streams in event, track kind: ${event.track.kind}');
+        debugPrint('🎥 No streams in event, track kind: ${event.track.kind}');
         notifyListeners();
       }
     };
 
     // Also listen via onAddStream for broader compatibility
     pc.onAddStream = (stream) {
-      print('🎥 onAddStream fired with ${stream.getTracks().length} tracks');
+      debugPrint('🎥 onAddStream fired with ${stream.getTracks().length} tracks');
       _remoteStream = stream;
       remoteRenderer.srcObject = stream;
       _remoteStreamKey++;
       for (final track in stream.getAudioTracks()) {
         track.enabled = true;
-        print('🔊 onAddStream: audio track enabled: ${track.id}');
+        debugPrint('🔊 onAddStream: audio track enabled: ${track.id}');
       }
       for (final track in stream.getVideoTracks()) {
         track.enabled = true;
-        print('🎥 onAddStream: video track enabled: ${track.id}');
+        debugPrint('🎥 onAddStream: video track enabled: ${track.id}');
       }
       notifyListeners();
     };
 
     pc.onIceConnectionState = (state) {
-      print('ICE Connection State: $state');
+      debugPrint('ICE Connection State: $state');
       if (state == RTCIceConnectionState.RTCIceConnectionStateFailed) {
         endCall();
       }
       if (state == RTCIceConnectionState.RTCIceConnectionStateDisconnected) {
-        print('⚠️ ICE disconnected — waiting for recovery...');
+        debugPrint('⚠️ ICE disconnected — waiting for recovery...');
         Future.delayed(const Duration(seconds: 10), () {
           if (_peerConnection?.iceConnectionState ==
               RTCIceConnectionState.RTCIceConnectionStateDisconnected ||
               _peerConnection?.iceConnectionState ==
               RTCIceConnectionState.RTCIceConnectionStateFailed) {
-            print('❌ ICE did not recover, ending call');
+            debugPrint('❌ ICE did not recover, ending call');
             endCall();
           }
         });
@@ -832,7 +819,7 @@ class CallService extends ChangeNotifier {
 
   Future<void> _createAndSendOffer() async {
     if (_isNegotiating) {
-      print('⚠️ Already negotiating, skipping duplicate offer');
+      debugPrint('⚠️ Already negotiating, skipping duplicate offer');
       return;
     }
     _isNegotiating = true;
@@ -850,7 +837,7 @@ class CallService extends ChangeNotifier {
       _socket.sendWebRTCOffer(_remoteUserId!, offerMap);
       _isNegotiating = false;
     } catch (e) {
-      print('Error creating offer: $e');
+      debugPrint('Error creating offer: $e');
       _isNegotiating = false;
       _cleanup();
       _callState = CallState.idle;
@@ -862,11 +849,11 @@ class CallService extends ChangeNotifier {
     if (_callState == CallState.idle) return;
     // Skip if already connected or negotiating
     if (_peerConnection != null && _callState == CallState.connected) {
-      print('⚠️ Already connected, skipping duplicate offer');
+      debugPrint('⚠️ Already connected, skipping duplicate offer');
       return;
     }
     if (_isNegotiating) {
-      print('⚠️ Already negotiating, skipping duplicate offer handling');
+      debugPrint('⚠️ Already negotiating, skipping duplicate offer handling');
       return;
     }
     _isNegotiating = true;
@@ -899,7 +886,7 @@ class CallService extends ChangeNotifier {
       _startDurationTimer();
       notifyListeners();
     } catch (e) {
-      print('Error handling offer: $e');
+      debugPrint('Error handling offer: $e');
       // Don't call endCall() here to avoid potential recursive crash
       _cleanup();
       _callState = CallState.idle;

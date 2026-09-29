@@ -1,19 +1,17 @@
-import 'dart:js_util' as js_util;
-import 'dart:html' as html;
+import 'dart:js_interop';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:web/web.dart' as web;
 
 /// Resume AudioContext on web (browsers require user gesture to enable audio)
 void resumeAudioContext() {
   try {
-    final audioCtx = js_util.callConstructor(
-      js_util.getProperty(html.window, 'AudioContext'),
-      [],
-    );
-    js_util.callMethod(audioCtx, 'resume', []);
-    js_util.callMethod(audioCtx, 'close', []);
-    print('🔊 AudioContext resumed for web audio playback');
+    final audioCtx = web.AudioContext();
+    audioCtx.resume();
+    audioCtx.close();
+    debugPrint('🔊 AudioContext resumed for web audio playback');
   } catch (e) {
-    print('⚠️ AudioContext resume failed: $e');
+    debugPrint('⚠️ AudioContext resume failed: $e');
   }
 }
 
@@ -21,33 +19,36 @@ void resumeAudioContext() {
 void attachStreamToAudioElement(MediaStream stream) {
   try {
     // Create audio element via DOM
-    final audio = html.document.createElement('audio') as html.AudioElement;
+    final audio = web.HTMLAudioElement();
     audio.autoplay = true;
     audio.setAttribute('playsinline', 'true');
 
-    // Access the underlying JS MediaStream via js_util
-    // MediaStreamWeb has a jsStream field, access it dynamically
-    dynamic jsStream;
+    // On web, flutter_webrtc's MediaStream is a MediaStreamWeb that wraps the
+    // underlying JS MediaStream in its `jsStream` field.
+    JSObject? jsStream;
     try {
-      jsStream = js_util.getProperty(stream, 'jsStream');
+      jsStream = (stream as dynamic).jsStream as JSObject?;
     } catch (_) {
-      // Fallback: the stream itself might be usable
-      jsStream = stream;
+      jsStream = null;
+    }
+    if (jsStream == null) {
+      debugPrint('⚠️ Web: remote stream has no underlying JS MediaStream');
+      return;
     }
 
-    js_util.setProperty(audio, 'srcObject', jsStream);
+    audio.srcObject = jsStream;
 
     // Append to body (hidden) so browser keeps it alive
     audio.style.display = 'none';
-    html.document.body?.append(audio);
+    web.document.body?.append(audio);
 
-    final playPromise = audio.play();
-    playPromise.catchError((e) {
-      print('⚠️ Audio autoplay blocked, retrying: $e');
+    audio.play().toDart.catchError((Object e) {
+      debugPrint('⚠️ Audio autoplay blocked, retrying: $e');
+      return null;
     });
 
-    print('🔊 Web: attached remote stream to HTML audio element');
+    debugPrint('🔊 Web: attached remote stream to HTML audio element');
   } catch (e) {
-    print('⚠️ Web audio element fallback failed: $e');
+    debugPrint('⚠️ Web audio element fallback failed: $e');
   }
 }

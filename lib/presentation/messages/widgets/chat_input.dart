@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:ui';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -149,7 +148,7 @@ class _ChatInputState extends State<ChatInput>
         _updateSendButton();
       }
     } catch (e) {
-      print('❌ File picker error: $e');
+      debugPrint('❌ File picker error: $e');
     }
   }
 
@@ -186,11 +185,11 @@ class _ChatInputState extends State<ChatInput>
         final data = json.decode(response.body);
         return data['attachment'] as Map<String, dynamic>;
       } else {
-        print('❌ Upload failed (${response.statusCode}): ${response.body}');
+        debugPrint('❌ Upload failed (${response.statusCode})');
         return null;
       }
     } catch (e) {
-      print('❌ Upload error: $e');
+      debugPrint('❌ Upload error: $e');
       return null;
     }
   }
@@ -251,7 +250,7 @@ class _ChatInputState extends State<ChatInput>
           }
         }
       } catch (e) {
-        print('❌ Upload failed: $e');
+        debugPrint('❌ Upload failed: $e');
         if (mounted) {
           setState(() => _isUploading = false);
           ScaffoldMessenger.of(context).showSnackBar(
@@ -289,6 +288,7 @@ class _ChatInputState extends State<ChatInput>
           }
         : null;
 
+    if (!mounted) return;
     context.read<MessagesBloc>().add(
           MessageSendRequested(
             conversationId: widget.conversation.id,

@@ -1,6 +1,8 @@
 class ApiConstants {
-  // Toggle this for dev/production
-  static const bool isProduction = true; // ✅ PRODUCTION
+  // Production by default (release builds, CI). For local dev run with
+  //   flutter run --dart-define=PRODUCTION=false
+  static const bool isProduction =
+      bool.fromEnvironment('PRODUCTION', defaultValue: true);
   
   // Base URL - switches based on environment
   static String get baseUrl => isProduction 
@@ -27,4 +29,4 @@ class ApiConstants {
   static String get announcements => '$baseUrl/announcements';
   static String get publishedAnnouncements => '$announcements/published';
   static String dismissAnnouncement(String id) => '$announcements/$id/dismiss';
-}
+}

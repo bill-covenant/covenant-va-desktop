@@ -10,6 +10,9 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   final TaskRepository _taskRepository;
   final TimecardRepository _timecardRepository;
 
+  // Last successful load — used to keep timecard info when a refresh fails.
+  DashboardLoaded? _lastLoaded;
+
   DashboardBloc({
     required TaskRepository taskRepository,
     required TimecardRepository timecardRepository,
@@ -55,19 +58,25 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       final weekFromNow = today.add(const Duration(days: 8));
       final currentMonth = '${now.year}-${now.month.toString().padLeft(2, '0')}';
 
-      // Fetch everything in parallel
-      late List<TimeEntry> monthEntries;
-      DateTime? activeClockIn;
-      try {
-        final clockAndEntries = await Future.wait([
-          _timecardRepository.getActiveClock(),
-          _timecardRepository.getTimeEntries(month: currentMonth),
-        ]);
-        activeClockIn = clockAndEntries[0] as DateTime?;
-        monthEntries = clockAndEntries[1] as List<TimeEntry>;
-      } catch (_) {
-        monthEntries = [];
-      }
+      // Fetch everything in parallel. A failed clock/entries request keeps the
+      // last known values instead of pretending the VA isn't clocked in.
+      List<TimeEntry> monthEntries = const [];
+      DateTime? activeClockIn = _lastLoaded?.activeClockIn;
+      bool entriesFailed = false;
+      await Future.wait<void>([
+        () async {
+          try {
+            activeClockIn = await _timecardRepository.getActiveClock();
+          } catch (_) {/* keep last known */}
+        }(),
+        () async {
+          try {
+            monthEntries = await _timecardRepository.getTimeEntries(month: currentMonth);
+          } catch (_) {
+            entriesFailed = true;
+          }
+        }(),
+      ]);
 
       final results = await Future.wait([
         _taskRepository.getTaskStats(),
@@ -128,18 +137,21 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         ..sort((a, b) => b.date.compareTo(a.date));
       final recentEntries = sortedEntries.take(5).toList();
 
-      emit(DashboardLoaded(
+      final last = _lastLoaded;
+      final loaded = DashboardLoaded(
         stats: stats,
         allTasks: allTasks,
         todayTasks: todayTasks,
         upcomingTasks: combinedUpcoming.take(5).toList(),
-        todayHoursWorked: todayHours,
-        todayEntriesCount: todayCount,
-        recentEntries: recentEntries,
+        todayHoursWorked: entriesFailed && last != null ? last.todayHoursWorked : todayHours,
+        todayEntriesCount: entriesFailed && last != null ? last.todayEntriesCount : todayCount,
+        recentEntries: entriesFailed && last != null ? last.recentEntries : recentEntries,
         activeClockIn: activeClockIn,
-      ));
+      );
+      _lastLoaded = loaded;
+      emit(loaded);
     } catch (e) {
       emit(DashboardError(message: e.toString()));
     }
   }
-}
+}

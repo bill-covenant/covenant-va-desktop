@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../core/constants/api_constants.dart';
 import '../data/models/message_model.dart';
@@ -46,23 +47,35 @@ class SocketService {
   Function(Map<String, dynamic> candidate)? onICECandidate;
 
   Future<void> initNotifications() async {
-    print('📱 Notification system ready');
+    _log('📱 Notification system ready');
   }
 
-  void connect(String vaId) {
-    print('🔌 Attempting to connect to Socket.io with VA ID: $vaId');
-    _authenticatedUserId = vaId;
+  void connect(String vaId, String token) {
+    _log('🔌 Attempting to connect to Socket.io with VA ID: $vaId');
 
-    if (_socket != null && _socket!.connected) {
-      print('✅ Already connected to Socket.io');
-      return;
+    if (_socket != null) {
+      if (_socket!.connected &&
+          _authenticatedUserId == vaId &&
+          _authenticatedToken == token) {
+        _log('✅ Already connected to Socket.io');
+        return;
+      }
+      // Different user/token (or a dead socket) — tear down before reconnecting
+      disconnect();
     }
+    _authenticatedUserId = vaId;
+    _authenticatedToken = token;
 
     final socketUrl = ApiConstants.baseUrl.replaceAll('/api', '');
-    print('🌐 Connecting to: $socketUrl');
-    
+    _log('🌐 Connecting to: $socketUrl');
+
+    // The server requires the JWT in the handshake auth payload.
+    // forceNew: socket_io_client caches managers per URL, which would otherwise
+    // reuse a previous session's auth after logout/login.
     _socket = IO.io(socketUrl, IO.OptionBuilder()
       .setTransports(['websocket'])
+      .setAuth({'token': token})
+      .enableForceNew()
       .disableAutoConnect()
       .enableReconnection()
       .setReconnectionAttempts(20)
@@ -73,57 +86,52 @@ class SocketService {
     _socket!.connect();
 
     _socket!.onConnect((_) {
-      print('✅ Connected to Socket.io server');
-      print('📤 Sending authenticate-va event with ID: $vaId');
+      _log('✅ Connected to Socket.io server');
+      _log('📤 Sending authenticate-va event with ID: $vaId');
       try {
         final numericId = int.parse(vaId);
         _socket!.emit('authenticate-va', numericId);
-        print('👤 Authenticated as VA with numeric ID: $numericId');
+        _log('👤 Authenticated as VA with numeric ID: $numericId');
       } catch (e) {
         _socket!.emit('authenticate-va', vaId);
-        print('👤 Authenticated as VA with string ID: $vaId');
+        _log('👤 Authenticated as VA with string ID: $vaId');
       }
     });
 
     _socket!.onDisconnect((_) {
-      print('❌ Disconnected from Socket.io server');
+      _log('❌ Disconnected from Socket.io server');
     });
 
     _socket!.on('task-created', (data) {
-      print('📋 ========== TASK CREATED EVENT RECEIVED ==========');
-      print('📋 Raw data: $data');
-      print('📋 Task title: ${data['task']['title']}');
+      _log('📋 ========== TASK CREATED EVENT RECEIVED ==========');
       _handleTaskCreated(data);
     });
 
     _socket!.on('task-updated', (data) {
-      print('📝 Task updated: ${data['task']['title']}');
+      _log('📝 Task updated');
       _handleTaskUpdated(data);
     });
 
     _socket!.on('task-deleted', (data) {
-      print('🗑️ Task deleted: ${data['taskId']}');
+      _log('🗑️ Task deleted: ${data['taskId']}');
       _handleTaskDeleted(data);
     });
 
     // ✅ Listen for real-time messages
     _socket!.on('new-message', (data) {
-      print('💬 ========== NEW MESSAGE RECEIVED ==========');
-      print('💬 Raw data: $data');
+      _log('💬 ========== NEW MESSAGE RECEIVED ==========');
       _handleNewMessage(data);
     });
 
     // ✅ Listen for new announcements
     _socket!.on('new-announcement', (data) {
-      print('📢 ========== NEW ANNOUNCEMENT ==========');
-      print('📢 Raw data: $data');
+      _log('📢 ========== NEW ANNOUNCEMENT ==========');
       _handleNewAnnouncement(data);
     });
 
     // ✅ Listen for real-time notifications (assignments, system alerts, etc.)
     _socket!.on('notification', (data) {
-      print('🔔 ========== NOTIFICATION RECEIVED ==========');
-      print('🔔 Raw data: $data');
+      _log('🔔 ========== NOTIFICATION RECEIVED ==========');
       try {
         final Map<String, dynamic> notification =
             data['notification'] is Map<String, dynamic>
@@ -138,7 +146,7 @@ class SocketService {
           onAssignmentUpdate?.call();
         }
       } catch (e) {
-        print('❌ Error parsing notification: $e');
+        _log('❌ Error parsing notification: $e');
       }
     });
 
@@ -172,7 +180,7 @@ class SocketService {
     // ═══════════════════════════════════════
 
     _socket!.on('call-incoming', (data) {
-      print('📞 ========== INCOMING CALL (Socket) ==========');
+      _log('📞 ========== INCOMING CALL (Socket) ==========');
       final callerId = data['callerId']?.toString() ?? '';
       final callerName = data['callerName']?.toString() ?? '';
       final callType = data['callType']?.toString() ?? 'audio';
@@ -180,62 +188,62 @@ class SocketService {
     });
 
     _socket!.on('call-accepted', (data) {
-      print('✅ Call accepted (Socket)');
+      _log('✅ Call accepted (Socket)');
       onCallAccepted?.call();
     });
 
     _socket!.on('call-declined', (data) {
-      print('❌ Call declined (Socket)');
+      _log('❌ Call declined (Socket)');
       onCallDeclined?.call();
     });
 
     _socket!.on('call-ended', (data) {
-      print('📴 Call ended (Socket)');
+      _log('📴 Call ended (Socket)');
       onCallEnded?.call();
     });
 
     _socket!.on('call-unavailable', (data) {
-      print('📵 Call unavailable (Socket)');
+      _log('📵 Call unavailable (Socket)');
       final reason = data['reason']?.toString() ?? 'User unavailable';
       onCallUnavailable?.call(reason);
     });
 
     _socket!.on('call-ended-by-disconnect', (data) {
-      print('📴 Call ended by disconnect (Socket)');
+      _log('📴 Call ended by disconnect (Socket)');
       onCallEnded?.call();
     });
 
     _socket!.on('webrtc-offer', (data) {
-      print('📨 WebRTC offer received (Socket)');
+      _log('📨 WebRTC offer received (Socket)');
       if (data['offer'] != null) {
         onWebRTCOffer?.call(Map<String, dynamic>.from(data['offer']));
       }
     });
 
     _socket!.on('webrtc-answer', (data) {
-      print('📨 WebRTC answer received (Socket)');
+      _log('📨 WebRTC answer received (Socket)');
       if (data['answer'] != null) {
         onWebRTCAnswer?.call(Map<String, dynamic>.from(data['answer']));
       }
     });
 
     _socket!.on('webrtc-ice-candidate', (data) {
-      print('📨 ICE candidate received (Socket)');
+      _log('📨 ICE candidate received (Socket)');
       if (data['candidate'] != null) {
         onICECandidate?.call(Map<String, dynamic>.from(data['candidate']));
       }
     });
 
     _socket!.onError((error) {
-      print('❌ Socket.io error: $error');
+      _log('❌ Socket.io error: $error');
     });
 
     _socket!.onConnectError((error) {
-      print('❌ Socket.io connection error: $error');
+      _log('❌ Socket.io connection error: $error');
     });
 
     _socket!.onReconnect((_) {
-      print('🔄 Socket reconnected, re-authenticating...');
+      _log('🔄 Socket reconnected, re-authenticating...');
       try {
         final numericId = int.parse(vaId);
         _socket!.emit('authenticate-va', numericId);
@@ -251,9 +259,8 @@ class SocketService {
       final messageData = data['message'] as Map<String, dynamic>;
       final message = MessageModel.fromJson(messageData);
       
-      print('💬 Message from: ${message.senderId}');
-      print('💬 Content: ${message.content}');
-      print('💬 Conversation: ${message.conversationId}');
+      _log('💬 Message from: ${message.senderId}');
+      _log('💬 Conversation: ${message.conversationId}');
 
       // Push to stream (MessagesBloc listens to this)
       _newMessageController.add(message);
@@ -266,8 +273,7 @@ class SocketService {
             : message.content,
       );
     } catch (e) {
-      print('❌ Error parsing new message: $e');
-      print('❌ Raw data was: $data');
+      _log('❌ Error parsing new message: $e');
     }
   }
 
@@ -302,7 +308,7 @@ class SocketService {
     _showNotification(title: notifTitle, body: notifBody);
 
     if (onTaskUpdate != null) {
-      print('🔄 Triggering task list refresh');
+      _log('🔄 Triggering task list refresh');
       onTaskUpdate!();
     }
   }
@@ -329,7 +335,7 @@ class SocketService {
         onAnnouncementUpdate!();
       }
     } catch (e) {
-      print('❌ Error parsing announcement: $e');
+      _log('❌ Error parsing announcement: $e');
     }
   }
 
@@ -340,12 +346,12 @@ class SocketService {
     if (onNotification != null) {
       onNotification!(title, body);
     } else {
-      print('⚠️ onNotification callback is NULL - notification not shown');
+      _log('⚠️ onNotification callback is NULL - notification not shown');
     }
   }
 
   Future<void> testNotification() async {
-    print('🧪 Test notification triggered');
+    _log('🧪 Test notification triggered');
     _showNotification(
       title: 'Test Notification 🧪',
       body: 'If you see this, notifications are working!',
@@ -358,7 +364,7 @@ class SocketService {
 
   void initiateCall(String recipientId, String callerName, String callType) {
     if (_socket == null || !_socket!.connected) {
-      print('⚠️ Socket not connected, skipping initiateCall emit');
+      _log('⚠️ Socket not connected, skipping initiateCall emit');
       return;
     }
     _socket!.emit('call-initiate', {
@@ -367,7 +373,7 @@ class SocketService {
       'recipientId': recipientId,
       'callType': callType,
     });
-    print('📞 Emitted call-initiate to $recipientId');
+    _log('📞 Emitted call-initiate to $recipientId');
   }
 
   void acceptCall(String callerId) {
@@ -376,7 +382,7 @@ class SocketService {
       'callerId': callerId,
       'recipientId': _authenticatedUserId ?? '',
     });
-    print('✅ Emitted call-accept for caller $callerId');
+    _log('✅ Emitted call-accept for caller $callerId');
   }
 
   void declineCall(String callerId) {
@@ -385,7 +391,7 @@ class SocketService {
       'callerId': callerId,
       'recipientId': _authenticatedUserId ?? '',
     });
-    print('❌ Emitted call-decline for caller $callerId');
+    _log('❌ Emitted call-decline for caller $callerId');
   }
 
   void endCall(String remoteUserId) {
@@ -393,7 +399,7 @@ class SocketService {
     _socket!.emit('call-end', {
       'remoteUserId': remoteUserId,
     });
-    print('📴 Emitted call-end for $remoteUserId');
+    _log('📴 Emitted call-end for $remoteUserId');
   }
 
   void sendWebRTCOffer(String recipientId, Map<String, dynamic> offer) {
@@ -424,13 +430,20 @@ class SocketService {
 
   // Track the authenticated user ID for socket emit payloads
   String? _authenticatedUserId;
+  String? _authenticatedToken;
+
+  // Debug-only logging — never log payloads (messages, tokens) in release.
+  static void _log(String message) {
+    if (kDebugMode) debugPrint(message);
+  }
 
   void disconnect() {
     if (_socket != null) {
       _socket!.disconnect();
       _socket!.dispose();
       _socket = null;
-      print('🔌 Disconnected from Socket.io');
+      _authenticatedToken = null;
+      _log('🔌 Disconnected from Socket.io');
     }
   }
 

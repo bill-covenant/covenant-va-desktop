@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../data/repositories/timecard_repository.dart';
 import '../../../core/di/service_locator.dart';
+import '../../../core/utils/shift_hours.dart';
 import 'time_card_widgets/clock_dialog/dialog_header.dart';
 import 'time_card_widgets/clock_dialog/clock_button.dart';
 import 'time_card_widgets/clock_dialog/time_log_section.dart';
@@ -29,14 +30,17 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
   DateTime _selectedDate = DateTime.now();
   TimeOfDay? _clockInTime;
   TimeOfDay? _clockOutTime;
+  // Exact clock times recorded by the server (clock-in / clock-out / pending
+  // shift). Used for the hours calculation until the VA edits a time.
   DateTime? _clockInDateTime;
-  bool _isLoading = false; // Start false — show UI immediately
+  DateTime? _clockOutDateTime;
+  bool _clockInEdited = false;
   bool _isClockingIn = false;
-  bool _isSaving = false;
+  bool _isResetting = false;
 
   bool get _isClockedIn => _clockInTime != null && _clockOutTime == null;
   bool get _isClockedOut => _clockInTime != null && _clockOutTime != null;
-  bool get _canSave => _clockInTime != null && _clockOutTime != null && !_isSaving;
+  bool get _canSave => _clockInTime != null && _clockOutTime != null;
 
   @override
   void initState() {
@@ -61,6 +65,8 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
         final outLocal = status.pendingClockOut!.toLocal();
         setState(() {
           _clockInDateTime = status.pendingClockIn;
+          _clockOutDateTime = status.pendingClockOut;
+          _clockInEdited = false;
           _clockInTime = TimeOfDay(hour: inLocal.hour, minute: inLocal.minute);
           _clockOutTime = TimeOfDay(hour: outLocal.hour, minute: outLocal.minute);
           // Date the entry to the clock-in day — covers overnight shifts.
@@ -81,19 +87,24 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
             _clockInTime?.minute != serverClockIn.minute) {
           setState(() {
             _clockInDateTime = activeClock;
+            _clockOutDateTime = null;
             _clockInTime = serverClockIn;
             _clockOutTime = null;
             _selectedDate = clockInDate;
           });
           _notifyClockState();
         } else {
-          _clockInDateTime = activeClock;
-          _selectedDate = clockInDate;
+          setState(() {
+            _clockInDateTime = activeClock;
+            _selectedDate = clockInDate;
+          });
         }
       }
       // If no active clock and we don't have parent state, that's fine — UI already shows empty
-    } catch (_) {
-      // Silently fail — we already have parent state or empty state showing
+    } catch (e) {
+      // Keep showing the parent's cached state, but tell the VA it may be stale.
+      _showError('Could not refresh clock status — showing last known times. '
+          '${e.toString().replaceFirst('Exception: ', '')}');
     }
   }
 
@@ -296,6 +307,10 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
         setState(() {
           _clockInTime = now;
           _clockOutTime = null;
+          _clockInDateTime = DateTime.now();
+          _clockOutDateTime = null;
+          _clockInEdited = false;
+          _selectedDate = DateTime.now();
         });
         _notifyClockState();
 
@@ -318,9 +333,10 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
               _clockInTime = null;
               _clockOutTime = null;
               _clockInDateTime = null;
+              _clockOutDateTime = null;
             });
             _notifyClockState();
-            _showError('Clock in failed: ${e.toString()}');
+            _showError('Clock in failed: ${e.toString().replaceFirst('Exception: ', '')}');
           }
         }
       } else if (_clockOutTime == null) {
@@ -328,6 +344,7 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
         final now = TimeOfDay.now();
         setState(() {
           _clockOutTime = now;
+          _clockOutDateTime = DateTime.now();
         });
         _notifyClockState();
 
@@ -338,6 +355,15 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
           if (mounted) {
             setState(() {
               _clockOutTime = TimeOfDay(hour: clockOutDt.hour, minute: clockOutDt.minute);
+              _clockOutDateTime = result['clockOutTime'] as DateTime;
+              // Use the server-recorded clock-in unless the VA edited it.
+              if (!_clockInEdited) {
+                final inDt = result['clockInTime'] as DateTime;
+                final inLocal = inDt.toLocal();
+                _clockInDateTime = inDt;
+                _clockInTime = TimeOfDay(hour: inLocal.hour, minute: inLocal.minute);
+                _selectedDate = DateTime(inLocal.year, inLocal.month, inLocal.day);
+              }
             });
             _notifyClockState();
           }
@@ -346,9 +372,10 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
           if (mounted) {
             setState(() {
               _clockOutTime = null;
+              _clockOutDateTime = null;
             });
             _notifyClockState();
-            _showError('Clock out failed: ${e.toString()}');
+            _showError('Clock out failed: ${e.toString().replaceFirst('Exception: ', '')}');
           }
         }
       }
@@ -368,15 +395,28 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
     }
   }
 
-  void _handleReset() async {
+  Future<void> _handleReset() async {
+    if (_isResetting) return;
+    setState(() => _isResetting = true);
     // Discard the shift entirely (clears active + pending) so it isn't recorded.
+    // Only clear the UI once the server has actually discarded it — otherwise
+    // the shift would silently come back (or be lost) on the next sync.
     try {
       await _timecardRepo.clockClear();
-    } catch (_) {}
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isResetting = false);
+      _showError('Could not discard the shift: ${e.toString().replaceFirst('Exception: ', '')}');
+      return;
+    }
+    if (!mounted) return;
     setState(() {
+      _isResetting = false;
       _clockInTime = null;
       _clockOutTime = null;
       _clockInDateTime = null;
+      _clockOutDateTime = null;
+      _clockInEdited = false;
     });
     _notifyClockState();
   }
@@ -396,16 +436,27 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
         child: child!,
       ),
     );
-    if (picked != null) onTimeSelected(picked);
+    if (picked != null && mounted) onTimeSelected(picked);
+  }
+
+  /// Resolves the shift from full DateTimes. Server-recorded clock times are
+  /// used as-is; manually edited times are placed on the entry date, and a
+  /// clock-out earlier than clock-in is treated as the next day (≤16h only).
+  ShiftResult? _currentShift() {
+    if (_clockInTime == null || _clockOutTime == null) return null;
+    final start = _clockInDateTime?.toLocal() ??
+        DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day,
+            _clockInTime!.hour, _clockInTime!.minute);
+    final end = _clockOutDateTime?.toLocal() ??
+        DateTime(start.year, start.month, start.day,
+            _clockOutTime!.hour, _clockOutTime!.minute);
+    return resolveShift(start, end);
   }
 
   double _calculateHours() {
-    if (_clockInTime == null || _clockOutTime == null) return 0.0;
-    final clockIn = _clockInTime!.hour + (_clockInTime!.minute / 60);
-    final clockOut = _clockOutTime!.hour + (_clockOutTime!.minute / 60);
-    double total = clockOut - clockIn;
-    if (total < 0) total += 24;
-    return total > 0 ? double.parse(total.toStringAsFixed(2)) : 0.0;
+    final shift = _currentShift();
+    if (shift == null || !shift.isValid) return 0.0;
+    return shift.hours;
   }
 
   String _formatTime(TimeOfDay time) {
@@ -418,19 +469,26 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
   void _handleSave() async {
     if (!_canSave) return;
 
+    final shift = _currentShift();
+    if (shift == null) return;
+    if (!shift.isValid) {
+      _showError(shift.error!);
+      return;
+    }
+
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       barrierDismissible: false,
       builder: (context) => DaySummaryDialog(
         clockInTime: _formatTime(_clockInTime!),
         clockOutTime: _formatTime(_clockOutTime!),
-        totalHours: _calculateHours(),
+        totalHours: shift.hours,
       ),
     );
 
     if (result == null || !mounted) return;
 
-    final hours = _calculateHours();
+    final hours = shift.hours;
     final clockDesc = 'Clock In: ${_formatTime(_clockInTime!)}, Clock Out: ${_formatTime(_clockOutTime!)}';
     final notes = result['notes'] as String? ?? '';
     final moodLabel = result['moodLabel'] as String? ?? '';
@@ -439,8 +497,10 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
     if (moodLabel.isNotEmpty) description += '\nMood: $moodLabel';
     if (notes.isNotEmpty) description += '\nNotes: $notes';
 
+    // Date the entry to the shift's start (clock-in) day — covers overnight
+    // shifts and matches the server's pending clock-in date.
     Navigator.pop(context, {
-      'date': _selectedDate,
+      'date': DateTime(shift.start.year, shift.start.month, shift.start.day),
       'hoursWorked': hours,
       'description': description,
     });
@@ -448,6 +508,7 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final shiftError = _currentShift()?.error;
     return Dialog(
       backgroundColor: Colors.transparent,
       child: Container(
@@ -476,7 +537,7 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
           children: [
             DialogHeader(
               isClockedOut: _isClockedOut,
-              onReset: _handleReset,
+              onReset: _isResetting ? () {} : _handleReset,
             ),
             ClockButton(
               clockInTime: _clockInTime,
@@ -494,18 +555,42 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
                 clockOutTime: _clockOutTime,
                 onEditClockIn: _clockInTime != null
                     ? () => _selectTime((t) {
-                          setState(() => _clockInTime = t);
+                          setState(() {
+                            _clockInTime = t;
+                            // Manually edited — place on the entry date
+                            _clockInDateTime = null;
+                            _clockInEdited = true;
+                          });
                           _notifyClockState();
                         }, _clockInTime)
                     : null,
                 onEditClockOut: _clockOutTime != null
                     ? () => _selectTime((t) {
-                          setState(() => _clockOutTime = t);
+                          setState(() {
+                            _clockOutTime = t;
+                            _clockOutDateTime = null;
+                          });
                           _notifyClockState();
                         }, _clockOutTime)
                     : null,
               ),
             ),
+            if (shiftError != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(28, 10, 28, 0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Color(0xFFFCA5A5), size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        shiftError,
+                        style: const TextStyle(color: Color(0xFFFCA5A5), fontSize: 12.5, height: 1.3),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 16),
             DialogFooter(
               canSave: _canSave,
@@ -517,4 +602,4 @@ class _LogHoursDialogState extends State<LogHoursDialog> {
       ),
     );
   }
-}
+}

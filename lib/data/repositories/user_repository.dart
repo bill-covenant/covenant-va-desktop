@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 import '../providers/api_provider.dart';
 import '../providers/storage_provider.dart';
@@ -28,7 +28,7 @@ class UserRepository {
 
   /// Get current user profile
   Future<UserModel> getCurrentUser({bool forceRefresh = false}) async {
-    print('📋 UserRepository: getCurrentUser called (forceRefresh: $forceRefresh)');
+    debugPrint('📋 UserRepository: getCurrentUser called (forceRefresh: $forceRefresh)');
 
     try {
       final response = await _apiProvider.get(
@@ -37,20 +37,19 @@ class UserRepository {
         forceRefresh: forceRefresh,
       );
 
-      print('📋 UserRepository: Response received');
+      debugPrint('📋 UserRepository: Response received');
       
       final user = UserModel.fromJson(response['user']);
       
       // Update stored user data
       await _storageProvider.saveUser(user);
       
-      print('✅ UserRepository: User data saved');
+      debugPrint('✅ UserRepository: User data saved');
       return user;
     } catch (e) {
-      print('❌ UserRepository: Error - $e');
+      debugPrint('❌ UserRepository: Error - $e');
       
-      if (e.toString().contains('Unauthorized') || 
-          e.toString().contains('401')) {
+      if (_isUnauthorized(e)) {
         throw UnauthorizedException('Invalid token');
       }
       
@@ -83,7 +82,7 @@ class UserRepository {
     List<String>? languages,
     Map<String, dynamic>? deviceSpecs,
   }) async {
-    print('📋 UserRepository: updateProfile called');
+    debugPrint('📋 UserRepository: updateProfile called');
 
     final Map<String, dynamic> body = {};
     if (firstName != null) body['firstName'] = firstName;
@@ -118,21 +117,20 @@ class UserRepository {
         final user = UserModel.fromJson(response['user']);
         await _storageProvider.saveUser(user);
 
-        print('✅ UserRepository: Profile updated${attempt > 0 ? ' (retry)' : ''}');
+        debugPrint('✅ UserRepository: Profile updated${attempt > 0 ? ' (retry)' : ''}');
         return user;
       } catch (e) {
-        print('❌ UserRepository: Error (attempt ${attempt + 1}) - $e');
+        debugPrint('❌ UserRepository: Error (attempt ${attempt + 1}) - $e');
 
-        if (e.toString().contains('Unauthorized') ||
-            e.toString().contains('401')) {
+        if (_isUnauthorized(e)) {
           throw UnauthorizedException('Invalid token');
         }
 
         lastError = e is Exception ? e : Exception(e.toString());
 
         // Only retry on timeout/network errors
-        if (attempt == 0 && (e.toString().contains('timed out') || e.toString().contains('Network error'))) {
-          print('🔄 Retrying profile update...');
+        if (attempt == 0 && (e is ApiException && e.isNetworkError)) {
+          debugPrint('🔄 Retrying profile update...');
           await Future.delayed(const Duration(seconds: 1));
           continue;
         }
@@ -148,7 +146,7 @@ class UserRepository {
     required String currentPassword,
     required String newPassword,
   }) async {
-    print('📋 UserRepository: changePassword called');
+    debugPrint('📋 UserRepository: changePassword called');
     
     try {
       await _apiProvider.put(
@@ -160,12 +158,11 @@ class UserRepository {
         requiresAuth: true,
       );
 
-      print('✅ UserRepository: Password changed');
+      debugPrint('✅ UserRepository: Password changed');
     } catch (e) {
-      print('❌ UserRepository: Error - $e');
+      debugPrint('❌ UserRepository: Error - $e');
       
-      if (e.toString().contains('Unauthorized') || 
-          e.toString().contains('401')) {
+      if (_isUnauthorized(e)) {
         throw UnauthorizedException('Invalid token');
       }
       
@@ -175,8 +172,8 @@ class UserRepository {
 
   /// Upload avatar (base64)
   Future<UserModel> uploadAvatar(String base64Image) async {
-    print('📋 UserRepository: uploadAvatar called');
-    print('📋 Image size: ${base64Image.length} chars');
+    debugPrint('📋 UserRepository: uploadAvatar called');
+    debugPrint('📋 Image size: ${base64Image.length} chars');
     
     try {
       final response = await _apiProvider.post(
@@ -190,13 +187,12 @@ class UserRepository {
       // Update stored user data
       await _storageProvider.saveUser(user);
       
-      print('✅ UserRepository: Avatar uploaded');
+      debugPrint('✅ UserRepository: Avatar uploaded');
       return user;
     } catch (e) {
-      print('❌ UserRepository: Error - $e');
+      debugPrint('❌ UserRepository: Error - $e');
       
-      if (e.toString().contains('Unauthorized') || 
-          e.toString().contains('401')) {
+      if (_isUnauthorized(e)) {
         throw UnauthorizedException('Invalid token');
       }
       
@@ -214,7 +210,7 @@ class UserRepository {
       final response = await _apiProvider.get('/va/w8ben', requiresAuth: true);
       return response['form'] as Map<String, dynamic>?;
     } catch (e) {
-      if (e.toString().contains('Unauthorized') || e.toString().contains('401')) {
+      if (_isUnauthorized(e)) {
         throw UnauthorizedException('Invalid token');
       }
       rethrow;
@@ -226,7 +222,7 @@ class UserRepository {
     try {
       await _apiProvider.post('/va/w8ben', formData, requiresAuth: true);
     } catch (e) {
-      if (e.toString().contains('Unauthorized') || e.toString().contains('401')) {
+      if (_isUnauthorized(e)) {
         throw UnauthorizedException('Invalid token');
       }
       rethrow;
@@ -235,7 +231,7 @@ class UserRepository {
 
   /// Get user statistics
   Future<Map<String, dynamic>> getUserStats({bool forceRefresh = false}) async {
-    print('📋 UserRepository: getUserStats called (forceRefresh: $forceRefresh)');
+    debugPrint('📋 UserRepository: getUserStats called (forceRefresh: $forceRefresh)');
 
     try {
       final response = await _apiProvider.get(
@@ -244,17 +240,19 @@ class UserRepository {
         forceRefresh: forceRefresh,
       );
 
-      print('✅ UserRepository: Stats received');
+      debugPrint('✅ UserRepository: Stats received');
       return response['stats'] as Map<String, dynamic>;
     } catch (e) {
-      print('❌ UserRepository: Error - $e');
+      debugPrint('❌ UserRepository: Error - $e');
       
-      if (e.toString().contains('Unauthorized') || 
-          e.toString().contains('401')) {
+      if (_isUnauthorized(e)) {
         throw UnauthorizedException('Invalid token');
       }
       
       rethrow;
     }
   }
+
+  static bool _isUnauthorized(Object e) =>
+      e is ApiException ? e.isUnauthorized : e is UnauthorizedException;
 }

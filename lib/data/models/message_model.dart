@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class MessageAttachment {
   final String fileName;
   final String fileUrl;
@@ -114,7 +116,7 @@ class MessageModel {
     final convId = doc.reference.parent.parent?.id as String? ?? '';
     final rawAttachments = data['attachments'] as List<dynamic>? ?? [];
     if (rawAttachments.isNotEmpty) {
-      print('📎 Message ${doc.id} has ${rawAttachments.length} attachments: $rawAttachments');
+      debugPrint('📎 Message ${doc.id} has ${rawAttachments.length} attachments');
     }
     final attachments = rawAttachments
         .map((a) => MessageAttachment.fromMap(Map<String, dynamic>.from(a as Map)))

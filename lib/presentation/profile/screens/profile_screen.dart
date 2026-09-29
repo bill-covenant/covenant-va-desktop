@@ -67,14 +67,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     try {
-      print('📋 ProfileScreen: Starting to load user data...');
+      debugPrint('📋 ProfileScreen: Starting to load user data...');
 
       final results = await Future.wait([
         _userRepository.getCurrentUser(forceRefresh: forceRefresh),
         _userRepository.getUserStats(forceRefresh: forceRefresh),
       ]);
 
-      print('📋 ProfileScreen: Data loaded successfully');
+      debugPrint('📋 ProfileScreen: Data loaded successfully');
       
       if (!mounted) return;
 
@@ -89,10 +89,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _isInitialLoad = false;
       });
       
-      print('✅ ProfileScreen: UI updated successfully');
+      debugPrint('✅ ProfileScreen: UI updated successfully');
     } catch (e) {
-      print('❌ ProfileScreen: Error caught - $e');
-      print('❌ ProfileScreen: Error type - ${e.runtimeType}');
+      debugPrint('❌ ProfileScreen: Error caught - $e');
+      debugPrint('❌ ProfileScreen: Error type - ${e.runtimeType}');
       
       if (!mounted) return;
       
@@ -103,10 +103,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           errorString.contains('Not authenticated') ||
                           errorString.contains('Unauthorized');
       
-      print('🔍 Is auth error? $isAuthError');
+      debugPrint('🔍 Is auth error? $isAuthError');
       
       if (isAuthError) {
-        print('🔐 Auth error detected, logging out...');
+        debugPrint('🔐 Auth error detected, logging out...');
         await _storageProvider.clearAll();
         if (mounted) {
           context.read<AuthBloc>().add(const LogoutRequested());
@@ -114,7 +114,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return;
       }
       
-      print('❌ Non-auth error, showing error state: $errorString');
+      debugPrint('❌ Non-auth error, showing error state: $errorString');
       setState(() {
         _error = errorString;
         _isLoading = false;

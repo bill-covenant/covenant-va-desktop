@@ -39,7 +39,7 @@ class _TaskCardState extends State<TaskCard> {
               _optimisticStatus = null;
             });
           }
-          print('✅ Task status updated successfully');
+          debugPrint('✅ Task status updated successfully');
         }
       },
       child: MouseRegion(
@@ -372,7 +372,7 @@ class _TaskCardState extends State<TaskCard> {
           ],
           onChanged: (String? newStatus) {
             if (newStatus != null && newStatus != widget.task.status) {
-              print('🔄 Optimistically updating status to $newStatus');
+              debugPrint('🔄 Optimistically updating status to $newStatus');
               
               setState(() {
                 _optimisticStatus = newStatus;

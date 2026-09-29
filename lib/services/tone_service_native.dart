@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:ffi';
 import 'dart:math';
@@ -72,7 +73,7 @@ class ToneService {
       final playSound = _getPlaySound();
       playSound(nullptr.cast<Uint8>(), 0, SND_PURGE);
     } catch (e) {
-      print('⚠️ ToneService: Error stopping: $e');
+      debugPrint('⚠️ ToneService: Error stopping: $e');
     }
     _freeBuffer();
   }
@@ -93,7 +94,7 @@ class ToneService {
       // Play from memory, async, looping
       playSound(_currentBuffer!, 0, SND_MEMORY | SND_ASYNC | SND_LOOP);
     } catch (e) {
-      print('⚠️ ToneService: Error playing tone: $e');
+      debugPrint('⚠️ ToneService: Error playing tone: $e');
     }
   }
 

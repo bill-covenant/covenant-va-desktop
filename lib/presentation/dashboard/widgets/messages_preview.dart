@@ -39,7 +39,7 @@ class _MessagesPreviewState extends State<MessagesPreview> {
       final convos = conversationsJson
           .map((json) => ConversationModel.fromJson(json as Map<String, dynamic>))
           .toList();
-      print('📬 Dashboard: Loaded ${convos.length} conversations');
+      debugPrint('📬 Dashboard: Loaded ${convos.length} conversations');
       if (mounted) {
         _cached = convos;
         setState(() {
@@ -48,7 +48,7 @@ class _MessagesPreviewState extends State<MessagesPreview> {
         });
       }
     } catch (e) {
-      print('📬 Dashboard: Failed to load conversations: $e');
+      debugPrint('📬 Dashboard: Failed to load conversations: $e');
       if (mounted) setState(() => _isLoading = false);
     }
   }

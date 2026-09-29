@@ -90,11 +90,11 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
             _conversations = cachedConversations;
             _isInitialized = true;
           });
-          print('✅ Loaded ${cachedConversations.length} cached conversations');
+          debugPrint('✅ Loaded ${cachedConversations.length} cached conversations');
         }
       }
     } catch (e) {
-      print('⚠️ Failed to load cached conversations: $e');
+      debugPrint('⚠️ Failed to load cached conversations: $e');
     }
   }
 
@@ -103,9 +103,9 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
       final prefs = await SharedPreferences.getInstance();
       final jsonList = conversations.map((c) => c.toJson()).toList();
       await prefs.setString('cached_conversations', json.encode(jsonList));
-      print('✅ Cached ${conversations.length} conversations');
+      debugPrint('✅ Cached ${conversations.length} conversations');
     } catch (e) {
-      print('⚠️ Failed to cache conversations: $e');
+      debugPrint('⚠️ Failed to cache conversations: $e');
     }
   }
 
@@ -136,7 +136,7 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
   }
 
   void _onConversationSelected(ConversationModel conversation) {
-    print('🎯 Conversation selected: ${conversation.id}');
+    debugPrint('🎯 Conversation selected: ${conversation.id}');
     if (!mounted) return;
 
     final isSameConversation = _selectedConversation?.id == conversation.id;
@@ -148,17 +148,17 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
 
     // But don't reload messages if same conversation
     if (isSameConversation) {
-      print('⏭️ Same conversation, updated data but skipping message reload');
+      debugPrint('⏭️ Same conversation, updated data but skipping message reload');
       return;
     }
     
     if (!conversation.id.startsWith('new_')) {
-      print('📨 Dispatching ConversationMessagesLoadRequested');
+      debugPrint('📨 Dispatching ConversationMessagesLoadRequested');
       context.read<MessagesBloc>().add(
         ConversationMessagesLoadRequested(conversation.id),
       );
     } else {
-      print('✨ New conversation - skipping message load');
+      debugPrint('✨ New conversation - skipping message load');
     }
   }
 
@@ -214,7 +214,7 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
                   }
                 },
                 builder: (context, state) {
-                  print('🔄 MessagesBloc state: ${state.runtimeType}');
+                  debugPrint('🔄 MessagesBloc state: ${state.runtimeType}');
                   
                   if (state is MessagesError && _conversations.isEmpty && _isInitialized) {
                     return MessagesErrorState(

@@ -17,7 +17,6 @@ class NoteRepository {
       'title': title,
       'content': content ?? '',
     }, requiresAuth: true);
-    print('📝 NoteRepo: createNote response: $response');
     return NoteModel.fromJson(response['note'] as Map<String, dynamic>);
   }
 
@@ -25,9 +24,7 @@ class NoteRepository {
     final body = <String, dynamic>{};
     if (title != null) body['title'] = title;
     if (content != null) body['content'] = content;
-    print('📝 NoteRepo: updateNote $id with body: $body');
     final response = await _apiProvider.put('/notes/$id', body, requiresAuth: true);
-    print('📝 NoteRepo: updateNote response: $response');
     return NoteModel.fromJson(response['note'] as Map<String, dynamic>);
   }
 

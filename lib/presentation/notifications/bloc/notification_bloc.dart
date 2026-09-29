@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'notification_event.dart';
 import 'notification_state.dart';
@@ -56,7 +57,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
       ));
     } catch (e) {
       // Don't emit error, just keep current state
-      print('Failed to load unread count: $e');
+      debugPrint('Failed to load unread count: $e');
     }
   }
 
@@ -196,4 +197,4 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
       emit(NotificationError(e.toString()));
     }
   }
-}
+}

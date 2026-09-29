@@ -77,7 +77,7 @@ class _ChatMessagesAreaState extends State<ChatMessagesArea>
         }
       }
     } catch (e) {
-      print('⚠️ Failed to load cached messages: $e');
+      debugPrint('⚠️ Failed to load cached messages: $e');
     }
   }
 
@@ -88,7 +88,7 @@ class _ChatMessagesAreaState extends State<ChatMessagesArea>
       final jsonList = messages.map((m) => m.toJson()).toList();
       await prefs.setString(cacheKey, json.encode(jsonList));
     } catch (e) {
-      print('⚠️ Failed to cache messages: $e');
+      debugPrint('⚠️ Failed to cache messages: $e');
     }
   }
 

@@ -533,7 +533,7 @@ class _TimeEntryCardState extends State<TimeEntryCard> {
 
       // TODO: Call your repository to update the entry on the backend
       // e.g. _timecardRepo.updateTimeEntry(widget.entry.id, description: updatedDescription);
-      print('📝 Updated notes for entry ${widget.entry.id}: $updatedDescription');
+      debugPrint('📝 Updated notes for entry ${widget.entry.id} (${updatedDescription.length} chars)');
     });
   }
 
