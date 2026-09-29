@@ -16,6 +16,7 @@ import 'package:get_it/get_it.dart';
 import '../bloc/messages_bloc.dart';
 import '../bloc/messages_event.dart';
 import '../bloc/messages_state.dart';
+import '../../../core/utils/emoji_font.dart';
 
 class ChatInput extends StatefulWidget {
   final ConversationModel conversation;
@@ -422,6 +423,10 @@ class _ChatInputState extends State<ChatInput>
             config: Config(
               height: 360,
               checkPlatformCompatibility: true,
+              emojiTextStyle: const TextStyle(
+                fontFamily: EmojiFont.family,
+                fontFamilyFallback: EmojiFont.fallback,
+              ),
               emojiViewConfig: EmojiViewConfig(
                 emojiSizeMax: 28 *
                     (foundation.defaultTargetPlatform == TargetPlatform.iOS
@@ -620,6 +625,7 @@ class _ChatInputState extends State<ChatInput>
                                     fontSize: 14.5,
                                     height: 1.45,
                                     fontWeight: FontWeight.w400,
+                                    fontFamilyFallback: EmojiFont.fallback,
                                   ),
                                   decoration: InputDecoration(
                                     hintText: 'Type a message...',

@@ -8,6 +8,7 @@ import '../bloc/messages_bloc.dart';
 import '../bloc/messages_event.dart';
 import 'package:intl/intl.dart';
 import 'message_menu.dart';
+import '../../../core/utils/emoji_font.dart';
 
 class MessageBubble extends StatefulWidget {
   final MessageModel message;
@@ -502,6 +503,7 @@ class _MessageBubbleState extends State<MessageBubble> {
       height: 1.45,
       fontWeight: FontWeight.w400,
       letterSpacing: 0.1,
+      fontFamilyFallback: EmojiFont.fallback,
     );
   }
 
@@ -593,7 +595,7 @@ class _ReactionBadges extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(emoji, style: const TextStyle(fontSize: 13)),
+                  Text(emoji, style: const TextStyle(fontSize: 13, fontFamilyFallback: EmojiFont.fallback)),
                   if (users.length > 1) ...[
                     const SizedBox(width: 3),
                     Text(

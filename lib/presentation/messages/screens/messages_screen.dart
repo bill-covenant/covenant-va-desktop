@@ -14,6 +14,7 @@ import '../../shared/widgets/refresh_fab.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../utils/debounced_json_cache.dart';
+import '../../../core/utils/emoji_font.dart';
 
 class MessagesScreen extends StatefulWidget {
   const MessagesScreen({super.key});
@@ -36,6 +37,8 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
+    // Register the chat emoji font in the background (not at app startup).
+    EmojiFont.ensureLoaded();
     _refreshAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),

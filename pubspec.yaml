@@ -56,8 +56,7 @@ flutter:
     - assets/images/mascot/loading.png
     - assets/images/mascot/success.png
     - assets/images/mascot/error.png
-
-  fonts:
-    - family: NotoColorEmoji
-      fonts:
-        - asset: assets/fonts/NotoColorEmoji-Regular.ttf
+    # Chat emoji font (24MB). Bundled as a plain asset and registered lazily
+    # by EmojiFont.ensureLoaded() when chat opens, so it isn't downloaded at
+    # startup on the web portal.
+    - assets/fonts/NotoColorEmoji-Regular.ttf
