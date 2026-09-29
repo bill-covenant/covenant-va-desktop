@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'layout_notification_sound.dart';
+import '../../../../core/utils/emoji_font.dart';
 
 class LayoutNotificationOverlay {
   static OverlayEntry? _overlayEntry;
@@ -95,6 +96,7 @@ class LayoutNotificationOverlay {
                           style: const TextStyle(
                             fontSize: 14,
                             color: Colors.white,
+                            fontFamilyFallback: EmojiFont.fallback,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,

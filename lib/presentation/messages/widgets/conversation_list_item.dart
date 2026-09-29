@@ -3,6 +3,7 @@ import '../../../core/theme/theme_provider.dart';
 import '../../../data/models/conversation_model.dart';
 import 'package:intl/intl.dart';
 import '../../shared/widgets/avatar_image.dart';
+import '../../../core/utils/emoji_font.dart';
 
 class ConversationListItem extends StatefulWidget {
   final ConversationModel conversation;
@@ -139,6 +140,7 @@ class _ConversationListItemState extends State<ConversationListItem> {
                                 fontSize: 13,
                                 fontWeight:
                                     hasUnread ? FontWeight.w600 : FontWeight.w400,
+                                fontFamilyFallback: EmojiFont.fallback,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
