@@ -295,29 +295,51 @@ class DashboardContent extends StatelessWidget {
       );
     }
 
-    // Two independent columns: each stacks at its natural height, so a tall
-    // card never leaves a gap beside a shorter one.
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    // Main column (Tasks + Blog) sets the height; the side column is laid over
+    // it with Positioned.fill so Recent Activity stretches to end exactly where
+    // the blog card does. (IntrinsicHeight can't be used: the task grid and
+    // blog card use LayoutBuilder.) The invisible min-height box keeps room
+    // for the calendar plus a usable activity card when the main column is short.
+    return Stack(
       children: [
-        Expanded(
-          flex: 3,
-          child: Column(
-            children: [
-              _buildRecentTasksSection(sorted),
-              SizedBox(height: gap),
-              const BlogPreviewSection(),
-            ],
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 3,
+              child: Column(
+                children: [
+                  _buildRecentTasksSection(sorted),
+                  SizedBox(height: gap),
+                  const BlogPreviewSection(),
+                ],
+              ),
+            ),
+            SizedBox(width: gap),
+            const Expanded(flex: 2, child: SizedBox(height: 640)),
+          ],
         ),
-        SizedBox(width: gap),
-        Expanded(
-          flex: 2,
-          child: Column(
+        Positioned.fill(
+          child: Row(
             children: [
-              _buildCalendarCard(),
-              SizedBox(height: gap),
-              activity,
+              const Spacer(flex: 3),
+              SizedBox(width: gap),
+              Expanded(
+                flex: 2,
+                child: Column(
+                  children: [
+                    _buildCalendarCard(),
+                    SizedBox(height: gap),
+                    Expanded(
+                      child: RecentActivityCard(
+                        recentEntries: state.recentEntries,
+                        todayTasks: state.todayTasks,
+                        fill: true,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),

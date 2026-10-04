@@ -25,12 +25,12 @@ class TodaySummaryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: _cardBg(),
         borderRadius: BorderRadius.circular(20),
-        border: _isDark() ? Border.all(color: Colors.white.withOpacity(0.08)) : null,
+        border: _isDark() ? Border.all(color: Colors.white.withValues(alpha: 0.08)) : null,
         boxShadow: _isDark()
-            ? [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 4))]
+            ? [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 4))]
             : [
-                BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 20, offset: const Offset(0, 6)),
-                BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
+                BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 20, offset: const Offset(0, 6)),
+                BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2)),
               ],
       ),
       child: Column(
@@ -44,8 +44,8 @@ class TodaySummaryCard extends StatelessWidget {
                   gradient: const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF059669)]),
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
-                    BoxShadow(color: const Color(0xFF10B981).withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3)),
-                    BoxShadow(color: const Color(0xFF047857).withOpacity(0.5), blurRadius: 0, offset: const Offset(0, 2)),
+                    BoxShadow(color: const Color(0xFF10B981).withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 3)),
+                    BoxShadow(color: const Color(0xFF047857).withValues(alpha: 0.5), blurRadius: 0, offset: const Offset(0, 2)),
                   ],
                 ),
                 child: const Center(child: Icon(Icons.today_rounded, color: Colors.white, size: 18)),
@@ -84,9 +84,9 @@ class _SummaryItem extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.06),
+          color: color.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity(0.1)),
+          border: Border.all(color: color.withValues(alpha: 0.1)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,7 +94,7 @@ class _SummaryItem extends StatelessWidget {
             Container(
               width: 30, height: 30,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Center(child: Icon(icon, color: color, size: 16)),
@@ -126,12 +126,12 @@ class UpcomingTasksCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: _cardBg(),
         borderRadius: BorderRadius.circular(20),
-        border: _isDark() ? Border.all(color: Colors.white.withOpacity(0.08)) : null,
+        border: _isDark() ? Border.all(color: Colors.white.withValues(alpha: 0.08)) : null,
         boxShadow: _isDark()
-            ? [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 4))]
+            ? [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 4))]
             : [
-                BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 20, offset: const Offset(0, 6)),
-                BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
+                BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 20, offset: const Offset(0, 6)),
+                BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2)),
               ],
       ),
       child: Column(
@@ -145,8 +145,8 @@ class UpcomingTasksCard extends StatelessWidget {
                   gradient: const LinearGradient(colors: [Color(0xFFF59E0B), Color(0xFFD97706)]),
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
-                    BoxShadow(color: const Color(0xFFF59E0B).withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3)),
-                    BoxShadow(color: const Color(0xFFB45309).withOpacity(0.5), blurRadius: 0, offset: const Offset(0, 2)),
+                    BoxShadow(color: const Color(0xFFF59E0B).withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 3)),
+                    BoxShadow(color: const Color(0xFFB45309).withValues(alpha: 0.5), blurRadius: 0, offset: const Offset(0, 2)),
                   ],
                 ),
                 child: const Center(child: Icon(Icons.upcoming_rounded, color: Colors.white, size: 18)),
@@ -174,10 +174,10 @@ class UpcomingTasksCard extends StatelessWidget {
                     Container(
                       width: 48, height: 48,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withOpacity(0.08),
+                        color: const Color(0xFF10B981).withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: Icon(Icons.check_circle_outline_rounded, color: const Color(0xFF10B981).withOpacity(0.4), size: 24),
+                      child: Icon(Icons.check_circle_outline_rounded, color: const Color(0xFF10B981).withValues(alpha: 0.4), size: 24),
                     ),
                     const SizedBox(height: 10),
                     Text("You're all caught up!", style: TextStyle(color: const Color(0xFF9CA3AF), fontSize: 13, fontWeight: FontWeight.w500)),
@@ -254,7 +254,7 @@ class _TaskItem extends StatelessWidget {
             decoration: BoxDecoration(
               color: _priorityColor,
               shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: _priorityColor.withOpacity(0.3), blurRadius: 4)],
+              boxShadow: [BoxShadow(color: _priorityColor.withValues(alpha: 0.3), blurRadius: 4)],
             ),
           ),
           const SizedBox(width: 12),
@@ -270,7 +270,7 @@ class _TaskItem extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: isOverdue ? const Color(0xFFEF4444).withOpacity(0.08) : const Color(0xFFE5E7EB),
+              color: isOverdue ? const Color(0xFFEF4444).withValues(alpha: 0.08) : const Color(0xFFE5E7EB),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
@@ -295,11 +295,14 @@ class _TaskItem extends StatelessWidget {
 class RecentActivityCard extends StatelessWidget {
   final List<TimeEntry> recentEntries;
   final List<TaskModel> todayTasks;
+  /// Fill the height given by the parent (entries scroll inside the card).
+  final bool fill;
 
   const RecentActivityCard({
     super.key,
     required this.recentEntries,
     required this.todayTasks,
+    this.fill = false,
   });
 
   @override
@@ -321,12 +324,12 @@ class RecentActivityCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: _cardBg(),
         borderRadius: BorderRadius.circular(20),
-        border: _isDark() ? Border.all(color: Colors.white.withOpacity(0.08)) : null,
+        border: _isDark() ? Border.all(color: Colors.white.withValues(alpha: 0.08)) : null,
         boxShadow: _isDark()
-            ? [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 4))]
+            ? [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 4))]
             : [
-                BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 20, offset: const Offset(0, 6)),
-                BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
+                BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 20, offset: const Offset(0, 6)),
+                BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2)),
               ],
       ),
       child: Column(
@@ -340,8 +343,8 @@ class RecentActivityCard extends StatelessWidget {
                   gradient: const LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)]),
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
-                    BoxShadow(color: const Color(0xFF8B5CF6).withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3)),
-                    BoxShadow(color: const Color(0xFF4C1D95).withOpacity(0.5), blurRadius: 0, offset: const Offset(0, 2)),
+                    BoxShadow(color: const Color(0xFF8B5CF6).withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 3)),
+                    BoxShadow(color: const Color(0xFF4C1D95).withValues(alpha: 0.5), blurRadius: 0, offset: const Offset(0, 2)),
                   ],
                 ),
                 child: const Center(child: Icon(Icons.history_rounded, color: Colors.white, size: 18)),
@@ -351,30 +354,42 @@ class RecentActivityCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          if (activities.isEmpty)
+          if (fill)
+            Expanded(
+              child: activities.isEmpty
+                  ? Center(child: _buildEmptyState())
+                  : ListView(
+                      padding: EdgeInsets.zero,
+                      children: activities.map((a) => _buildActivityRow(a)).toList(),
+                    ),
+            )
+          else if (activities.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
-              child: Center(
-                child: Column(
-                  children: [
-                    Container(
-                      width: 48, height: 48,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF8B5CF6).withOpacity(0.06),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(Icons.inbox_rounded, color: const Color(0xFF8B5CF6).withOpacity(0.3), size: 24),
-                    ),
-                    const SizedBox(height: 10),
-                    Text('No recent activity', style: TextStyle(color: const Color(0xFF9CA3AF), fontSize: 13, fontWeight: FontWeight.w500)),
-                  ],
-                ),
-              ),
+              child: Center(child: _buildEmptyState()),
             )
           else
             ...activities.map((a) => _buildActivityRow(a)),
         ],
       ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 48, height: 48,
+          decoration: BoxDecoration(
+            color: const Color(0xFF8B5CF6).withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Icon(Icons.inbox_rounded, color: const Color(0xFF8B5CF6).withValues(alpha: 0.3), size: 24),
+        ),
+        const SizedBox(height: 10),
+        Text('No recent activity', style: TextStyle(color: const Color(0xFF9CA3AF), fontSize: 13, fontWeight: FontWeight.w500)),
+      ],
     );
   }
 
@@ -412,7 +427,7 @@ class RecentActivityCard extends StatelessWidget {
           Container(
             width: 34, height: 34,
             decoration: BoxDecoration(
-              color: item.color.withOpacity(_isDark() ? 0.15 : 0.08),
+              color: item.color.withValues(alpha: _isDark() ? 0.15 : 0.08),
               borderRadius: BorderRadius.circular(9),
             ),
             child: Center(child: Icon(item.icon, color: item.color, size: 16)),
@@ -452,4 +467,4 @@ Color _textPrimary() => _isDark() ? Colors.white : const Color(0xFF1F2937);
 Color _textSecondary() => _isDark() ? Colors.white70 : const Color(0xFF6B7280);
 Color _textTertiary() => _isDark() ? Colors.white54 : const Color(0xFF9CA3AF);
 Color _surfaceBg() => _isDark() ? const Color(0xFF232738) : const Color(0xFFF9FAFB);
-Color _borderColor() => _isDark() ? Colors.white.withOpacity(0.08) : const Color(0xFFE5E7EB);
+Color _borderColor() => _isDark() ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE5E7EB);
