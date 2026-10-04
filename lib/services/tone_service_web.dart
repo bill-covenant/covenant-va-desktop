@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'dart:js_util' as js_util;
-import 'dart:html' as html;
+import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
 
 /// Web implementation of ToneService using Web Audio API via JS interop.
 class ToneService {
@@ -8,24 +8,19 @@ class ToneService {
   factory ToneService() => _instance;
   ToneService._internal();
 
-  dynamic _audioCtx;
-  dynamic _osc1;
-  dynamic _osc2;
-  dynamic _gainNode;
+  JSObject? _audioCtx;
+  JSObject? _osc1;
+  JSObject? _osc2;
+  JSObject? _gainNode;
   Timer? _onTimer;
   Timer? _offTimer;
   bool _isPlaying = false;
 
   bool get isPlaying => _isPlaying;
 
-  dynamic _getContext() {
-    if (_audioCtx == null) {
-      _audioCtx = js_util.callConstructor(
-        js_util.getProperty(html.window, 'AudioContext'),
-        [],
-      );
-    }
-    return _audioCtx;
+  JSObject _getContext() {
+    return _audioCtx ??=
+        (globalContext['AudioContext'] as JSFunction).callAsConstructor<JSObject>();
   }
 
   /// Play incoming call ringtone (receiver hears this)
@@ -64,40 +59,38 @@ class ToneService {
     });
   }
 
+  JSObject _createOscillator(JSObject ctx, double freq, JSObject gain) {
+    final osc = ctx.callMethod<JSObject>('createOscillator'.toJS);
+    osc['type'] = 'sine'.toJS;
+    (osc['frequency'] as JSObject)['value'] = freq.toJS;
+    osc.callMethod('connect'.toJS, gain);
+    osc.callMethod('start'.toJS, 0.toJS);
+    return osc;
+  }
+
   void _startTone(double freq1, double freq2, double volume) {
     try {
       final ctx = _getContext();
-      final dest = js_util.getProperty(ctx, 'destination');
+      final dest = ctx['destination'] as JSObject;
 
-      _gainNode = js_util.callMethod(ctx, 'createGain', []);
-      final gainParam = js_util.getProperty(_gainNode, 'gain');
-      js_util.setProperty(gainParam, 'value', volume);
-      js_util.callMethod(_gainNode, 'connect', [dest]);
+      final gain = ctx.callMethod<JSObject>('createGain'.toJS);
+      (gain['gain'] as JSObject)['value'] = volume.toJS;
+      gain.callMethod('connect'.toJS, dest);
+      _gainNode = gain;
 
-      _osc1 = js_util.callMethod(ctx, 'createOscillator', []);
-      js_util.setProperty(_osc1, 'type', 'sine');
-      final freq1Param = js_util.getProperty(_osc1, 'frequency');
-      js_util.setProperty(freq1Param, 'value', freq1);
-      js_util.callMethod(_osc1, 'connect', [_gainNode]);
-      js_util.callMethod(_osc1, 'start', [0]);
-
-      _osc2 = js_util.callMethod(ctx, 'createOscillator', []);
-      js_util.setProperty(_osc2, 'type', 'sine');
-      final freq2Param = js_util.getProperty(_osc2, 'frequency');
-      js_util.setProperty(freq2Param, 'value', freq2);
-      js_util.callMethod(_osc2, 'connect', [_gainNode]);
-      js_util.callMethod(_osc2, 'start', [0]);
+      _osc1 = _createOscillator(ctx, freq1, gain);
+      _osc2 = _createOscillator(ctx, freq2, gain);
     } catch (e) {
       print('⚠️ ToneService web: Error starting tone: $e');
     }
   }
 
   void _stopOscillators() {
-    try { js_util.callMethod(_osc1, 'stop', [0]); } catch (_) {}
-    try { js_util.callMethod(_osc2, 'stop', [0]); } catch (_) {}
-    try { js_util.callMethod(_osc1, 'disconnect', []); } catch (_) {}
-    try { js_util.callMethod(_osc2, 'disconnect', []); } catch (_) {}
-    try { js_util.callMethod(_gainNode, 'disconnect', []); } catch (_) {}
+    try { _osc1?.callMethod('stop'.toJS, 0.toJS); } catch (_) {}
+    try { _osc2?.callMethod('stop'.toJS, 0.toJS); } catch (_) {}
+    try { _osc1?.callMethod('disconnect'.toJS); } catch (_) {}
+    try { _osc2?.callMethod('disconnect'.toJS); } catch (_) {}
+    try { _gainNode?.callMethod('disconnect'.toJS); } catch (_) {}
     _osc1 = null;
     _osc2 = null;
     _gainNode = null;

@@ -128,7 +128,7 @@ class _AppContentState extends State<_AppContent> {
     // Check if notes loaded successfully
     await Future.delayed(const Duration(seconds: 2));
     final notesState = getIt<NotesBloc>().state;
-    final notesFailed = notesState is! NotesLoaded || (notesState as NotesLoaded).notes.isEmpty;
+    final notesFailed = notesState is! NotesLoaded || (notesState).notes.isEmpty;
 
     if (notesFailed && attempt < maxRetries) {
       await Future.delayed(retryDelay);

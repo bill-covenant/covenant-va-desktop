@@ -775,6 +775,7 @@ class CallService extends ChangeNotifier {
         if (_selectedAudioOutput != null) {
           remoteRenderer.audioOutput(_selectedAudioOutput!).catchError((e) {
             print('⚠️ Could not set audio output: $e');
+            return false;
           });
         }
         notifyListeners();
