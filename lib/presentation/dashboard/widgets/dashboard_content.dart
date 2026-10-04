@@ -296,16 +296,16 @@ class DashboardContent extends StatelessWidget {
 
     return Column(
       children: [
-        // Calendar + Latest Blog Posts, side by side (like the client portal)
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(child: _buildCalendarCard(fill: true)),
-              const SizedBox(width: 20),
-              const Expanded(child: BlogPreviewSection()),
-            ],
-          ),
+        // Calendar + Latest Blog Posts, side by side (like the client portal).
+        // Top-aligned so the calendar keeps its compact size instead of
+        // stretching to the blog card's height.
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: _buildCalendarCard()),
+            const SizedBox(width: 20),
+            const Expanded(child: BlogPreviewSection()),
+          ],
         ),
         const SizedBox(height: 20),
         // Recent Activity + Recent Tasks
@@ -470,7 +470,7 @@ class DashboardContent extends StatelessWidget {
   // CALENDAR
   // ═══════════════════════════════════════
 
-  Widget _buildCalendarCard({bool fill = false}) {
+  Widget _buildCalendarCard() {
     final now = DateTime.now();
     final firstDay = DateTime(now.year, now.month, 1);
     final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
@@ -614,11 +614,7 @@ class DashboardContent extends StatelessWidget {
                 );
               }),
             );
-            // When the card is stretched to fill height (desktop), let each week
-            // row expand so the grid spreads evenly across the whole card.
-            return fill
-                ? Expanded(child: Center(child: row))
-                : Padding(padding: const EdgeInsets.symmetric(vertical: 3), child: row);
+            return Padding(padding: const EdgeInsets.symmetric(vertical: 3), child: row);
           }),
         ],
       ),
