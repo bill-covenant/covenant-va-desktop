@@ -121,81 +121,117 @@ class _BlogPreviewSectionState extends State<BlogPreviewSection> {
   Widget _featured(Map<String, dynamic> p, List<Map<String, dynamic>> more, bool isDark, Color textPrimary, Color textSecondary) {
     final cover = (p['coverImage'] ?? '').toString();
     final tags = (p['tags'] is List) ? (p['tags'] as List) : const [];
-    return GestureDetector(
-      onTap: () => _open(p, isDark),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (cover.isNotEmpty)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Image.network(
-                cover,
-                width: double.infinity,
-                // Fixed-height banner so a tall cover can't blow up the card
-                // (and the calendar stretched beside it) on wide screens.
-                height: 200,
-                fit: BoxFit.cover,
-                // Flutter web (CanvasKit) can't draw cross-origin images without
-                // CORS headers; fall back to an HTML <img> element so they show.
-                webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
-                errorBuilder: (_, __, ___) => Container(
-                  height: 200,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFFEC4899)]),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Center(child: Icon(Icons.menu_book_rounded, color: Colors.white54, size: 32)),
-                ),
+
+    Widget coverImage({double? height}) => ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Image.network(
+            cover,
+            width: double.infinity,
+            height: height,
+            fit: BoxFit.cover,
+            // Flutter web (CanvasKit) can't draw cross-origin images without
+            // CORS headers; fall back to an HTML <img> element so they show.
+            webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
+            errorBuilder: (_, __, ___) => Container(
+              height: height,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFFEC4899)]),
+                borderRadius: BorderRadius.circular(14),
               ),
+              child: const Center(child: Icon(Icons.menu_book_rounded, color: Colors.white54, size: 32)),
             ),
-          if (cover.isNotEmpty) const SizedBox(height: 14),
-          if (tags.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Wrap(
-                spacing: 6,
-                children: tags.take(2).map((t) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: const Color(0xFF7C3AED).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
-                  child: Text(t.toString(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF7C3AED))),
-                )).toList(),
-              ),
+          ),
+        );
+
+    final details = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (tags.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: tags.take(2).map((t) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(color: const Color(0xFF7C3AED).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+                child: Text(t.toString(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF7C3AED))),
+              )).toList(),
             ),
-          Text((p['title'] ?? '').toString(), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: textPrimary), maxLines: 2, overflow: TextOverflow.ellipsis),
+          ),
+        Text((p['title'] ?? '').toString(), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: textPrimary), maxLines: 2, overflow: TextOverflow.ellipsis),
+        const SizedBox(height: 6),
+        Text(_preview(p), style: TextStyle(fontSize: 13, color: textSecondary, height: 1.4), maxLines: 3, overflow: TextOverflow.ellipsis),
+        const SizedBox(height: 12),
+        Row(children: [
+          Icon(Icons.calendar_today_outlined, size: 12, color: textSecondary),
+          const SizedBox(width: 5),
+          Text(_fmtDate(p['publishedAt'] ?? p['createdAt']), style: TextStyle(fontSize: 11.5, color: textSecondary)),
+          const Spacer(),
+          const Text('Read', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF7C3AED))),
+          const Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFF7C3AED)),
+        ]),
+      ],
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTap: () => _open(p, isDark),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Wide card: cover on the left, details on the right, so the
+              // card stays short. Narrow card: banner on top.
+              if (cover.isNotEmpty && constraints.maxWidth >= 560) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: constraints.maxWidth * 0.42,
+                      child: AspectRatio(aspectRatio: 16 / 10, child: coverImage()),
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(child: details),
+                  ],
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (cover.isNotEmpty) ...[
+                    coverImage(height: 180),
+                    const SizedBox(height: 14),
+                  ],
+                  details,
+                ],
+              );
+            },
+          ),
+        ),
+        if (more.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          Divider(height: 1, color: isDark ? Colors.white12 : Colors.grey.shade200),
           const SizedBox(height: 6),
-          Text(_preview(p), style: TextStyle(fontSize: 13, color: textSecondary, height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 12),
-          Row(children: [
-            Icon(Icons.calendar_today_outlined, size: 12, color: textSecondary),
-            const SizedBox(width: 5),
-            Text(_fmtDate(p['publishedAt'] ?? p['createdAt']), style: TextStyle(fontSize: 11.5, color: textSecondary)),
-            const Spacer(),
-            const Text('Read', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF7C3AED))),
-            const Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFF7C3AED)),
-          ]),
-          if (more.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            Divider(height: 1, color: isDark ? Colors.white12 : Colors.grey.shade200),
-            const SizedBox(height: 6),
-            ...more.map((m) => InkWell(
-              onTap: () => _open(m, isDark),
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 7),
-                child: Row(children: [
-                  const Icon(Icons.article_outlined, size: 14, color: Color(0xFF7C3AED)),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text((m['title'] ?? '').toString(), style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: textPrimary), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                  const SizedBox(width: 8),
-                  Text(_fmtDate(m['publishedAt'] ?? m['createdAt']), style: TextStyle(fontSize: 10.5, color: textSecondary)),
-                ]),
-              ),
-            )),
-          ],
+          ...more.map((m) => InkWell(
+            onTap: () => _open(m, isDark),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 7),
+              child: Row(children: [
+                const Icon(Icons.article_outlined, size: 14, color: Color(0xFF7C3AED)),
+                const SizedBox(width: 8),
+                Expanded(child: Text((m['title'] ?? '').toString(), style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: textPrimary), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                const SizedBox(width: 8),
+                Text(_fmtDate(m['publishedAt'] ?? m['createdAt']), style: TextStyle(fontSize: 10.5, color: textSecondary)),
+              ]),
+            ),
+          )),
         ],
-      ),
+      ],
     );
   }
 }

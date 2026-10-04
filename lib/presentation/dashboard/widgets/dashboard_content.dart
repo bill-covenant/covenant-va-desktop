@@ -87,6 +87,8 @@ class DashboardContent extends StatelessWidget {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final isMobile = constraints.maxWidth < 700;
+                  // Side column needs room for the 7-day calendar grid.
+                  final isWide = constraints.maxWidth >= 1100;
                   final padding = isMobile
                       ? const EdgeInsets.fromLTRB(16, 12, 16, 24)
                       : const EdgeInsets.fromLTRB(32, 16, 32, 32);
@@ -99,7 +101,7 @@ class DashboardContent extends StatelessWidget {
                         const AnnouncementsSection(),
                         _buildTopRow(state, isMobile),
                         const SizedBox(height: 20),
-                        _buildBottomRow(state, isMobile),
+                        _buildBottomRow(state, isMobile, isWide),
                       ],
                     ),
                   );
@@ -263,10 +265,10 @@ class DashboardContent extends StatelessWidget {
   }
 
   // ═══════════════════════════════════════
-  // BOTTOM ROW: Tasks + Calendar/Activity
+  // BODY: Tasks + Blog (main) | Calendar + Activity (side)
   // ═══════════════════════════════════════
 
-  Widget _buildBottomRow(DashboardLoaded state, [bool isMobile = false]) {
+  Widget _buildBottomRow(DashboardLoaded state, [bool isMobile = false, bool isWide = true]) {
     final priorityOrder = ['URGENT', 'HIGH', 'MEDIUM', 'LOW'];
     final sorted = List<TaskModel>.from(state.allTasks);
     sorted.sort((a, b) {
@@ -276,42 +278,48 @@ class DashboardContent extends StatelessWidget {
       return (ai == -1 ? 99 : ai).compareTo(bi == -1 ? 99 : bi);
     });
 
-    if (isMobile) {
+    final gap = isMobile ? 12.0 : 20.0;
+    final activity = RecentActivityCard(recentEntries: state.recentEntries, todayTasks: state.todayTasks);
+
+    if (!isWide) {
       return Column(
         children: [
-          _buildCalendarCard(),
-          const SizedBox(height: 12),
-          const BlogPreviewSection(),
-          const SizedBox(height: 12),
-          RecentActivityCard(recentEntries: state.recentEntries, todayTasks: state.todayTasks),
-          const SizedBox(height: 12),
           _buildRecentTasksSection(sorted),
+          SizedBox(height: gap),
+          _buildCalendarCard(),
+          SizedBox(height: gap),
+          activity,
+          SizedBox(height: gap),
+          const BlogPreviewSection(),
         ],
       );
     }
 
-    return Column(
+    // Two independent columns: each stacks at its natural height, so a tall
+    // card never leaves a gap beside a shorter one.
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Calendar + Latest Blog Posts, side by side (like the client portal)
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        Expanded(
+          flex: 3,
+          child: Column(
             children: [
-              Expanded(child: _buildCalendarCard(fill: true)),
-              const SizedBox(width: 20),
-              const Expanded(child: BlogPreviewSection()),
+              _buildRecentTasksSection(sorted),
+              SizedBox(height: gap),
+              const BlogPreviewSection(),
             ],
           ),
         ),
-        const SizedBox(height: 20),
-        // Recent Activity + Recent Tasks
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(flex: 2, child: RecentActivityCard(recentEntries: state.recentEntries, todayTasks: state.todayTasks)),
-            const SizedBox(width: 20),
-            Expanded(flex: 3, child: _buildRecentTasksSection(sorted)),
-          ],
+        SizedBox(width: gap),
+        Expanded(
+          flex: 2,
+          child: Column(
+            children: [
+              _buildCalendarCard(),
+              SizedBox(height: gap),
+              activity,
+            ],
+          ),
         ),
       ],
     );
@@ -466,7 +474,7 @@ class DashboardContent extends StatelessWidget {
   // CALENDAR
   // ═══════════════════════════════════════
 
-  Widget _buildCalendarCard({bool fill = false}) {
+  Widget _buildCalendarCard() {
     final now = DateTime.now();
     final firstDay = DateTime(now.year, now.month, 1);
     final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
@@ -610,11 +618,7 @@ class DashboardContent extends StatelessWidget {
                 );
               }),
             );
-            // When the card is stretched to fill height (desktop), let each week
-            // row expand so the grid spreads evenly across the whole card.
-            return fill
-                ? Expanded(child: Center(child: row))
-                : Padding(padding: const EdgeInsets.symmetric(vertical: 3), child: row);
+            return Padding(padding: const EdgeInsets.symmetric(vertical: 3), child: row);
           }),
         ],
       ),
