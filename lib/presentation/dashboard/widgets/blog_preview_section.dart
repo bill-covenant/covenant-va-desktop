@@ -79,10 +79,10 @@ class _BlogPreviewSectionState extends State<BlogPreviewSection> {
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(24),
-        border: isDark ? Border.all(color: Colors.white.withOpacity(0.08)) : null,
+        border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.08)) : null,
         boxShadow: isDark
-            ? [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 4))]
-            : [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 24, offset: const Offset(0, 8))],
+            ? [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 4))]
+            : [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 24, offset: const Offset(0, 8))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,13 +133,15 @@ class _BlogPreviewSectionState extends State<BlogPreviewSection> {
               child: Image.network(
                 cover,
                 width: double.infinity,
-                // Show the full image (no crop), scaled to the card width.
-                fit: BoxFit.fitWidth,
+                // Fixed-height banner so a tall cover can't blow up the card
+                // (and the calendar stretched beside it) on wide screens.
+                height: 200,
+                fit: BoxFit.cover,
                 // Flutter web (CanvasKit) can't draw cross-origin images without
                 // CORS headers; fall back to an HTML <img> element so they show.
                 webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
                 errorBuilder: (_, __, ___) => Container(
-                  height: 150,
+                  height: 200,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFFEC4899)]),
                     borderRadius: BorderRadius.circular(14),
@@ -156,7 +158,7 @@ class _BlogPreviewSectionState extends State<BlogPreviewSection> {
                 spacing: 6,
                 children: tags.take(2).map((t) => Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: const Color(0xFF7C3AED).withOpacity(0.12), borderRadius: BorderRadius.circular(6)),
+                  decoration: BoxDecoration(color: const Color(0xFF7C3AED).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
                   child: Text(t.toString(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF7C3AED))),
                 )).toList(),
               ),

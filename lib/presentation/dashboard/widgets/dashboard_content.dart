@@ -189,7 +189,7 @@ class DashboardContent extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: const Color(0xFF8B5CF6),
                         borderRadius: BorderRadius.circular(4),
-                        boxShadow: [BoxShadow(color: const Color(0xFF8B5CF6).withOpacity(0.3), blurRadius: 4)],
+                        boxShadow: [BoxShadow(color: const Color(0xFF8B5CF6).withValues(alpha: 0.3), blurRadius: 4)],
                       ),
                     ),
                   ),
@@ -230,7 +230,7 @@ class DashboardContent extends StatelessWidget {
                 child: CircularProgressIndicator(
                   value: percentage,
                   strokeWidth: strokeWidth,
-                  backgroundColor: _isDark() ? bgColor.withOpacity(0.2) : bgColor,
+                  backgroundColor: _isDark() ? bgColor.withValues(alpha: 0.2) : bgColor,
                   valueColor: AlwaysStoppedAnimation<Color>(color),
                   strokeCap: StrokeCap.round,
                 ),
@@ -292,16 +292,16 @@ class DashboardContent extends StatelessWidget {
 
     return Column(
       children: [
-        // Calendar + Latest Blog Posts, side by side (like the client portal).
-        // Top-aligned so the calendar keeps its compact size instead of
-        // stretching to the blog card's height.
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: _buildCalendarCard()),
-            const SizedBox(width: 20),
-            const Expanded(child: BlogPreviewSection()),
-          ],
+        // Calendar + Latest Blog Posts, side by side (like the client portal)
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: _buildCalendarCard(fill: true)),
+              const SizedBox(width: 20),
+              const Expanded(child: BlogPreviewSection()),
+            ],
+          ),
         ),
         const SizedBox(height: 20),
         // Recent Activity + Recent Tasks
@@ -331,7 +331,7 @@ class DashboardContent extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(colors: [Color(0xFFF59E0B), Color(0xFFD97706)]),
                   borderRadius: BorderRadius.circular(10),
-                  boxShadow: [BoxShadow(color: const Color(0xFFF59E0B).withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3))],
+                  boxShadow: [BoxShadow(color: const Color(0xFFF59E0B).withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 3))],
                 ),
                 child: const Icon(Icons.task_alt, color: Colors.white, size: 18),
               ),
@@ -386,10 +386,10 @@ class DashboardContent extends StatelessWidget {
         decoration: BoxDecoration(
           color: _cardBg(),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: _isDark() ? Colors.white.withOpacity(0.08) : pColor.withOpacity(0.15)),
+          border: Border.all(color: _isDark() ? Colors.white.withValues(alpha: 0.08) : pColor.withValues(alpha: 0.15)),
           boxShadow: [
-            BoxShadow(color: pColor.withOpacity(_isDark() ? 0.15 : 0.08), blurRadius: 16, offset: const Offset(0, 6)),
-            BoxShadow(color: Colors.black.withOpacity(_isDark() ? 0.2 : 0.03), blurRadius: 4, offset: const Offset(0, 2)),
+            BoxShadow(color: pColor.withValues(alpha: _isDark() ? 0.15 : 0.08), blurRadius: 16, offset: const Offset(0, 6)),
+            BoxShadow(color: Colors.black.withValues(alpha: _isDark() ? 0.2 : 0.03), blurRadius: 4, offset: const Offset(0, 2)),
           ],
         ),
         child: Column(
@@ -402,7 +402,7 @@ class DashboardContent extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isOverdue
                         ? const Color(0xFFEF4444)
-                        : _getStatusColor(task.status).withOpacity(0.1),
+                        : _getStatusColor(task.status).withValues(alpha: 0.1),
                     gradient: isOverdue ? const LinearGradient(colors: [Color(0xFFEF4444), Color(0xFFDC2626)]) : null,
                     borderRadius: BorderRadius.circular(6),
                   ),
@@ -419,7 +419,7 @@ class DashboardContent extends StatelessWidget {
                   width: 8, height: 8,
                   decoration: BoxDecoration(
                     color: pColor, shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: pColor.withOpacity(0.4), blurRadius: 4)],
+                    boxShadow: [BoxShadow(color: pColor.withValues(alpha: 0.4), blurRadius: 4)],
                   ),
                 ),
               ],
@@ -447,7 +447,7 @@ class DashboardContent extends StatelessWidget {
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
                       value: progress,
-                      backgroundColor: pColor.withOpacity(0.1),
+                      backgroundColor: pColor.withValues(alpha: 0.1),
                       valueColor: AlwaysStoppedAnimation<Color>(pColor),
                       minHeight: 6,
                     ),
@@ -466,7 +466,7 @@ class DashboardContent extends StatelessWidget {
   // CALENDAR
   // ═══════════════════════════════════════
 
-  Widget _buildCalendarCard() {
+  Widget _buildCalendarCard({bool fill = false}) {
     final now = DateTime.now();
     final firstDay = DateTime(now.year, now.month, 1);
     final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
@@ -484,14 +484,14 @@ class DashboardContent extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: isDark
-                  ? [Colors.white.withOpacity(0.08), Colors.white.withOpacity(0.03)]
+                  ? [Colors.white.withValues(alpha: 0.08), Colors.white.withValues(alpha: 0.03)]
                   : [Colors.white, const Color(0xFFF1F1F7)],
             ),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: isDark ? Colors.white.withOpacity(0.10) : Colors.black.withOpacity(0.05)),
+            border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.10) : Colors.black.withValues(alpha: 0.05)),
             boxShadow: isDark
                 ? null
-                : [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 5, offset: const Offset(0, 2))],
+                : [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 5, offset: const Offset(0, 2))],
           ),
           child: Icon(icon, size: 17, color: _textSecondary()),
         );
@@ -515,7 +515,7 @@ class DashboardContent extends StatelessWidget {
                         colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
                       ),
                       borderRadius: BorderRadius.circular(10),
-                      boxShadow: [BoxShadow(color: const Color(0xFF8B5CF6).withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 3))],
+                      boxShadow: [BoxShadow(color: const Color(0xFF8B5CF6).withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 3))],
                     ),
                     child: const Icon(Icons.calendar_month_rounded, color: Colors.white, size: 18),
                   ),
@@ -546,7 +546,7 @@ class DashboardContent extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 11,
                             letterSpacing: 0.5,
-                            color: (e.key == 0 || e.key == 6) ? weekendAccent.withOpacity(0.9) : _textTertiary(),
+                            color: (e.key == 0 || e.key == 6) ? weekendAccent.withValues(alpha: 0.9) : _textTertiary(),
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -577,23 +577,23 @@ class DashboardContent extends StatelessWidget {
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             colors: isDark
-                                ? [Colors.white.withOpacity(0.05), Colors.white.withOpacity(0.015)]
+                                ? [Colors.white.withValues(alpha: 0.05), Colors.white.withValues(alpha: 0.015)]
                                 : [Colors.white, const Color(0xFFF3F2F9)],
                           ),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isToday
-                          ? Colors.white.withOpacity(0.25)
-                          : (isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04)),
+                          ? Colors.white.withValues(alpha: 0.25)
+                          : (isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04)),
                     ),
                     boxShadow: isToday
                         ? [
-                            BoxShadow(color: const Color(0xFF7C3AED).withOpacity(0.55), blurRadius: 14, offset: const Offset(0, 6)),
-                            BoxShadow(color: const Color(0xFF8B5CF6).withOpacity(0.30), blurRadius: 4, offset: const Offset(0, 1)),
+                            BoxShadow(color: const Color(0xFF7C3AED).withValues(alpha: 0.55), blurRadius: 14, offset: const Offset(0, 6)),
+                            BoxShadow(color: const Color(0xFF8B5CF6).withValues(alpha: 0.30), blurRadius: 4, offset: const Offset(0, 1)),
                           ]
                         : (isDark
                             ? null
-                            : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 2))]),
+                            : [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4, offset: const Offset(0, 2))]),
                   ),
                   child: Center(
                     child: Text(
@@ -610,7 +610,11 @@ class DashboardContent extends StatelessWidget {
                 );
               }),
             );
-            return Padding(padding: const EdgeInsets.symmetric(vertical: 3), child: row);
+            // When the card is stretched to fill height (desktop), let each week
+            // row expand so the grid spreads evenly across the whole card.
+            return fill
+                ? Expanded(child: Center(child: row))
+                : Padding(padding: const EdgeInsets.symmetric(vertical: 3), child: row);
           }),
         ],
       ),
@@ -636,12 +640,12 @@ class DashboardContent extends StatelessWidget {
     return BoxDecoration(
       color: cardBg,
       borderRadius: BorderRadius.circular(24),
-      border: dark ? Border.all(color: Colors.white.withOpacity(0.08)) : null,
+      border: dark ? Border.all(color: Colors.white.withValues(alpha: 0.08)) : null,
       boxShadow: dark
-          ? [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 4))]
+          ? [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 4))]
           : [
-              BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 24, offset: const Offset(0, 8)),
-              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
+              BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 24, offset: const Offset(0, 8)),
+              BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2)),
             ],
     );
   }
@@ -691,7 +695,7 @@ class DashboardContent extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(32, 20, 32, 12),
-          child: Container(width: 200, height: 32, decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(8))),
+          child: Container(width: 200, height: 32, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8))),
         ),
         Expanded(
           child: SingleChildScrollView(
@@ -736,9 +740,9 @@ class DashboardContent extends StatelessWidget {
         return Container(
           height: height,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05 * value),
+            color: Colors.white.withValues(alpha: 0.05 * value),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.1 * value)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1 * value)),
           ),
         );
       },
